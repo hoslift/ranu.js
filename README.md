@@ -6,19 +6,23 @@
 <h1 align="center">ranu.js</h1>
 
 <p align="center">
+<a href="https://hoslift.com">
+  <img src="https://img.shields.io/badge/MADE%20BY%20HOSLIFT-228be6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAuMzQxIDYuNDg0QTEwIDEwIDAgMCAxIDEwLjI2NiAyMS44NSIvPjxwYXRoIGQ9Ik0zLjY1OSAxNy41MTZBMTAgMTAgMCAwIDEgMTMuNzQgMi4xNTIiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTkiIGN5PSI1IiByPSIyIi8+PGNpcmNsZSBjeD0iNSIgY3k9IjE5IiByPSIyIi8+PC9zdmc+" alt="Made by Hoslift">
+</a>
+</p>
+
+<p align="center">
   <strong>Rethinking the Full-Stack Web.</strong><br>
   A lightweight, portable, and type-safe framework engineered for extreme speed and modern edge runtimes.
 </p>
 
 <p align="center">
-<a href="https://hoslift.com">
-  <img src="https://img.shields.io/badge/MADE%20BY%20HOSLIFT-228be6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAuMzQxIDYuNDg0QTEwIDEwIDAgMCAxIDEwLjI2NiAyMS44NSIvPjxwYXRoIGQ9Ik0zLjY1OSAxNy41MTZBMTAgMTAgMCAwIDEgMTMuNzQgMi4xNTIiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTkiIGN5PSI1IiByPSIyIi8+PGNpcmNsZSBjeD0iNSIgY3k9IjE5IiByPSIyIi8+PC9zdmc+" alt="Made by Hoslift">
-</a>
+
   <a href="https://www.npmjs.com/">
   <img src="https://img.shields.io/badge/NPM-V%201.0.0-ffffff?style=for-the-badge&labelColor=000000&logo=npm&logoColor=fe4d4d" alt="NPM Version">
 </a>
 <a href="https://github.com/hoslift/ranu.js/blob/main/LICENSE">
-  <img src="https://img.shields.io/badge/LICENSE-MIT-40c057?style=for-the-badge&labelColor=000000&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+PHBhdGggZD0iTTEyIDJBMTAgMTAgMCAwIDAgMy4zNCAxN2wyLjYtMS41QTcgNyAwIDEgMSAxMiAxOWE3IDcgMCAwIDEtNC45NS0yLjA1bC0yLjYgMS41QTEwIDEwIDAgMSAwIDEyIDJ6bTAgNmE0IDQgMCAwIDAtMy40NiA2bDIuNi0xLjVhMSAxIDAgMSAxIDEuNzIgMGwyLjYgMS41QTQgNCAwIDAgMCAxMiA4eiIvPjwvc3ZnPg==&logoColor=white" alt="MIT License">
+  <img src="https://img.shields.io/badge/LICENSE-MIT-40c057?style=for-the-badge&labelColor=000000&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDN2MTgiLz48cGF0aCBkPSJtMTkgOCAzIDhhNSA1IDAgMCAxLTYgMHpWNyIvPjxwYXRoIGQ9Ik0zIDdoMWExNyAxNyAwIDAgMCA4LTIgMTcgMTcgMCAwIDAgOCAyaDEiLz48cGF0aCBkPSJtNSA4IDMgOGE1IDUgMCAwIDEtNiAwelY3Ii8+PHBhdGggZD0iTTcgMjFoMTAiLz48L3N2Zz4=&logoColor=white" alt="MIT License">
 </a>
 <a href="https://github.com/hoslift/ranu.js/issues">
   <img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=for-the-badge&color=ffd43b&labelColor=000000&logo=github&logoColor=white" alt="Issues">
