@@ -1,0 +1,6 @@
+{
+  "name": "fixture-react-ssr",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module"
+}

@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../config" },
+    { "path": "../diagnostics" },
+    { "path": "../build" },
+    { "path": "../dev" },
+    { "path": "../runtime-node" }
+  ],
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
+}

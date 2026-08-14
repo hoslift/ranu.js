@@ -1,0 +1,40 @@
+{
+  "name": "create-ranu",
+  "version": "0.0.0",
+  "description": "Create a new Ranu.js project",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "create-ranu": "./dist/bin/create-ranu.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "templates", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoslift/ranu.js.git",
+    "directory": "create-ranu"
+  },
+  "keywords": ["ranu", "create", "scaffold", "framework", "typescript", "react"]
+}

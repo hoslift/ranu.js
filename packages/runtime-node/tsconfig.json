@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true,
+    "lib": ["ES2022", "DOM"]
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../diagnostics" },
+    { "path": "../manifests" },
+    { "path": "../runtime" }
+  ],
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
+}

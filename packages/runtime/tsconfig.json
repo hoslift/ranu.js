@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../diagnostics" },
+    { "path": "../manifests" },
+    { "path": "../router" }
+  ],
+  "files": [
+    "src/index.ts",
+    "src/types.ts",
+    "src/context.ts",
+    "src/signals.ts",
+    "src/dispatch.ts",
+    "src/errors.ts",
+    "src/engine.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}
