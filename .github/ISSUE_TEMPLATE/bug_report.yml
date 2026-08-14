@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report a reproducible problem with Ranu.js
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Ranu.js.
+
+        Ranu.js is currently in pre-alpha development. Before submitting a bug report, please search existing issues to make sure the problem has not already been reported.
+
+        **Do not report security vulnerabilities here.** Please follow the private reporting process described in SECURITY.md.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clearly describe the problem you encountered.
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reproducible example or the steps required to reproduce the issue.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Ranu.js Version or Commit
+      description: Provide the Ranu.js version, commit SHA, or development revision you are using.
+      placeholder: e.g. commit abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js Version
+      placeholder: e.g. 22.x
+    validations:
+      required: true
+
+  - type: input
+    id: package-manager
+    attributes:
+      label: Package Manager
+      placeholder: e.g. pnpm 11.x
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating System
+      placeholder: e.g. Windows 11, Ubuntu 24.04, macOS
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add logs, screenshots, stack traces, or other relevant information.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I searched existing issues and could not find an existing report for this problem.
+          required: true
+        - label: I can reproduce this issue using the latest relevant Ranu.js development version.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
