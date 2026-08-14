@@ -8,3 +8,6 @@ updates:
     groups:
       devDependencies:
         dependency-type: "development"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

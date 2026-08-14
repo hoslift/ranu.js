@@ -133,7 +133,7 @@ Ranu.js has not yet reached a stable public release.
 The intended project creation experience is:
 
 ```bash
-npm create ranu.js@latest my-app
+npm create ranu@latest my-app
 cd my-app
 npm install
 npm run dev
@@ -174,15 +174,9 @@ A dedicated `ROADMAP.md` can track implementation progress, milestones, and rele
 
 ## Documentation
 
-Project documentation will be maintained in:
+Public documentation is planned for the official Ranu.js project website as the framework develops.
 
-```text
-docs/
-```
-
-Public documentation is also planned for the Ranu.js project website.
-
-Documentation will expand alongside implementation and public releases.
+Detailed framework design, API specifications, and usage guides will be published alongside stable releases.
 
 ---
 
