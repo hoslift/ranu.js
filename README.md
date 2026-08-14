@@ -1,166 +1,258 @@
 <p align="center">
   <a href="https://ranu.js.org">
-    <img src="logo.svg" alt="Ranu.js Logo" width="80" height="80" style="border-radius: 50%; border: 2px solid #ffffff; padding: 8px;">
+    <img src="logo.svg" alt="Ranu.js Logo" width="80" height="80">
   </a>
 </p>
-<h1 align="center">ranu.js</h1>
 
-<p align="center">
-<a href="https://hoslift.com">
-  <img src="https://img.shields.io/badge/MADE%20BY%20HOSLIFT-228be6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAuMzQxIDYuNDg0QTEwIDEwIDAgMCAxIDEwLjI2NiAyMS44NSIvPjxwYXRoIGQ9Ik0zLjY1OSAxNy41MTZBMTAgMTAgMCAwIDEgMTMuNzQgMi4xNTIiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTkiIGN5PSI1IiByPSIyIi8+PGNpcmNsZSBjeD0iNSIgY3k9IjE5IiByPSIyIi8+PC9zdmc+" alt="Made by Hoslift">
-</a>
-</p>
+<h1 align="center">Ranu.js</h1>
 
 <p align="center">
   <strong>Rethinking the Full-Stack Web.</strong><br>
-  A lightweight, portable, and type-safe framework engineered for extreme speed and modern edge runtimes.
+  A JavaScript/TypeScript full-stack web framework for building modern web applications.
 </p>
 
 <p align="center">
-
-  <a href="https://www.npmjs.com/">
-  <img src="https://img.shields.io/badge/NPM-V%201.0.0-ffffff?style=for-the-badge&labelColor=000000&logo=npm&logoColor=fe4d4d" alt="NPM Version">
-</a>
-<a href="https://github.com/hoslift/ranu.js/blob/main/LICENSE">
-  <img src="https://img.shields.io/badge/LICENSE-MIT-40c057?style=for-the-badge&labelColor=000000&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDN2MTgiLz48cGF0aCBkPSJtMTkgOCAzIDhhNSA1IDAgMCAxLTYgMHpWNyIvPjxwYXRoIGQ9Ik0zIDdoMWExNyAxNyAwIDAgMCA4LTIgMTcgMTcgMCAwIDAgOCAyaDEiLz48cGF0aCBkPSJtNSA4IDMgOGE1IDUgMCAwIDEtNiAwelY3Ii8+PHBhdGggZD0iTTcgMjFoMTAiLz48L3N2Zz4=&logoColor=white" alt="MIT License">
-</a>
-<a href="https://github.com/hoslift/ranu.js/issues">
-  <img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=for-the-badge&color=ffd43b&labelColor=000000&logo=github&logoColor=white" alt="Issues">
-</a>
-  <a href="https://github.com/hoslift/ranu.js">
-  <img src="https://img.shields.io/badge/STATUS-UNDER%20DEVELOPMENT-ff9100?style=for-the-badge&labelColor=000000&logo=git&logoColor=white" alt="Status Under Development">
-</a>
+  <a href="https://hoslift.com"> <img src="https://img.shields.io/badge/MADE%20BY%20HOSLIFT-228be6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAuMzQxIDYuNDg0QTEwIDEwIDAgMCAxIDEwLjI2NiAyMS44NSIvPjxwYXRoIGQ9Ik0zLjY1OSAxNy41MTZBMTAgMTAgMCAwIDEgMTMuNzQgMi4xNTIiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTkiIGN5PSI1IiByPSIyIi8+PGNpcmNsZSBjeD0iNSIgY3k9IjE5IiByPSIyIi8+PC9zdmc+" alt="Made by Hoslift"> </a>
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/badge/LICENSE-MIT-40c057?style=for-the-badge&labelColor=000000" alt="MIT License">
+  </a>
+  <a href="https://github.com/hoslift/ranu.js/issues">
+    <img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=for-the-badge&color=ffd43b&labelColor=000000&logo=github&logoColor=white" alt="GitHub Issues">
+  </a>
+  <img src="https://img.shields.io/badge/STATUS-PRE--ALPHA-ff9100?style=for-the-badge&labelColor=000000" alt="Pre-Alpha">
 </p>
 
+---
 
+> [!WARNING]
+> **Early Development**
+>
+> Ranu.js is currently in **pre-alpha development**. APIs are not stable and may change as development progresses. Ranu.js is **not yet suitable for production use**.
+
+## About Ranu.js
+
+**Ranu.js** is an open-source JavaScript/TypeScript full-stack web framework being developed for modern web application development.
+
+The V1 direction brings together routing, server-side rendering, static generation, client rendering, API routes, middleware, React integration, styling, plugins, and deployment support within a unified framework.
+
+Ranu.js is currently being built and validated in public. Features documented as **V1 Target** describe the intended scope of the first major development milestone and should not be interpreted as stable production functionality.
 
 ---
 
-> 🌐 **100% Open Source. Built by Developers, Owned by the Community.**  
-> We believe the future of the web belongs to open ecosystems, not proprietary silos. Ranu.js is fully open-source to guarantee total transparency, vendor neutrality, and long-term architectural independence.
+## V1 Target Features
 
-## Overview
+The current Ranu.js V1 target includes:
 
-**Ranu.js** is an ultra-fast, TypeScript-first full-stack web framework engineered to deliver a single, unified ecosystem for modern web applications. It seamlessly bridges frontend interfaces, backend APIs, server-side rendering (SSR), and static site generation (SSG) without performance compromises.
+* **File-based routing**
 
-Architected as **React-first, but core-neutral** — Ranu.js strictly decouples routing, HTTP execution, asset manifests, and deployment adapters from UI internals, granting complete freedom over your rendering stack and execution environment.
+  * Layouts
+  * Dynamic routes
+  * Catch-all routes
+* **Server-side rendering (SSR)**
+* **Static site generation (SSG)**
+* **Client rendering**
+* **TypeScript-first development**
+* **API routes**
+* **Middleware**
+* **React integration with hydration**
+* **CSS and CSS Modules**
+* **Plugin system**
+* **Deployment support**
 
-* **Unified Full-Stack Engine:** Build APIs, SSR, SSG, and client UI within a single, highly coherent developer experience.
-* **Core-Neutral Architecture:** UI-agnostic foundation that isolates runtime execution from frontend framework code.
-* **Deploy Anywhere:** True adapter-driven design built for Edge, Serverless, and Node.js runtimes.
+  * Generic Node.js
+  * Containers
+  * Vercel
 
-*Created and maintained by [@hoslift](https://github.com/hoslift).*
-
-##  Key Features
-
-* **Pure TypeScript-First:** End-to-end type safety out of the box with zero setup overhead.
-* **Core-Neutral Architecture:** Decoupled UI execution—start with React today, adapt to any engine tomorrow.
-* **Universal Deployment Adapters:** Deploy seamlessly to Node.js, Cloudflare Workers, Bun, or AWS Lambda without rewriting application code.
-* **Ultra-Fast HTTP Router:** High-throughput, memory-efficient routing engine designed for minimal latency.
-* **Zero Vendor Lock-In:** Complete infrastructure sovereignty—your code, your deployment, your control.
-
----
-
-##  Architecture
-
-Ranu.js isolates core web execution mechanics from the underlying runtime and UI rendering layer:
-```text
-┌──────────────────────────────────────────────────────────┐
-│                      Ranu.js App                         │
-├──────────────────────────────────────────────────────────┤
-│           UI Layer (React / Core-Neutral)                │
-├──────────────────────────────────────────────────────────┤
-│            Ranu Core Engine & Router                     │
-├──────────────────────────────────────────────────────────┤
-│   Adapters (Node.js / Bun / Edge / Cloudflare / AWS)     │
-└──────────────────────────────────────────────────────────┘
-```
+> These capabilities are development targets for V1. Individual features may be incomplete, experimental, or subject to change during pre-alpha development.
 
 ---
 
-##  Quick Start
+## Development
 
-### Installation
+Ranu.js is developed as a **pnpm monorepo**.
 
-Install Ranu.js into your existing TypeScript project using your preferred package manager:
+### Requirements
+
+* **Node.js** >= 22.0.0
+* **pnpm** >= 11.0.0
+
+### Local Development
+
+Clone the repository:
 
 ```bash
-# Using npm
-npm install ranu
-
-# Using pnpm
-pnpm add ranu
-
-# Using bun
-bun add ranu
+git clone https://github.com/hoslift/ranu.js.git
+cd ranu.js
 ```
 
-### Basic Application Setup
-Create a simple entry point in `src/index.ts`:
+Install dependencies:
 
-```typescript
-import { createServer } from 'ranu';
-
-const app = createServer();
-
-app.get('/', (c) => {
-  return c.json({ message: 'Hello from Ranu.js!' });
-});
-
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
+```bash
+pnpm install
 ```
-## Project Structure
-A typical Ranu.js application structure is kept clean, intuitive, and highly predictable:
+
+Build all packages:
+
+```bash
+pnpm build
+```
+
+Run all tests:
+
+```bash
+pnpm test
+```
+
+Run TypeScript type checking:
+
+```bash
+pnpm typecheck
+```
+
+Run linting:
+
+```bash
+pnpm lint
+```
+
+Format the codebase:
+
+```bash
+pnpm format
+```
+
+---
+
+## Getting Started
+
+> [!NOTE]
+> **Public installation is coming soon.**
+
+Ranu.js has not yet reached a stable public release.
+
+The intended project creation experience is:
+
+```bash
+npm create ranu.js@latest my-app
+cd my-app
+npm install
+npm run dev
+```
+
+The package name, CLI behavior, and installation workflow may change before the first public release.
+
+Official installation instructions will be published once the corresponding packages are ready for public use.
+
+---
+
+## Development Roadmap
+
+Ranu.js is being developed incrementally toward its first stable release.
+
+Development currently focuses on delivering and validating the V1 framework foundation before production stability is declared.
+
+Major areas include:
+
+1. Core framework foundation
+2. File-based routing
+3. Rendering infrastructure
+4. API routes and middleware
+5. React integration and hydration
+6. CSS and CSS Modules
+7. Development tooling
+8. Plugin architecture
+9. Node.js and container deployment
+10. Vercel deployment
+11. Testing and stabilization
+12. Documentation and examples
+13. Pre-release validation
+14. Stable release preparation
+
+A dedicated `ROADMAP.md` can track implementation progress, milestones, and release status as development continues.
+
+---
+
+## Documentation
+
+Project documentation will be maintained in:
 
 ```text
-my-ranu-app/
-├── src/
-│   ├── api/             # Backend API routes
-│   ├── components/      # Shared UI components
-│   ├── pages/           # Application views & pages
-│   └── index.ts         # Main entry point
-├── public/              # Static assets (images, fonts)
-├── ranu.config.ts       # Ranu framework configuration
-├── tsconfig.json        # TypeScript configuration
-└── package.json
+docs/
 ```
 
-## CLI Commands
-Ranu.js comes with a built-in CLI for high-speed local development, production builds, and adapter packaging:
+Public documentation is also planned for the Ranu.js project website.
 
-| Command | Description |
-| :--- | :--- |
-| `ranu dev` | Starts the local development server with instant HMR. |
-| `ranu build` | Compiles application code and generates production bundles. |
-| `ranu start` | Runs the compiled production build locally. |
-| `ranu preview` | Previews the production build with specified adapters. |
-
-## Deployment & Adapters
-
-Deploy your Ranu.js application to any provider without changing core application logic. Simply switch or configure your target adapter in `ranu.config.ts`:
-
-* **Node.js / Express Runtime**
-* **Bun Runtime**
-* **Cloudflare Workers / Pages**
-* **AWS Lambda (Serverless)**
+Documentation will expand alongside implementation and public releases.
 
 ---
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome!  
-Feel free to check out the [issues page](https://github.com/hoslift/ranu.js/issues) to report bugs or propose new framework capabilities.
+Ranu.js is open source, and contributions are welcome.
 
-1. Fork the Repository
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Before opening a pull request, please read:
+
+[`CONTRIBUTING.md`](./CONTRIBUTING.md)
+
+You can also use [GitHub Issues](https://github.com/hoslift/ranu.js/issues) to report problems, suggest improvements, or discuss proposed framework capabilities.
+
+Because Ranu.js is currently pre-alpha, architecture and APIs may change significantly as development progresses.
+
+---
+
+## Security
+
+Please read [`SECURITY.md`](./SECURITY.md) for the project's security policy and responsible disclosure process.
+
+Please do not publicly disclose security vulnerabilities through regular GitHub issues.
+
+---
+
+## Supporting Ranu.js
+
+Ranu.js is being developed as an open-source project and is intended to remain freely available under the MIT License.
+
+Future sponsorships will help support areas such as:
+
+* Core framework development
+* Testing and quality assurance
+* Documentation
+* Development infrastructure
+* Project maintenance
+* Community resources
+
+Official sponsorship options will be published when available.
+
+---
+
+## Project Status
+
+| Area                 | Status             |
+| -------------------- | ------------------ |
+| Project              | Active development |
+| Release stage        | Pre-alpha          |
+| Production ready     | No                 |
+| API stability        | Unstable           |
+| V1 development       | In progress        |
+| Public documentation | Coming soon        |
+| Stable release       | Not yet available  |
 
 ---
 
 ## License
 
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
+Ranu.js is open-source software distributed under the **MIT License**.
+
+See [`LICENSE`](./LICENSE) for the full license text.
+
+---
+
+<p align="center">
+  <strong>Ranu.js</strong><br>
+  Rethinking the Full-Stack Web.
+</p>
+
+<p align="center">
+  Open source under the MIT License.<br>
+  Created and maintained by <a href="https://github.com/hoslift">Hoslift</a>.
+</p>
