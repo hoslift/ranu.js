@@ -23,7 +23,7 @@
     "@ranu/manifests": "workspace:*",
     "@ranu/router": "workspace:*",
     "@ranu/config": "workspace:*",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.32",
