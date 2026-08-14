@@ -1,0 +1,60 @@
+name: Feature Request
+description: Suggest an improvement or new capability for Ranu.js
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping shape Ranu.js.
+
+        Ranu.js is currently in pre-alpha development. Please search existing issues before proposing a new feature.
+
+        Major architectural or breaking changes may require further discussion before implementation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem would this feature solve?
+      placeholder: Describe the use case or limitation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe how you think Ranu.js could address the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or approaches you considered.
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example API or Usage
+      description: If relevant, show what the proposed developer experience could look like.
+      render: typescript
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other technical context, references, or examples.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before Submitting
+      options:
+        - label: I searched existing issues and could not find an existing request for this feature.
+          required: true
+        - label: I understand that Ranu.js is currently in pre-alpha development and APIs may change.
+          required: true
