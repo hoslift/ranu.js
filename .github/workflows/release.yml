@@ -1,8 +1,13 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm_publish:
+        description: "Explicitly confirm npm publication"
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,6 +17,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm_publish == 'true' }}
     permissions:
       contents: write
       pull-requests: write
