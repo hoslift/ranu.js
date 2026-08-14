@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "./packages/ranu" },
+    { "path": "./packages/core" },
+    { "path": "./packages/config" },
+    { "path": "./packages/diagnostics" },
+    { "path": "./packages/manifests" },
+    { "path": "./packages/router" },
+    { "path": "./packages/runtime" },
+    { "path": "./packages/runtime-node" },
+    { "path": "./packages/server" },
+    { "path": "./packages/react" },
+    { "path": "./packages/build" },
+    { "path": "./packages/dev" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/plugin" },
+    { "path": "./adapters/vercel" },
+    { "path": "./create-ranu" }
+  ]
+}

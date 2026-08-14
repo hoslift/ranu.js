@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+  - "adapters/*"
+  - "create-ranu"
+  - "examples/*"
+  - "fixtures/*"
+  - "tooling/*"
+allowBuilds:
+  esbuild: true

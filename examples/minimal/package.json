@@ -1,0 +1,9 @@
+{
+  "name": "example-minimal",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "ranu": "workspace:*"
+  }
+}
