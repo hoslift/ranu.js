@@ -10,8 +10,16 @@
     { "path": "../core" },
     { "path": "../diagnostics" },
     { "path": "../manifests" },
+    { "path": "../router" },
     { "path": "../runtime" }
   ],
-  "include": ["src"],
+  "files": [
+    "src/index.ts",
+    "src/context.ts",
+    "src/request.ts",
+    "src/response.ts",
+    "src/api-dispatcher.ts",
+    "src/handler.ts"
+  ],
   "exclude": ["dist", "node_modules"]
 }
