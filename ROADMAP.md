@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 9–10 — React Renderer (Next)
+> **Current Phase:** Phase 11–12 — Build System (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -76,22 +76,26 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 9–10 — React Renderer ⏳
+## Phase 9–10 — React Renderer ✅
 
-**Next phase (Upcoming)**
-
-* SSR pipeline
-* Layouts, async pages
-* Metadata, errors, not-found, loading
+* React 19 streaming SSR
+* Root and nested layouts
+* Async pages and layouts
+* Metadata resolution and `<head>` generation
+* Redirect and not-found control flow
+* Segment-scoped loading/Suspense
+* Production-safe render error handling
 
 ---
 
 ## Phase 11–12 — Build System ⏳
 
+**Next phase (Upcoming)**
+
 * TypeScript/JSX transforms
 * Server/client graph separation
 * `"use client"` enforcement
-* `Ranu.js/server-only`
+* `ranu/server-only`
 
 ---
 
@@ -148,8 +152,8 @@ Phase 3–5    Router                      ✅ Completed
 Phase 6      Runtime Contracts           ✅ Completed
 Phase 7      Node Runtime                ✅ Completed
 Phase 8      Server Helpers              ✅ Completed
-Phase 9–10   React Renderer              ⏳ Next / Upcoming
-Phase 11–12  Build System                ⏳ Planned
+Phase 9–10   React Renderer              ✅ Completed
+Phase 11–12  Build System                ⏳ Next / Upcoming
 Phase 13–16  Client                      ⏳ Planned
 Phase 17–19  CSS / Assets / Dev Server   ⏳ Planned
 Phase 20–23  Middleware / Plugins / CLI  ⏳ Planned
@@ -180,4 +184,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 9–10 — React Renderer**
+**Next development focus: Phase 11–12 — Build System**
