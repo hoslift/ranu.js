@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 6 — Runtime (Completed)
+> **Current Phase:** Phase 7 — Runtime (Completed)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -60,7 +60,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 7 — Node Runtime ⏳
+## Phase 7 — Node Runtime 🚧
 
 **Next phase (Not Started)**
 
