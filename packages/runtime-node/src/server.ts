@@ -120,6 +120,13 @@ export class NodeServer {
       // Stop server from accepting new incoming connections and drain in-flight requests
       this.httpServer.close((err) => {
         clearTimeout(timer);
+        try {
+          if (typeof this.options.runtime.dispose === 'function') {
+            this.options.runtime.dispose();
+          }
+        } catch {
+          // Ignore disposal errors during teardown
+        }
         if (err) {
           reject(err);
         } else {

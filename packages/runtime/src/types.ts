@@ -11,6 +11,8 @@ export interface RanuRequestContext {
   readonly params: Record<string, string | string[]>;
   readonly locals: Map<string, unknown>;
   readonly signal: AbortSignal;
+  readonly responseCookies: string[];
+  readonly depth?: number;
 }
 
 export interface RuntimeConfig {

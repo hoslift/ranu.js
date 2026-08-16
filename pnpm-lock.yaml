@@ -307,6 +307,9 @@ importers:
       '@ranu/config':
         specifier: workspace:*
         version: link:../config
+      '@ranu/server':
+        specifier: workspace:*
+        version: link:../server
       react:
         specifier: ^19.0.0
         version: 19.2.8
