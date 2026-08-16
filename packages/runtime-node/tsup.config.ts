@@ -7,5 +7,4 @@ export default defineConfig({
   clean: true,
   external: ['@ranu/core', '@ranu/diagnostics', '@ranu/manifests', '@ranu/runtime'],
   platform: 'node',
-  tsconfig: 'tsconfig.build.json',
 });
