@@ -6,10 +6,10 @@ import type { NodeRequestHandlerOptions } from './handler.js';
 
 export interface NodeServerOptions extends NodeRequestHandlerOptions {
   readonly runtime: RanuServerRuntime;
-  readonly port?: number;
-  readonly host?: string;
-  readonly requestTimeout?: number;
-  readonly shutdownTimeout?: number;
+  readonly port?: number | undefined;
+  readonly host?: string | undefined;
+  readonly requestTimeout?: number | undefined;
+  readonly shutdownTimeout?: number | undefined;
 }
 
 export interface NodeServerAddress {

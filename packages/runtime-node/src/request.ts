@@ -3,19 +3,25 @@ import { Readable } from 'node:stream';
 import { parseBodyLimit, createLimitedReadableStream, PayloadTooLargeError } from './body-limit.js';
 
 export interface BuildRequestUrlOptions {
-  readonly defaultHost?: string;
-  readonly trustProxy?: boolean;
+  readonly defaultHost?: string | undefined;
+  readonly trustProxy?: boolean | undefined;
 }
 
 export interface ToWebRequestOptions {
-  readonly defaultHost?: string;
-  readonly trustProxy?: boolean;
-  readonly bodyLimit?: number | string;
+  readonly defaultHost?: string | undefined;
+  readonly trustProxy?: boolean | undefined;
+  readonly bodyLimit?: number | string | undefined;
 }
 
 /** Narrow safe interface extending standard RequestInit with Node.js duplex property */
 export interface NodeRequestInit extends RequestInit {
-  duplex?: 'half' | 'full';
+  duplex?: 'half' | 'full' | undefined;
+}
+
+export interface RequestUrlInput {
+  readonly url?: string | undefined;
+  readonly headers: IncomingHttpHeaders | Record<string, string | string[] | undefined>;
+  readonly socket?: unknown;
 }
 
 /**
@@ -24,17 +30,19 @@ export interface NodeRequestInit extends RequestInit {
  * unless explicit trustProxy configuration is enabled.
  */
 export function buildRequestUrl(
-  req: {
-    url?: string | undefined;
-    headers: IncomingHttpHeaders | Record<string, string | string[] | undefined>;
-    socket?: { encrypted?: boolean | undefined } | undefined;
-  },
+  req: RequestUrlInput,
   options?: BuildRequestUrlOptions,
 ): string {
   const trustProxy = options?.trustProxy ?? false;
   const defaultHost = options?.defaultHost ?? 'localhost';
 
-  let protocol = req.socket?.encrypted ? 'https' : 'http';
+  const isEncrypted = Boolean(
+    req.socket &&
+    typeof req.socket === 'object' &&
+    'encrypted' in req.socket &&
+    (req.socket as { encrypted?: boolean }).encrypted,
+  );
+  let protocol = isEncrypted ? 'https' : 'http';
   let host = defaultHost;
 
   if (trustProxy) {
@@ -125,7 +133,7 @@ export function toWebRequest(
     method,
     headers: webHeaders,
     body,
-    duplex: hasBody ? 'half' : undefined,
+    ...(hasBody ? { duplex: 'half' } : {}),
     signal,
   };
 
