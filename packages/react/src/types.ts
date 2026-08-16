@@ -30,9 +30,9 @@ export interface ErrorProps {
  */
 export type PageComponent = ComponentType<PageProps> | ((props: PageProps) => Promise<ReactNode> | ReactNode);
 export type LayoutComponent = ComponentType<LayoutProps> | ((props: LayoutProps) => Promise<ReactNode> | ReactNode);
-export type LoadingComponent = ComponentType<{}> | (() => Promise<ReactNode> | ReactNode);
+export type LoadingComponent = ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
 export type ErrorComponent = ComponentType<ErrorProps>;
-export type NotFoundComponent = ComponentType<{}> | (() => Promise<ReactNode> | ReactNode);
+export type NotFoundComponent = ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
 
 /**
  * OpenGraph metadata fields (04_RENDERING_MODEL.md §74).
