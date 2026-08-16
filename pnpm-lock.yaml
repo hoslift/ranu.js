@@ -172,8 +172,8 @@ importers:
         specifier: workspace:*
         version: link:../diagnostics
       dotenv:
-        specifier: 16.4.7
-        version: 16.4.7
+        specifier: 16.6.1
+        version: 16.6.1
       typescript:
         specifier: 5.8.3
         version: 5.8.3
@@ -1360,8 +1360,8 @@ packages:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
     engines: {node: '>=8'}
 
-  dotenv@16.4.7:
-    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
   enquirer@2.4.1:
@@ -2908,7 +2908,7 @@ snapshots:
     dependencies:
       path-type: 4.0.0
 
-  dotenv@16.4.7: {}
+  dotenv@16.6.1: {}
 
   enquirer@2.4.1:
     dependencies:
