@@ -14,9 +14,9 @@ import { DefaultDocumentShell } from './document.js';
 export interface ComposeTreeOptions {
   readonly page: PageModule;
   readonly layouts: readonly LayoutModule[];
-  readonly loading?: LoadingModule;
-  readonly notFound?: NotFoundModule;
-  readonly metadata?: ResolvedMetadata;
+  readonly loading?: LoadingModule | undefined;
+  readonly notFound?: NotFoundModule | undefined;
+  readonly metadata?: ResolvedMetadata | undefined;
   readonly pageProps: PageProps;
 }
 
@@ -44,6 +44,7 @@ export function composeComponentTree(options: ComposeTreeOptions): ReactNode {
   // Compose layouts from leaf to root (reverse iteration)
   for (let i = layouts.length - 1; i >= 0; i--) {
     const layout = layouts[i];
+    if (!layout) continue;
     const LayoutComponent = layout.default;
     const layoutProps: LayoutProps = {
       children: currentChild,
@@ -64,9 +65,9 @@ export function composeNotFoundTree({
   metadata,
   params,
 }: {
-  readonly notFound?: NotFoundModule;
+  readonly notFound?: NotFoundModule | undefined;
   readonly layouts: readonly LayoutModule[];
-  readonly metadata?: ResolvedMetadata;
+  readonly metadata?: ResolvedMetadata | undefined;
   readonly params: Readonly<Record<string, string | string[]>>;
 }): ReactNode {
   let content: ReactNode;
@@ -99,6 +100,7 @@ export function composeNotFoundTree({
   let currentChild = content;
   for (let i = layouts.length - 1; i >= 0; i--) {
     const layout = layouts[i];
+    if (!layout) continue;
     const LayoutComponent = layout.default;
     const layoutProps: LayoutProps = {
       children: currentChild,
@@ -119,8 +121,8 @@ export function composeErrorDocument({
   stack,
 }: {
   readonly message: string;
-  readonly requestId?: string;
-  readonly stack?: string;
+  readonly requestId?: string | undefined;
+  readonly stack?: string | undefined;
 }): ReactNode {
   return (
     <DefaultDocumentShell title="500 - Internal Server Error">

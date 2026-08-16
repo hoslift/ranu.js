@@ -130,7 +130,7 @@ export async function resolveHierarchyMetadata(
  * Renders resolved metadata into React <head> elements.
  * React 19 natively hoists <title>, <meta>, <link> tags to the document head during SSR.
  */
-export function MetadataHeadElements({ metadata }: { readonly metadata?: ResolvedMetadata }): ReactNode {
+export function MetadataHeadElements({ metadata }: { readonly metadata?: ResolvedMetadata | undefined }): ReactNode {
   if (!metadata) {
     return null;
   }

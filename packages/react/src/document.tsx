@@ -11,8 +11,8 @@ export function DefaultDocumentShell({
   title,
 }: {
   readonly children: ReactNode;
-  readonly metadata?: ResolvedMetadata;
-  readonly title?: string;
+  readonly metadata?: ResolvedMetadata | undefined;
+  readonly title?: string | undefined;
 }): ReactNode {
   return (
     <html lang="en">
