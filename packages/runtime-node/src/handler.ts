@@ -4,7 +4,7 @@ import { toWebRequest, type ToWebRequestOptions } from './request.js';
 import { writeWebResponse } from './response.js';
 import { PayloadTooLargeError } from './body-limit.js';
 
-export interface NodeRequestHandlerOptions extends ToWebRequestOptions {}
+export type NodeRequestHandlerOptions = ToWebRequestOptions;
 
 /**
  * Creates a Node.js HTTP request listener bridging IncomingMessage and ServerResponse
