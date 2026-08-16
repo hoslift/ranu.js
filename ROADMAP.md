@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 8 — Server Helpers (Next)
+> **Current Phase:** Phase 9–10 — React Renderer (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -69,15 +69,16 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 8 — Server Helpers ⏳
-
-**Next phase (Upcoming)**
+## Phase 8 — Server Helpers ✅
 
 * Server helpers (`cookies()`, `headers()`, `redirect()`, `notFound()`, `getRequestContext()`)
+* Request context and server lifecycle integration
 
 ---
 
 ## Phase 9–10 — React Renderer ⏳
+
+**Next phase (Upcoming)**
 
 * SSR pipeline
 * Layouts, async pages
@@ -146,8 +147,8 @@ Phase 2      Configuration               ✅ Completed
 Phase 3–5    Router                      ✅ Completed
 Phase 6      Runtime Contracts           ✅ Completed
 Phase 7      Node Runtime                ✅ Completed
-Phase 8      Server Helpers              ⏳ Next / Upcoming
-Phase 9–10   React Renderer              ⏳ Planned
+Phase 8      Server Helpers              ✅ Completed
+Phase 9–10   React Renderer              ⏳ Next / Upcoming
 Phase 11–12  Build System                ⏳ Planned
 Phase 13–16  Client                      ⏳ Planned
 Phase 17–19  CSS / Assets / Dev Server   ⏳ Planned
@@ -179,4 +180,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 8 — Server Helpers**
+**Next development focus: Phase 9–10 — React Renderer**
