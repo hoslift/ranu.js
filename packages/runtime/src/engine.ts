@@ -4,16 +4,41 @@ import type { CompiledRouteRecord } from '@ranu/router';
 import { matchRoute } from '@ranu/router';
 import { isControlSignal, RedirectSignal, NotFoundSignal } from './signals.js';
 import { sanitizeErrorResponse } from './errors.js';
+import { registerRequestContextStore } from './context.js';
 import { HTTP_METHODS, type RouteKind } from '@ranu/core';
+
+let globalRequestSequence = 0;
+
+function finalizeResponse(response: Response, context: RanuRequestContext): Response {
+  if (context.responseCookies.length > 0) {
+    for (const cookieHeader of context.responseCookies) {
+      response.headers.append('Set-Cookie', cookieHeader);
+    }
+  }
+  return response;
+}
 
 export class RanuServerRuntime {
   private staticLookup = new Map<string, { routeId: string; file: string }>();
+  private unregisterStore: (() => void) | undefined;
 
   constructor(private options: RanuServerRuntimeOptions) {
+    this.unregisterStore = registerRequestContextStore(options.contextStore);
     if (options.staticManifest?.routes) {
       for (const route of options.staticManifest.routes) {
         this.staticLookup.set(route.pathname, route);
       }
+    }
+  }
+
+  /**
+   * Disposes the runtime instance and cleans up its context store registration
+   * to prevent stale references in long-running processes.
+   */
+  dispose(): void {
+    if (this.unregisterStore) {
+      this.unregisterStore();
+      this.unregisterStore = undefined;
     }
   }
 
@@ -58,6 +83,8 @@ export class RanuServerRuntime {
     // 3. Request Context creation before matching
     const locals = new Map<string, unknown>();
     const params: Record<string, string | string[]> = {};
+    const responseCookies: string[] = [];
+    const depth = ++globalRequestSequence;
     const context: RanuRequestContext = {
       requestId,
       request,
@@ -65,6 +92,8 @@ export class RanuServerRuntime {
       params,
       locals,
       signal: request.signal,
+      responseCookies,
+      depth,
     };
 
     let matchedRouteId: string | undefined;
@@ -76,7 +105,7 @@ export class RanuServerRuntime {
         if (this.options.middleware) {
           const continuation = await this.options.middleware.run(request, context);
           if (continuation.type === 'response') {
-            return continuation.response;
+            return finalizeResponse(continuation.response, context);
           }
         }
 
@@ -94,10 +123,13 @@ export class RanuServerRuntime {
 
           // Pages only support GET and HEAD
           if (method !== 'GET' && method !== 'HEAD') {
-            return new Response('Method Not Allowed', {
-              status: 405,
-              headers: { 'Allow': 'GET, HEAD' }
-            });
+            return finalizeResponse(
+              new Response('Method Not Allowed', {
+                status: 405,
+                headers: { 'Allow': 'GET, HEAD' }
+              }),
+              context
+            );
           }
 
           const target: StaticDispatchTarget = {
@@ -105,13 +137,14 @@ export class RanuServerRuntime {
             pathname: normalizedPathname,
           };
 
-          return await this.options.staticDispatcher.dispatch(request, context, target);
+          const res = await this.options.staticDispatcher.dispatch(request, context, target);
+          return finalizeResponse(res, context);
         }
 
         // 7. Match dynamic routes
         const routeMatch = matchRoute(pathname, this.options.routeRecords as CompiledRouteRecord[]);
         if (!routeMatch) {
-          return new Response('Not Found', { status: 404 });
+          return finalizeResponse(new Response('Not Found', { status: 404 }), context);
         }
 
         matchedRouteId = routeMatch.routeId;
@@ -120,9 +153,9 @@ export class RanuServerRuntime {
         // Populate context params in-place
         Object.assign(context.params, routeMatch.params);
 
-        const routeRecord = this.options.routeRecords.find(r => r.routeId === routeMatch.routeId);
+        const routeRecord = this.options.routeRecords.find((r) => r.routeId === routeMatch.routeId);
         if (!routeRecord) {
-          return new Response('Not Found', { status: 404 });
+          return finalizeResponse(new Response('Not Found', { status: 404 }), context);
         }
 
         // Static-only dynamic path miss check (absent from StaticManifest)
@@ -133,10 +166,13 @@ export class RanuServerRuntime {
         // 8. Endpoint method decision & dispatch
         if (routeRecord.kind === 'page') {
           if (method !== 'GET' && method !== 'HEAD') {
-            return new Response('Method Not Allowed', {
-              status: 405,
-              headers: { 'Allow': 'GET, HEAD' }
-            });
+            return finalizeResponse(
+              new Response('Method Not Allowed', {
+                status: 405,
+                headers: { 'Allow': 'GET, HEAD' }
+              }),
+              context
+            );
           }
 
           const pageTarget: PageRenderTarget = {
@@ -148,7 +184,8 @@ export class RanuServerRuntime {
             ...(routeRecord.notFound !== undefined ? { notFound: routeRecord.notFound } : {}),
           };
 
-          return await this.options.renderer.render(request, context, pageTarget);
+          const res = await this.options.renderer.render(request, context, pageTarget);
+          return finalizeResponse(res, context);
         } else {
           // API Endpoint
           const hasExplicitMethod = routeRecord.methods.includes(method as any);
@@ -161,7 +198,8 @@ export class RanuServerRuntime {
               params: context.params,
               methods: routeRecord.methods,
             };
-            return await this.options.apiDispatcher.dispatch(request, context, apiTarget);
+            const res = await this.options.apiDispatcher.dispatch(request, context, apiTarget);
+            return finalizeResponse(res, context);
           } else {
             // Compute effective allowed methods
             const allowed = [...routeRecord.methods];
@@ -174,27 +212,34 @@ export class RanuServerRuntime {
             // Sort to make Allow deterministic
             allowed.sort();
 
-            return new Response('Method Not Allowed', {
-              status: 405,
-              headers: { 'Allow': allowed.join(', ') }
-            });
+            return finalizeResponse(
+              new Response('Method Not Allowed', {
+                status: 405,
+                headers: { 'Allow': allowed.join(', ') }
+              }),
+              context
+            );
           }
         }
       } catch (err: unknown) {
         if (isControlSignal(err)) {
           if (err instanceof RedirectSignal) {
-            return new Response(null, {
-              status: err.status,
-              headers: { 'Location': err.url }
-            });
+            return finalizeResponse(
+              new Response(null, {
+                status: err.status,
+                headers: { 'Location': err.url }
+              }),
+              context
+            );
           }
           if (err instanceof NotFoundSignal) {
-            return new Response('Not Found', { status: 404 });
+            return finalizeResponse(new Response('Not Found', { status: 404 }), context);
           }
         }
 
         // Unexpected/Execution errors: Sanitize
-        return sanitizeErrorResponse(err, context.requestId, this.options.config, matchedRouteKind);
+        const errRes = sanitizeErrorResponse(err, context.requestId, this.options.config, matchedRouteKind);
+        return finalizeResponse(errRes, context);
       }
     });
   }

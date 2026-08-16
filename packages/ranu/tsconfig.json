@@ -8,7 +8,8 @@
     "lib": ["ES2022", "DOM"]
   },
   "references": [
-    { "path": "../config" }
+    { "path": "../config" },
+    { "path": "../server" }
   ],
   "include": ["src"],
   "exclude": ["dist", "node_modules"]

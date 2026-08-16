@@ -47,7 +47,8 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@ranu/config": "workspace:*"
+    "@ranu/config": "workspace:*",
+    "@ranu/server": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
