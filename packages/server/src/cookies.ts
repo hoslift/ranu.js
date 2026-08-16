@@ -11,8 +11,13 @@ function validateCookieName(name: string): void {
   if (!name || typeof name !== 'string') {
     throw new TypeError('Cookie name must be a non-empty string.');
   }
-  // Control characters, whitespace, and cookie separators: ( ) < > @ , ; : \ " / [ ] ? = { }
-  if (/[\x00-\x1F\x7F\s,;=\\]/.test(name)) {
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i);
+    if (code <= 31 || code === 127) {
+      throw new TypeError(`Invalid cookie name "${name}". Cookie names cannot contain whitespace, control characters, or separators (=, ;, \\).`);
+    }
+  }
+  if (/[\s,;=\\]/.test(name)) {
     throw new TypeError(`Invalid cookie name "${name}". Cookie names cannot contain whitespace, control characters, or separators (=, ;, \\).`);
   }
 }
