@@ -1,11 +1,17 @@
+import type { HttpMethod } from '@ranu/core';
 import type { RanuRequestContext, StaticDispatchTarget } from './types.js';
-import type { CompiledApiRouteRecord } from '@ranu/router';
+
+export interface ApiDispatchTarget {
+  readonly routeId: string;
+  readonly params: Record<string, string | string[]>;
+  readonly methods: readonly HttpMethod[];
+}
 
 export interface ApiEndpointDispatcher {
   dispatch(
     request: Request,
     context: RanuRequestContext,
-    route: CompiledApiRouteRecord
+    target: ApiDispatchTarget
   ): Promise<Response>;
 }
 

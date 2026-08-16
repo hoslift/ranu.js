@@ -4,11 +4,10 @@ import type {
   RanuRequestContext,
   RanuServerRuntimeOptions,
   StaticDispatchTarget,
-  PageRenderTarget,
   RuntimeConfig
 } from '../src/types.js';
 import type { RequestContextStore } from '../src/context.js';
-import type { ApiEndpointDispatcher, StaticDispatcher, RanuRenderer } from '../src/dispatch.js';
+import type { ApiEndpointDispatcher, ApiDispatchTarget, StaticDispatcher, RanuRenderer, PageRenderTarget } from '../src/dispatch.js';
 import type { CompiledRouteRecord } from '@ranu/router';
 import type { StaticManifest } from '@ranu/manifests';
 import { RedirectSignal, NotFoundSignal } from '../src/signals.js';
@@ -45,8 +44,8 @@ class MockRequestContextStore implements RequestContextStore {
 }
 
 class MockApiEndpointDispatcher implements ApiEndpointDispatcher {
-  dispatch = vi.fn(async (request: Request, context: RanuRequestContext, route: any) => {
-    return new Response(JSON.stringify({ ok: true, routeId: route.routeId, params: context.params }), {
+  dispatch = vi.fn(async (request: Request, context: RanuRequestContext, target: ApiDispatchTarget) => {
+    return new Response(JSON.stringify({ ok: true, routeId: target.routeId, params: context.params }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
