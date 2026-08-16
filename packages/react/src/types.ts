@@ -39,57 +39,59 @@ export type NotFoundComponent = ComponentType<{}> | (() => Promise<ReactNode> | 
  */
 export interface OpenGraphImage {
   readonly url: string;
-  readonly width?: number;
-  readonly height?: number;
-  readonly alt?: string;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  readonly alt?: string | undefined;
 }
 
 export interface OpenGraphMetadata {
-  readonly title?: string;
-  readonly description?: string;
-  readonly url?: string;
-  readonly siteName?: string;
-  readonly images?: readonly OpenGraphImage[];
+  readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly url?: string | undefined;
+  readonly siteName?: string | undefined;
+  readonly images?: readonly OpenGraphImage[] | undefined;
 }
 
 /**
  * Icons metadata fields (04_RENDERING_MODEL.md §74).
  */
 export interface IconMetadata {
-  readonly icon?: string;
-  readonly apple?: string;
+  readonly icon?: string | undefined;
+  readonly apple?: string | undefined;
 }
 
 /**
  * Title metadata definition supporting string or template object.
  */
-export type TitleMetadata = string | {
-  readonly default: string;
-  readonly template?: string;
-};
+export type TitleMetadata =
+  | string
+  | {
+      readonly default: string;
+      readonly template?: string | undefined;
+    };
 
 /**
  * Authoritative Metadata contract (04_RENDERING_MODEL.md §74).
  */
 export interface Metadata {
-  readonly title?: TitleMetadata;
-  readonly description?: string;
-  readonly robots?: string;
-  readonly canonical?: string;
-  readonly openGraph?: OpenGraphMetadata;
-  readonly icons?: IconMetadata;
+  readonly title?: TitleMetadata | undefined;
+  readonly description?: string | undefined;
+  readonly robots?: string | undefined;
+  readonly canonical?: string | undefined;
+  readonly openGraph?: OpenGraphMetadata | undefined;
+  readonly icons?: IconMetadata | undefined;
 }
 
 /**
  * Fully resolved metadata with concrete string values ready for <head> injection.
  */
 export interface ResolvedMetadata {
-  readonly title?: string;
-  readonly description?: string;
-  readonly robots?: string;
-  readonly canonical?: string;
-  readonly openGraph?: OpenGraphMetadata;
-  readonly icons?: IconMetadata;
+  readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly robots?: string | undefined;
+  readonly canonical?: string | undefined;
+  readonly openGraph?: OpenGraphMetadata | undefined;
+  readonly icons?: IconMetadata | undefined;
 }
 
 /**
@@ -97,9 +99,9 @@ export interface ResolvedMetadata {
  */
 export interface PageModule {
   readonly default: PageComponent;
-  readonly metadata?: Metadata;
-  readonly generateMetadata?: (props: PageProps) => Promise<Metadata> | Metadata;
-  readonly render?: 'server' | 'static' | 'client';
+  readonly metadata?: Metadata | undefined;
+  readonly generateMetadata?: ((props: PageProps) => Promise<Metadata> | Metadata) | undefined;
+  readonly render?: ('server' | 'static' | 'client') | undefined;
 }
 
 /**
@@ -107,8 +109,8 @@ export interface PageModule {
  */
 export interface LayoutModule {
   readonly default: LayoutComponent;
-  readonly metadata?: Metadata;
-  readonly generateMetadata?: (props: LayoutProps) => Promise<Metadata> | Metadata;
+  readonly metadata?: Metadata | undefined;
+  readonly generateMetadata?: ((props: LayoutProps) => Promise<Metadata> | Metadata) | undefined;
 }
 
 /**
