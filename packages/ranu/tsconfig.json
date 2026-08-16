@@ -9,6 +9,7 @@
   },
   "references": [
     { "path": "../config" },
+    { "path": "../react" },
     { "path": "../server" }
   ],
   "include": ["src"],
