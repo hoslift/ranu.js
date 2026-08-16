@@ -1,5 +1,5 @@
 import type { RanuServerRuntimeOptions, RanuRequestContext, StaticDispatchTarget } from './types.js';
-import type { PageRenderTarget } from './dispatch.js';
+import type { PageRenderTarget, ApiDispatchTarget } from './dispatch.js';
 import type { CompiledRouteRecord } from '@ranu/router';
 import { matchRoute } from '@ranu/router';
 import { isControlSignal, RedirectSignal, NotFoundSignal } from './signals.js';
@@ -156,7 +156,12 @@ export class RanuServerRuntime {
           const isImplicitOptions = method === 'OPTIONS' && !routeRecord.methods.includes('OPTIONS');
 
           if (hasExplicitMethod || isImplicitHead || isImplicitOptions) {
-            return await this.options.apiDispatcher.dispatch(request, context, routeRecord);
+            const apiTarget: ApiDispatchTarget = {
+              routeId: routeRecord.routeId,
+              params: context.params,
+              methods: routeRecord.methods,
+            };
+            return await this.options.apiDispatcher.dispatch(request, context, apiTarget);
           } else {
             // Compute effective allowed methods
             const allowed = [...routeRecord.methods];
