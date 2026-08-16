@@ -21,8 +21,8 @@ export function escapeHtml(value: string): string {
  */
 export interface SanitizedErrorInfo {
   readonly message: string;
-  readonly stack?: string;
-  readonly requestId?: string;
+  readonly stack?: string | undefined;
+  readonly requestId?: string | undefined;
 }
 
 /**
@@ -40,14 +40,14 @@ export function sanitizeRenderError(
     const stack = error instanceof Error ? error.stack : undefined;
     return {
       message: message || 'Render Error',
-      stack,
-      requestId,
+      ...(stack !== undefined ? { stack } : {}),
+      ...(requestId !== undefined ? { requestId } : {}),
     };
   }
 
   // Production mode: generic and safe
   return {
     message: 'Internal Server Error',
-    requestId,
+    ...(requestId !== undefined ? { requestId } : {}),
   };
 }
