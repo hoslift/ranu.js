@@ -43,8 +43,8 @@ describe('Phase 11 — Build System Foundation Integration', () => {
   });
 
   it('completes build with success: true and zero error diagnostics', () => {
+    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toEqual([]);
     expect(buildResult.success).toBe(true);
-    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toHaveLength(0);
     expect(typeof buildResult.buildId).toBe('string');
     expect(buildResult.buildId.length).toBe(29);
   });

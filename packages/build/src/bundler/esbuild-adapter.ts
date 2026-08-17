@@ -36,6 +36,11 @@ export class EsbuildAdapter implements BundlerAdapter {
       assetNames: options.assetNames ?? 'assets/[name]-[hash]',
       chunkNames: options.chunkNames ?? 'chunks/[name]-[hash]',
       entryNames: options.entryNames ?? '[name]',
+      ...(options.outExtension
+        ? { outExtension: options.outExtension }
+        : isNode
+          ? { outExtension: { '.js': '.mjs' } }
+          : {}),
     };
 
     try {

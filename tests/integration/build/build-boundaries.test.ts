@@ -45,8 +45,8 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
   });
 
   it('completes build with success: true and zero error diagnostics for valid boundaries', () => {
+    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toEqual([]);
     expect(buildResult.success).toBe(true);
-    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toHaveLength(0);
   });
 
   it('generates browser client bundles in .ranu/build/static/assets/ for "use client" entries', () => {

@@ -494,7 +494,7 @@ export function validateClientManifest(manifest: any, expectedBuildId?: string):
             severity: 'error',
             message: `ClientManifest assets entry for "${key}" has a non-string JS path at index ${idx}.`,
           });
-        } else if (isAbsolutePath(p)) {
+        } else if (isAbsolutePath(p) && !p.startsWith('/_ranu/')) {
           diagnostics.push({
             code: 'RANU_BUILD_MANIFEST_INVALID',
             severity: 'error',
@@ -518,7 +518,7 @@ export function validateClientManifest(manifest: any, expectedBuildId?: string):
             severity: 'error',
             message: `ClientManifest assets entry for "${key}" has a non-string CSS path at index ${idx}.`,
           });
-        } else if (isAbsolutePath(p)) {
+        } else if (isAbsolutePath(p) && !p.startsWith('/_ranu/')) {
           diagnostics.push({
             code: 'RANU_BUILD_MANIFEST_INVALID',
             severity: 'error',

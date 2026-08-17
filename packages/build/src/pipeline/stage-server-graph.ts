@@ -66,6 +66,8 @@ export async function runServerGraphStage(
     jsx: 'automatic',
     jsxImportSource: 'react',
     treeShaking: true,
+    entryNames: '[dir]/[name]',
+    outExtension: { '.js': '.mjs' },
   });
 
   // 3. Process any errors/warnings from bundler

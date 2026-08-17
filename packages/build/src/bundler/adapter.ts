@@ -21,6 +21,7 @@ export interface BundleOptions {
   assetNames?: string | undefined;
   chunkNames?: string | undefined;
   entryNames?: string | undefined;
+  outExtension?: Record<string, string> | undefined;
 }
 
 /** Output result from bundler execution */
