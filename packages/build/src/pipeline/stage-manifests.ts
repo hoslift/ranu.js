@@ -36,11 +36,11 @@ export interface ManifestStageResult {
  * Manifest Generation Stage (Stage 15).
  * Generates and validates all 4 manifests and the root build descriptor.
  */
-export async function runManifestStage(
+export function runManifestStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
   clientAssets: Record<string, ClientAssetGroup> = {}
-): Promise<ManifestStageResult> {
+): ManifestStageResult {
   const diagnostics: RanuDiagnostic[] = [];
   const buildId = ctx.buildId;
 

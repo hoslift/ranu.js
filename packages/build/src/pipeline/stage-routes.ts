@@ -104,7 +104,7 @@ export function getRouteOutputRelativePath(routeId: string): string {
 /**
  * Route discovery and preparation stage.
  */
-export async function runRouteStage(ctx: BuildContext): Promise<RouteStageResult> {
+export function runRouteStage(ctx: BuildContext): RouteStageResult {
   const appDir = path.join(ctx.projectRoot, 'app');
   const diagnostics: RanuDiagnostic[] = [];
 
@@ -121,9 +121,6 @@ export async function runRouteStage(ctx: BuildContext): Promise<RouteStageResult
 
   for (const record of records) {
     const isApi = record.kind === 'api';
-    const primaryRelative = isApi
-      ? (record as any).route ?? `api${record.pathnameTemplate}/route.ts`
-      : (record as any).page ?? `app${record.pathnameTemplate}/page.tsx`;
 
     // Discover actual source file path
     let sourceFile = '';

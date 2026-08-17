@@ -13,10 +13,10 @@ export interface ValidationStageResult {
  * Artifact Integrity Validation Stage (Stage 17).
  * Verifies that all output files referenced in manifests actually exist on disk before promoting.
  */
-export async function runValidationStage(
+export function runValidationStage(
   ctx: BuildContext,
   manifestResult: ManifestStageResult
-): Promise<ValidationStageResult> {
+): ValidationStageResult {
   const diagnostics: RanuDiagnostic[] = [];
 
   // 1. Verify build.json exists on disk

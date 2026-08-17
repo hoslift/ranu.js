@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 /**
  * Generates the JavaScript source code for the production Node entrypoint (.ranu/build/server/entry.mjs).
  *

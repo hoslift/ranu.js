@@ -3,7 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { isClientDirective } from '../compiler/directive-detector.js';
 import { isServerOnlyModule } from '../compiler/server-only-detector.js';
-import type { ModuleGraph, ModuleNode, ModuleImport, ModuleClassification } from './graph-types.js';
+import type { ModuleGraph, ModuleNode, ModuleImport } from './graph-types.js';
 
 const NODE_BUILTINS = new Set([
   'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console',
@@ -27,7 +27,7 @@ export function isNodeBuiltinModule(specifier: string): boolean {
 export function resolveImportPath(
   importerFile: string,
   specifier: string,
-  projectRoot: string
+  _projectRoot: string
 ): string | undefined {
   if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
     // Non-relative import (e.g. package or virtual module)

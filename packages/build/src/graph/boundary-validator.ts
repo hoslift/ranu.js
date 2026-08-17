@@ -1,5 +1,5 @@
 import type { RanuDiagnostic } from '@ranu/diagnostics';
-import type { ModuleGraph, ModuleNode } from './graph-types.js';
+import type { ModuleGraph } from './graph-types.js';
 
 /**
  * Finds the shortest import chain from any client entry to the target module ID.
@@ -27,10 +27,6 @@ export function findShortestImportChain(
     if (!node) continue;
 
     for (const imp of node.imports) {
-      const childId = imp.specifier.startsWith('.') && imp.resolvedPath
-        ? node.imports.find(i => i.specifier === imp.specifier)?.specifier
-        : imp.specifier;
-
       // Check resolved module node
       const resolvedNode = Array.from(graph.nodes.values()).find(
         n => n.filePath === imp.resolvedPath
