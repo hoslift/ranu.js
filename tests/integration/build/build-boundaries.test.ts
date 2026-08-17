@@ -110,10 +110,6 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     fs.mkdirSync(path.join(tempBadProject, 'server'), { recursive: true });
 
     fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
-    );
-    fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),
       `import { ClientWidget } from './widget.js'; export default function P() {}`
     );
@@ -146,10 +142,6 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     fs.mkdirSync(path.join(tempBadProject, 'app'), { recursive: true });
 
     fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
-    );
-    fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),
       `import { ClientFs } from './client-fs.js'; export default function P() {}`
     );
@@ -176,10 +168,6 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     const tempBadProject = path.join(fixtureRoot, '../build-bad-private-env');
     fs.mkdirSync(path.join(tempBadProject, 'app'), { recursive: true });
 
-    fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
-    );
     fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),
       `import { ClientSecret } from './client-secret.js'; export default function P() {}`

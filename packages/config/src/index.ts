@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import type { RanuMode, RouteKind, RenderMode, RanuCommand } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import dotenv from 'dotenv';
@@ -132,7 +133,7 @@ export async function loadConfig(configPath: string): Promise<any> {
       fs.writeFileSync(tempFile, transpiled.outputText);
 
       try {
-        const module = await import(`file://${tempFile.replace(/\\/g, '/')}`);
+        const module = await import(pathToFileURL(tempFile).href);
         return module.default;
       } finally {
         if (fs.existsSync(tempFile)) {
@@ -140,7 +141,7 @@ export async function loadConfig(configPath: string): Promise<any> {
         }
       }
     } else {
-      const module = await import(`file://${configPath.replace(/\\/g, '/')}`);
+      const module = await import(pathToFileURL(configPath).href);
       return module.default;
     }
   } catch (err: any) {

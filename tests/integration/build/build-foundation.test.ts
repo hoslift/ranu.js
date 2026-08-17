@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from '@ranu/build';
 import {
   validateBuildDescriptor,
@@ -137,7 +137,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
 
   it('generates loadable production server entry (.ranu/build/server/entry.mjs)', async () => {
     const entryPath = path.join(buildOutDir, 'server', 'entry.mjs');
-    const entryUrl = `file://${entryPath.replace(/\\/g, '/')}`;
+    const entryUrl = pathToFileURL(entryPath).href;
     const entryModule = await import(entryUrl);
 
     expect(entryModule.buildId).toBe(buildResult.buildId);
