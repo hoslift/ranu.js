@@ -44,9 +44,12 @@ export function resolveImportPath(
     return targetBase;
   }
 
-  // 2. Try adding extensions
+  // 2. Try stripping extension if .js/.mjs/.cjs/.jsx and trying alternate extensions
+  const extName = path.extname(targetBase);
+  const baseWithoutExt = extName ? targetBase.slice(0, -extName.length) : targetBase;
+
   for (const ext of extensions) {
-    const candidate = `${targetBase}${ext}`;
+    const candidate = `${baseWithoutExt}${ext}`;
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
       return candidate;
     }

@@ -36,6 +36,7 @@ export function Component() {
       platform: 'node',
       format: 'esm',
       sourcemap: 'external',
+      external: ['react', 'react/jsx-runtime'],
     });
 
     expect(result.success).toBe(true);
