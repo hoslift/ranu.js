@@ -23,6 +23,7 @@
     "@ranu/manifests": "workspace:*",
     "@ranu/router": "workspace:*",
     "@ranu/config": "workspace:*",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
