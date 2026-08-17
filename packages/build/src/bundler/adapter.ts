@@ -6,27 +6,27 @@ export interface BundleOptions {
   outdir: string;
   platform: 'node' | 'browser';
   format: 'esm';
-  target?: string | string[];
-  splitting?: boolean;
-  sourcemap?: boolean | 'inline' | 'external' | 'both';
-  minify?: boolean;
-  external?: string[];
-  define?: Record<string, string>;
-  plugins?: EsbuildPlugin[];
-  jsx?: 'automatic' | 'transform';
-  jsxImportSource?: string;
-  treeShaking?: boolean;
-  conditions?: string[];
-  mainFields?: string[];
-  assetNames?: string;
-  chunkNames?: string;
-  entryNames?: string;
+  target?: string | string[] | undefined;
+  splitting?: boolean | undefined;
+  sourcemap?: boolean | 'inline' | 'external' | 'both' | undefined;
+  minify?: boolean | undefined;
+  external?: string[] | undefined;
+  define?: Record<string, string> | undefined;
+  plugins?: EsbuildPlugin[] | undefined;
+  jsx?: 'automatic' | 'transform' | undefined;
+  jsxImportSource?: string | undefined;
+  treeShaking?: boolean | undefined;
+  conditions?: string[] | undefined;
+  mainFields?: string[] | undefined;
+  assetNames?: string | undefined;
+  chunkNames?: string | undefined;
+  entryNames?: string | undefined;
 }
 
 /** Output result from bundler execution */
 export interface BundleOutput {
   success: boolean;
-  outputFiles?: Array<{ path: string; contents: Uint8Array; text: string }>;
+  outputFiles?: Array<{ path: string; contents: Uint8Array; text: string }> | undefined;
   metafile?: any;
   errors: any[];
   warnings: any[];

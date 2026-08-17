@@ -7,21 +7,21 @@ export interface BuildConfig {
   projectRoot: string;
 
   /** Target output directory. Defaults to '<projectRoot>/.ranu/build' */
-  outDir?: string;
+  outDir?: string | undefined;
 
   /** Framework build mode. Defaults to 'production' */
-  mode?: 'production' | 'development';
+  mode?: 'production' | 'development' | undefined;
 
   /** Source map generation strategy. Defaults to 'hidden' for server */
-  sourceMaps?: 'hidden' | 'external' | 'inline' | false;
+  sourceMaps?: 'hidden' | 'external' | 'inline' | false | undefined;
 
   /** Whether to minify code. Defaults to false for server, true for client in prod */
-  minify?: boolean;
+  minify?: boolean | undefined;
 
   /** TypeScript typechecking options */
   typescript?: {
-    check?: boolean;
-  };
+    check?: boolean | undefined;
+  } | undefined;
 }
 
 /** Internal execution context shared across build stages */
