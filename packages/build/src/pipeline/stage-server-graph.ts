@@ -76,18 +76,19 @@ export async function runServerGraphStage(
         ? 'RANU_BUILD_MODULE_RESOLUTION'
         : 'RANU_BUILD_ROUTE_COMPILE';
 
-      diagnostics.push({
+      const diag: RanuDiagnostic = {
         code,
         severity: 'error',
         message: err.text || 'Server graph compilation failed',
-        location: err.location
-          ? {
-              file: err.location.file,
-              line: err.location.line,
-              column: err.location.column,
-            }
-          : undefined,
-      });
+      };
+      if (err.location) {
+        diag.location = {
+          file: err.location.file,
+          line: err.location.line,
+          column: err.location.column,
+        };
+      }
+      diagnostics.push(diag);
     }
   }
 
