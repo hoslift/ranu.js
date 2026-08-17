@@ -22,7 +22,7 @@ export class EsbuildAdapter implements BundlerAdapter {
       splitting: options.splitting ?? (options.format === 'esm'),
       sourcemap: options.sourcemap ?? (isNode ? 'external' : false),
       minify: options.minify ?? (!isNode),
-      target: options.target ?? (isNode ? 'node22' : ['chrome90', 'safari14', 'firefox90']),
+      target: options.target ?? (isNode ? 'node22' : 'es2022'),
       jsx: options.jsx ?? 'automatic',
       jsxImportSource: options.jsxImportSource ?? 'react',
       treeShaking: options.treeShaking ?? true,

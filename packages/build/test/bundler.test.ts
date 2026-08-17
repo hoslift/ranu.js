@@ -101,4 +101,31 @@ export const clientSecret = 'bad';`
     expect(result.success).toBe(false);
     expect(result.errors.some(e => e.text.includes('RANU_BUILD_SERVER_ONLY_CLIENT'))).toBe(true);
   });
+
+  it('bundles client modules with modern destructuring syntax using default es2022 target', async () => {
+    const srcFile = path.join(tempDir, 'client-counter.tsx');
+    fs.writeFileSync(
+      srcFile,
+      `import React from 'react';
+export function Counter({ initial = 0 }: { initial?: number }) {
+  const [count, setCount] = [initial, () => {}];
+  return <button>{count}</button>;
+}`
+    );
+
+    const outDir = path.join(tempDir, 'dist-client');
+    const adapter = new EsbuildAdapter();
+    const result = await adapter.bundle({
+      entryPoints: { counter: srcFile },
+      outdir: outDir,
+      platform: 'browser',
+      format: 'esm',
+      external: ['react', 'react/jsx-runtime'],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors.length).toBe(0);
+    const outFile = path.join(outDir, 'counter.js');
+    expect(fs.existsSync(outFile)).toBe(true);
+  });
 });
