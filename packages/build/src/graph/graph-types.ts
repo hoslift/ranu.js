@@ -9,7 +9,7 @@ export type ModuleClassification =
 
 export interface ModuleImport {
   specifier: string;
-  resolvedPath?: string;
+  resolvedPath?: string | undefined;
   isNodeBuiltin: boolean;
   isDynamic: boolean;
   line: number;
@@ -18,11 +18,11 @@ export interface ModuleImport {
 
 export interface ModuleNode {
   id: string; // Normalized relative or package specifier
-  filePath?: string; // Absolute path if local file
+  filePath?: string | undefined; // Absolute path if local file
   classification: ModuleClassification;
   isClientEntry: boolean;
   isServerOnly: boolean;
-  serverOnlyReason?: 'server-directory' | 'server-only-import';
+  serverOnlyReason?: 'server-directory' | 'server-only-import' | undefined;
   imports: ModuleImport[];
   importedBy: string[]; // Node IDs that import this node
 }

@@ -16,9 +16,9 @@ export interface RouteEntryInfo {
   methods: HttpMethod[];
   sourceFile: string;
   layouts: string[];
-  loading?: string;
+  loading?: string | undefined;
   errors: string[];
-  notFound?: string[];
+  notFound?: string[] | undefined;
   outputRelativePath: string;
 }
 
