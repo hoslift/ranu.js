@@ -154,7 +154,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
 
   it('renders compiled page through ReactRenderer SSR pipeline', async () => {
     const entryPath = path.join(buildOutDir, 'server', 'entry.mjs');
-    const entryUrl = `file://${entryPath.replace(/\\/g, '/')}`;
+    const entryUrl = pathToFileURL(entryPath).href;
     const entryModule = await import(entryUrl);
 
     const compiledRootPath = path.resolve(buildOutDir, 'server/routes/page-root.mjs');
@@ -163,11 +163,11 @@ describe('Phase 11 — Build System Foundation Integration', () => {
     const renderer = new ReactRenderer({
       moduleLoader: {
         async loadPage(p: string) {
-          const mod = await import(`file://${p.replace(/\\/g, '/')}`);
+          const mod = await import(pathToFileURL(p).href);
           return mod;
         },
         async loadLayout(p: string) {
-          const mod = await import(`file://${p.replace(/\\/g, '/')}`);
+          const mod = await import(pathToFileURL(p).href);
           return mod;
         },
         async loadLoading() {
