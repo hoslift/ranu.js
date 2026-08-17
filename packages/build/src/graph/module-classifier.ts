@@ -225,6 +225,11 @@ export function buildModuleGraph(serverRootFiles: string[], projectRoot: string)
     const currentNode = nodes.get(currentId);
     if (!currentNode) continue;
 
+    // Server graph stops traversal at client entry boundaries
+    if (currentNode.isClientEntry && !serverRoots.includes(currentId)) {
+      continue;
+    }
+
     for (const imp of currentNode.imports) {
       if (imp.resolvedPath) {
         const childRelId = path.relative(projectRoot, imp.resolvedPath).replace(/\\/g, '/');
