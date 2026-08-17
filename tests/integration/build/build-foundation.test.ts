@@ -191,12 +191,18 @@ describe('Phase 11 — Build System Foundation Integration', () => {
       stream: false,
     };
 
+    const testUrl = new URL('http://localhost/');
+    const testRequest = new Request(testUrl);
     const requestContext = {
+      requestId: 'test-req-1',
+      request: testRequest,
+      url: testUrl,
       routeId: 'page:/',
       pathname: '/',
       params: {},
+      locals: new Map(),
       query: {},
-      headers: new Headers(),
+      headers: testRequest.headers,
       cookies: {
         get: () => undefined,
         getAll: () => ({}),
@@ -205,7 +211,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
         delete: () => {},
       },
       mode: 'production' as const,
-      signal: new AbortController().signal,
+      signal: testRequest.signal,
     };
 
     const renderResult = await renderer.render(target, requestContext);
