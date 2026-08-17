@@ -114,7 +114,7 @@ importers:
         specifier: workspace:*
         version: link:../router
       esbuild:
-        specifier: ^0.25.0
+        specifier: ^0.28.2
         version: 0.28.2
       typescript:
         specifier: ^5.9.3
