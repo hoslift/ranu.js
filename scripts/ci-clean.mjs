@@ -40,17 +40,6 @@ function removeDir(relPath) {
 }
 
 /**
- * Remove a file if it exists.
- */
-function removeFile(relPath) {
-  const full = path.join(ROOT, relPath);
-  if (fs.existsSync(full)) {
-    fs.rmSync(full, { force: true });
-    console.log(`  removed: ${relPath}`);
-  }
-}
-
-/**
  * Recursively remove all *.tsbuildinfo files under a directory,
  * skipping node_modules.
  */
