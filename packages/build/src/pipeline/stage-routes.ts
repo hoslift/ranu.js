@@ -113,7 +113,7 @@ export async function runRouteStage(ctx: BuildContext): Promise<RouteStageResult
   }
 
   // 1. Discover routes using @ranu/router and method analyzer
-  const { records, diagnostics: routerDiags } = discoverRoutes(appDir, analyzeRouteMethods);
+  const { records, diagnostics: routerDiags } = discoverRoutes(appDir, { analyzeRouteMethods });
   diagnostics.push(...routerDiags);
 
   // 2. Process each discovered route into RouteEntryInfo
