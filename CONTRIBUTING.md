@@ -149,19 +149,27 @@ Tests should cover:
 
 ### 4. Validate Your Changes
 
-Before opening a pull request, run:
+Before opening a pull request, run the full CI validation suite locally:
 
 ```bash id="qk7sj9"
-pnpm typecheck
-pnpm test
-pnpm lint
-pnpm format:check
+pnpm ci:clean
 ```
 
-If your changes affect the build system or package output, also run:
+This command cleans all generated build outputs, reinstalls dependencies from
+the frozen lockfile, and then runs the complete validation pipeline (typecheck,
+build, lint, tests, integration tests, dependency-cycle check, and export-map
+check) — the same checks that run on GitHub Actions.
 
-```bash id="wrxyj5"
-pnpm build
+For a faster re-run after the initial clean (e.g., during iterative development):
+
+```bash id="z9q3m2"
+pnpm ci:verify
+```
+
+You can also use the short alias:
+
+```bash id="p2r8s1"
+pnpm prepr
 ```
 
 ### 5. Add a Changeset
