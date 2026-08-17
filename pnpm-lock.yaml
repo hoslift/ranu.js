@@ -100,9 +100,17 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ranu
 
-  fixtures/build-basic: {}
+  fixtures/build-basic:
+    dependencies:
+      '@ranu/config':
+        specifier: workspace:*
+        version: link:../../packages/config
 
-  fixtures/build-boundaries: {}
+  fixtures/build-boundaries:
+    dependencies:
+      '@ranu/config':
+        specifier: workspace:*
+        version: link:../../packages/config
 
   fixtures/react-ssr: {}
 
