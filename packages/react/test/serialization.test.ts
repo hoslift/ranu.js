@@ -244,9 +244,9 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
       const hostileProtoJson = JSON.stringify({
         ...validPayload,
         params: {
-          __proto__: { polluted: true },
+          id: '123',
         },
-      });
+      }).replace('"id":"123"', '"__proto__":{"polluted":true}');
 
       expect(() => deserializeHydrationData(hostileProtoJson)).toThrow(TypeError);
       expect((Object.prototype as any).polluted).toBeUndefined();
@@ -254,9 +254,9 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
       const hostileConstructorJson = JSON.stringify({
         ...validPayload,
         params: {
-          constructor: { polluted: true },
+          id: '123',
         },
-      });
+      }).replace('"id":"123"', '"constructor":{"polluted":true}');
 
       expect(() => deserializeHydrationData(hostileConstructorJson)).toThrow(TypeError);
       expect((Object.prototype as any).polluted).toBeUndefined();

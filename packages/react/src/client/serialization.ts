@@ -212,8 +212,16 @@ export function deserializeHydrationData(rawJson: string): RanuHydrationPayload 
   const unescaped = unescapeScriptJson(rawJson);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(unescaped);
+    parsed = JSON.parse(unescaped, (key, value) => {
+      if (FORBIDDEN_KEYS.has(key)) {
+        throw new TypeError(`Forbidden prototype pollution key "${key}" detected in payload.`);
+      }
+      return value;
+    });
   } catch (err: unknown) {
+    if (err instanceof TypeError) {
+      throw err;
+    }
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to parse hydration JSON payload: ${msg}`);
   }
