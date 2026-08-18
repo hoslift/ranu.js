@@ -299,6 +299,10 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
       expect(html).toContain('/products/42');
       expect(html).toContain('<h1>Product 42</h1>');
 
+      // Verify executable module script tags for bootstrap assets
+      expect(html).toContain('<script type="module" src="/_ranu/assets/client-bootstrap.js"></script>');
+      expect(html).toContain('<script type="module" src="/_ranu/assets/products.js"></script>');
+
       // Verify no artificial root div wrapper was injected
       expect(html).not.toContain('<div id="root">');
       expect(html).not.toContain('id="root"');

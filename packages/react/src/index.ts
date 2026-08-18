@@ -14,3 +14,4 @@ export * from './composition.js';
 export * from './stream.js';
 export * from './renderer.js';
 export * from './client/serialization.js';
+export * from './client/bootstrap.js';

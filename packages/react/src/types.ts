@@ -172,3 +172,24 @@ export interface RanuHydrationPayload {
   readonly publicEnv: Readonly<Record<string, string>>;
   readonly assets: RouteClientAssets;
 }
+
+/**
+ * Options for bootstrapClientHydration.
+ */
+export interface ClientBootstrapOptions {
+  readonly buildId?: string | undefined;
+  readonly container?: Document | Element | undefined;
+  readonly componentLoader?: ((routeId: string) => Promise<PageComponent | PageModule>) | undefined;
+  readonly renderApp?: ((payload: RanuHydrationPayload) => ReactNode) | undefined;
+  readonly onHydrated?: (() => void) | undefined;
+  readonly onHydrationError?: ((error: unknown) => void) | undefined;
+}
+
+/**
+ * Result returned by bootstrapClientHydration.
+ */
+export interface ClientBootstrapResult {
+  readonly success: boolean;
+  readonly payload: RanuHydrationPayload;
+  readonly root?: unknown;
+}
