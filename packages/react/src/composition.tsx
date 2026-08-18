@@ -7,9 +7,15 @@ import type {
   PageProps,
   LayoutProps,
   ResolvedMetadata,
+  RanuHydrationPayload,
 } from './types.js';
 import { MetadataHeadElements } from './metadata.js';
 import { DefaultDocumentShell } from './document.js';
+import {
+  serializeHydrationData,
+  HYDRATION_DATA_SCRIPT_ID,
+  HYDRATION_DATA_SCRIPT_TYPE,
+} from './client/serialization.js';
 
 export interface ComposeTreeOptions {
   readonly page: PageModule;
@@ -18,6 +24,26 @@ export interface ComposeTreeOptions {
   readonly notFound?: NotFoundModule | undefined;
   readonly metadata?: ResolvedMetadata | undefined;
   readonly pageProps: PageProps;
+  readonly hydrationPayload?: RanuHydrationPayload | undefined;
+}
+
+/**
+ * Renders the inert JSON hydration data payload script tag for browser bootstrap consumption.
+ */
+export function HydrationDataScript({
+  payload,
+}: {
+  readonly payload?: RanuHydrationPayload | undefined;
+}): React.ReactElement | null {
+  if (!payload) return null;
+  const serialized = serializeHydrationData(payload);
+  return (
+    <script
+      id={HYDRATION_DATA_SCRIPT_ID}
+      type={HYDRATION_DATA_SCRIPT_TYPE}
+      dangerouslySetInnerHTML={{ __html: serialized }}
+    />
+  );
 }
 
 /**
@@ -25,12 +51,13 @@ export interface ComposeTreeOptions {
  * Root Layout -> Nested Layouts -> Loading / Suspense -> Page.
  */
 export function composeComponentTree(options: ComposeTreeOptions): ReactNode {
-  const { page, layouts, loading, metadata, pageProps } = options;
+  const { page, layouts, loading, metadata, pageProps, hydrationPayload } = options;
 
   const PageComponent = page.default;
   let currentChild: ReactNode = (
     <>
       <MetadataHeadElements metadata={metadata} />
+      <HydrationDataScript payload={hydrationPayload} />
       <PageComponent params={pageProps.params} searchParams={pageProps.searchParams} />
     </>
   );
