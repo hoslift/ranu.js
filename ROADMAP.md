@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 11–12 — Build System (Next)
+> **Current Phase:** Phase 13–16 — Client (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -88,18 +88,23 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 11–12 — Build System ⏳
+## Phase 11–12 — Build System ✅
 
-**Next phase (Upcoming)**
-
-* TypeScript/JSX transforms
-* Server/client graph separation
-* `"use client"` enforcement
-* `ranu/server-only`
+* Production build pipeline and deterministic output structure
+* TypeScript, JavaScript, JSX, and TSX compilation
+* Server build graph and production server bundles
+* Client/server module boundary classification and `"use client"` detection
+* Transitive client graph propagation and security boundary enforcement
+* `ranu/server-only` boundary validation
+* Route, server, client, and static build manifests
+* Production entry generation and Node.js SSR production artifact
+* Cross-platform build and asset packaging behavior
 
 ---
 
 ## Phase 13–16 — Client ⏳
+
+**Next phase (Upcoming)**
 
 * Hydration
 * Client navigation (`Link`, `useRouter`)
@@ -153,8 +158,8 @@ Phase 6      Runtime Contracts           ✅ Completed
 Phase 7      Node Runtime                ✅ Completed
 Phase 8      Server Helpers              ✅ Completed
 Phase 9–10   React Renderer              ✅ Completed
-Phase 11–12  Build System                ⏳ Next / Upcoming
-Phase 13–16  Client                      ⏳ Planned
+Phase 11–12  Build System                ✅ Completed
+Phase 13–16  Client                      ⏳ Next / Upcoming
 Phase 17–19  CSS / Assets / Dev Server   ⏳ Planned
 Phase 20–23  Middleware / Plugins / CLI  ⏳ Planned
 Phase 24–26  Deployment                  ⏳ Planned
@@ -184,4 +189,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 11–12 — Build System**
+**Next development focus: Phase 13–16 — Client**
