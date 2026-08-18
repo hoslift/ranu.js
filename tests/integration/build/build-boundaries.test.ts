@@ -45,8 +45,8 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
   });
 
   it('completes build with success: true and zero error diagnostics for valid boundaries', () => {
+    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toEqual([]);
     expect(buildResult.success).toBe(true);
-    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toHaveLength(0);
   });
 
   it('generates browser client bundles in .ranu/build/static/assets/ for "use client" entries', () => {
@@ -110,8 +110,8 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     fs.mkdirSync(path.join(tempBadProject, 'server'), { recursive: true });
 
     fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
+      path.join(tempBadProject, 'app', 'layout.tsx'),
+      `export default function Layout({ children }: any) { return children; }`
     );
     fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),
@@ -146,8 +146,8 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     fs.mkdirSync(path.join(tempBadProject, 'app'), { recursive: true });
 
     fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
+      path.join(tempBadProject, 'app', 'layout.tsx'),
+      `export default function Layout({ children }: any) { return children; }`
     );
     fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),
@@ -177,8 +177,8 @@ describe('Phase 12 — Server/Client Graph Separation & Security Boundaries', ()
     fs.mkdirSync(path.join(tempBadProject, 'app'), { recursive: true });
 
     fs.writeFileSync(
-      path.join(tempBadProject, 'ranu.config.ts'),
-      `import { defineConfig } from '@ranu/config'; export default defineConfig({});`
+      path.join(tempBadProject, 'app', 'layout.tsx'),
+      `export default function Layout({ children }: any) { return children; }`
     );
     fs.writeFileSync(
       path.join(tempBadProject, 'app', 'page.tsx'),

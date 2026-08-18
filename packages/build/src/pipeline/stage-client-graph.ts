@@ -77,7 +77,7 @@ export async function runClientGraphStage(
     outdir: ctx.staticOutDir,
     platform: 'browser',
     format: 'esm',
-    target: ['chrome90', 'safari14', 'firefox90'],
+    target: 'es2022',
     splitting: true,
     sourcemap: ctx.config.sourceMaps === false ? false : undefined,
     minify: ctx.config.minify ?? true,

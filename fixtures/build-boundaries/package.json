@@ -1,5 +1,8 @@
 {
   "name": "fixture-build-boundaries",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@ranu/config": "workspace:*"
+  }
 }

@@ -12,7 +12,7 @@ export function generateProductionEntrySource(buildId: string): string {
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +45,7 @@ export const moduleLoader = {
       throw new Error(\`Route "\${routeId}" not found in server manifest.\`);
     }
     const modulePath = path.resolve(buildDir, entry.serverEntry);
-    return await import(\`file://\${modulePath.replace(/\\\\/g, '/')}\`);
+    return await import(pathToFileURL(modulePath).href);
   }
 };
 

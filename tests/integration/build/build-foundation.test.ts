@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from '@ranu/build';
 import {
   validateBuildDescriptor,
@@ -43,8 +43,8 @@ describe('Phase 11 — Build System Foundation Integration', () => {
   });
 
   it('completes build with success: true and zero error diagnostics', () => {
+    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toEqual([]);
     expect(buildResult.success).toBe(true);
-    expect(buildResult.diagnostics.filter((d: any) => d.severity === 'error')).toHaveLength(0);
     expect(typeof buildResult.buildId).toBe('string');
     expect(buildResult.buildId.length).toBe(29);
   });
@@ -137,7 +137,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
 
   it('generates loadable production server entry (.ranu/build/server/entry.mjs)', async () => {
     const entryPath = path.join(buildOutDir, 'server', 'entry.mjs');
-    const entryUrl = `file://${entryPath.replace(/\\/g, '/')}`;
+    const entryUrl = pathToFileURL(entryPath).href;
     const entryModule = await import(entryUrl);
 
     expect(entryModule.buildId).toBe(buildResult.buildId);
@@ -154,21 +154,20 @@ describe('Phase 11 — Build System Foundation Integration', () => {
 
   it('renders compiled page through ReactRenderer SSR pipeline', async () => {
     const entryPath = path.join(buildOutDir, 'server', 'entry.mjs');
-    const entryUrl = `file://${entryPath.replace(/\\/g, '/')}`;
+    const entryUrl = pathToFileURL(entryPath).href;
     const entryModule = await import(entryUrl);
 
     const compiledRootPath = path.resolve(buildOutDir, 'server/routes/page-root.mjs');
 
     // Create module loader that loads compiled files
     const renderer = new ReactRenderer({
-      moduleLoader: {
-        async loadPage(p: string) {
-          const mod = await import(`file://${p.replace(/\\/g, '/')}`);
+      loader: {
+        async loadPage() {
+          const mod = await import(pathToFileURL(compiledRootPath).href);
           return mod;
         },
-        async loadLayout(p: string) {
-          const mod = await import(`file://${p.replace(/\\/g, '/')}`);
-          return mod;
+        async loadLayout() {
+          return { default: ({ children }: any) => children };
         },
         async loadLoading() {
           return undefined;
@@ -185,18 +184,24 @@ describe('Phase 11 — Build System Foundation Integration', () => {
     const target: PageRenderTarget = {
       routeId: 'page:/',
       pagePath: compiledRootPath,
-      layoutPaths: [],
+      layouts: [],
       params: {},
       renderMode: 'server',
       stream: false,
     };
 
+    const testUrl = new URL('http://localhost/');
+    const testRequest = new Request(testUrl);
     const requestContext = {
+      requestId: 'test-req-1',
+      request: testRequest,
+      url: testUrl,
       routeId: 'page:/',
       pathname: '/',
       params: {},
+      locals: new Map(),
       query: {},
-      headers: new Headers(),
+      headers: testRequest.headers,
       cookies: {
         get: () => undefined,
         getAll: () => ({}),
@@ -205,10 +210,10 @@ describe('Phase 11 — Build System Foundation Integration', () => {
         delete: () => {},
       },
       mode: 'production' as const,
-      signal: new AbortController().signal,
+      signal: testRequest.signal,
     };
 
-    const renderResult = await renderer.render(target, requestContext);
+    const renderResult = await renderer.render(testRequest, requestContext, target);
     expect(renderResult.status).toBe(200);
 
     const text = await new Response(renderResult.body).text();
