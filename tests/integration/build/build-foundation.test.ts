@@ -161,14 +161,13 @@ describe('Phase 11 — Build System Foundation Integration', () => {
 
     // Create module loader that loads compiled files
     const renderer = new ReactRenderer({
-      moduleLoader: {
-        async loadPage(p: string) {
-          const mod = await import(pathToFileURL(p).href);
+      loader: {
+        async loadPage() {
+          const mod = await import(pathToFileURL(compiledRootPath).href);
           return mod;
         },
-        async loadLayout(p: string) {
-          const mod = await import(pathToFileURL(p).href);
-          return mod;
+        async loadLayout() {
+          return { default: ({ children }: any) => children };
         },
         async loadLoading() {
           return undefined;
@@ -185,7 +184,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
     const target: PageRenderTarget = {
       routeId: 'page:/',
       pagePath: compiledRootPath,
-      layoutPaths: [],
+      layouts: [],
       params: {},
       renderMode: 'server',
       stream: false,
@@ -214,7 +213,7 @@ describe('Phase 11 — Build System Foundation Integration', () => {
       signal: testRequest.signal,
     };
 
-    const renderResult = await renderer.render(target, requestContext);
+    const renderResult = await renderer.render(testRequest, requestContext, target);
     expect(renderResult.status).toBe(200);
 
     const text = await new Response(renderResult.body).text();

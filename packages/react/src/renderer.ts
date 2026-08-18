@@ -92,7 +92,7 @@ export class ReactRenderer implements RanuRenderer {
           'Content-Type': 'text/html; charset=utf-8',
         },
       });
-    } catch (err: unknown) {
+    } catch (err: any) {
       // Handle Pre-Stream Control Signals
       if (isControlSignal(err)) {
         if (err instanceof RedirectSignal) {
