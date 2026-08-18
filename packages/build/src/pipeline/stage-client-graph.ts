@@ -59,6 +59,16 @@ export async function runClientGraphStage(
     };
   }
 
+  // Include framework browser hydration bootstrap entrypoint
+  const bootstrapSource = `import { bootstrapClientHydration } from '@ranu/react';
+if (typeof document !== 'undefined') {
+  bootstrapClientHydration({ buildId: ${JSON.stringify(ctx.buildId)} }).catch(() => {});
+}
+`;
+  const bootstrapEntryPath = path.join(ctx.tempOutDir, 'bootstrap-entry.tsx');
+  fs.writeFileSync(bootstrapEntryPath, bootstrapSource, 'utf8');
+  entryPoints['bootstrap'] = bootstrapEntryPath;
+
   // 2. Prepare public environment defines
   const rawEnv = process.env as Record<string, string>;
   const publicEnv = filterPublicEnv(rawEnv);
@@ -83,6 +93,7 @@ export async function runClientGraphStage(
     minify: ctx.config.minify ?? true,
     define: defines,
     plugins: [ranuPlugin],
+    external: ['react', 'react-dom', 'react/jsx-runtime', '@ranu/react'],
     jsx: 'automatic',
     jsxImportSource: 'react',
     treeShaking: true,
@@ -118,7 +129,8 @@ export async function runClientGraphStage(
   const staticAssetsDir = path.join(ctx.staticOutDir, 'assets');
   if (fs.existsSync(staticAssetsDir)) {
     const files = fs.readdirSync(staticAssetsDir);
-    for (const entryId of graph.clientEntries) {
+    const allKeys = [...graph.clientEntries, 'bootstrap'];
+    for (const entryId of allKeys) {
       const cleanKey = entryId
         .replace(/^app\//, '')
         .replace(/\.[^.]+$/, '')

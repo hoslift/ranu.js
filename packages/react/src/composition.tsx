@@ -8,6 +8,7 @@ import type {
   LayoutProps,
   ResolvedMetadata,
   RanuHydrationPayload,
+  RouteClientAssets,
 } from './types.js';
 import { MetadataHeadElements } from './metadata.js';
 import { DefaultDocumentShell } from './document.js';
@@ -47,6 +48,24 @@ export function HydrationDataScript({
 }
 
 /**
+ * Renders module script tags for client bootstrap assets in the SSR document.
+ */
+export function HydrationBootstrapScript({
+  assets,
+}: {
+  readonly assets?: RouteClientAssets | undefined;
+}): React.ReactElement | null {
+  if (!assets || !assets.js || assets.js.length === 0) return null;
+  return (
+    <>
+      {assets.js.map(src => (
+        <script key={src} type="module" src={src} />
+      ))}
+    </>
+  );
+}
+
+/**
  * Composes the React component tree following the authoritative layout hierarchy (04_RENDERING_MODEL.md §12):
  * Root Layout -> Nested Layouts -> Loading / Suspense -> Page.
  */
@@ -58,6 +77,7 @@ export function composeComponentTree(options: ComposeTreeOptions): ReactNode {
     <>
       <MetadataHeadElements metadata={metadata} />
       <HydrationDataScript payload={hydrationPayload} />
+      <HydrationBootstrapScript assets={hydrationPayload?.assets} />
       <PageComponent params={pageProps.params} searchParams={pageProps.searchParams} />
     </>
   );
