@@ -151,3 +151,24 @@ export interface ComponentModuleLoader {
   loadError(path: string): Promise<ErrorModule | undefined>;
   loadNotFound(path: string): Promise<NotFoundModule | undefined>;
 }
+
+/**
+ * Assets associated with a hydrated route.
+ */
+export interface RouteClientAssets {
+  readonly js: readonly string[];
+  readonly css: readonly string[];
+}
+
+/**
+ * Authoritative client hydration payload embedded in the SSR document.
+ */
+export interface RanuHydrationPayload {
+  readonly buildId: string;
+  readonly routeId: string;
+  readonly pathname: string;
+  readonly params: Readonly<Record<string, string | readonly string[]>>;
+  readonly searchParams: Readonly<Record<string, string | readonly string[] | undefined>>;
+  readonly publicEnv: Readonly<Record<string, string>>;
+  readonly assets: RouteClientAssets;
+}
