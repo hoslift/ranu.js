@@ -17,6 +17,7 @@ export function getRequestContext(): RanuRequestContext {
       'Dynamic server helpers (cookies, headers, getRequestContext) cannot be accessed during Static Site Generation (SSG).'
     );
     (error as any).code = 'RANU_SSG_DYNAMIC_ACCESS';
+    context.locals.set('__ranu_ssg_error__', error);
     throw error;
   }
   return context;

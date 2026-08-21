@@ -118,7 +118,19 @@ export async function renderStaticRoute(
     throw error;
   }
 
-  // 5. Determine artifact HTTP status (200 for normal static page, 404 if notFound was called)
+  // 5. Handle SSG dynamic access error or 500 render errors
+  const ssgError = context.locals.get('__ranu_ssg_error__');
+  if (ssgError) {
+    throw ssgError;
+  }
+
+  if (response.status >= 500) {
+    throw new Error(
+      `Static rendering failed for route "${routeId}" at pathname "${pathname}" (HTTP ${response.status}).`
+    );
+  }
+
+  // 6. Determine artifact HTTP status (200 for normal static page, 404 if notFound was called)
   const status: 200 | 404 = response.status === 404 ? 404 : 200;
 
   // 6. Read stream to complete HTML string
