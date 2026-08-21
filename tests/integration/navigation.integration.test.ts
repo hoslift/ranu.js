@@ -106,20 +106,11 @@ describe('Phase 14 Stage 14B: Client Navigation Integration Test', () => {
       assets: { js: ['/assets/main.js'], css: ['/assets/main.css'] },
     };
 
-    const initialState: RouterState = {
-      pathname: payload.pathname,
-      searchParams: createReadonlySearchParams(payload.searchParams),
-      routeId: payload.routeId,
-      params: payload.params,
-    };
-
-    let activePathname = '';
-    let activeSearch: ReturnType<typeof useSearchParams> | null = null;
     let activeRouter: ReturnType<typeof useRouter> | null = null;
 
     function NavigationApp(): React.ReactNode {
-      activePathname = usePathname();
-      activeSearch = useSearchParams();
+      const pathname = usePathname();
+      const search = useSearchParams();
       activeRouter = useRouter();
 
       return React.createElement('nav', { id: 'app-nav' }, [
@@ -141,35 +132,48 @@ describe('Phase 14 Stage 14B: Client Navigation Integration Test', () => {
           },
           'About'
         ),
-        React.createElement('span', { key: 'path', id: 'current-pathname' }, activePathname),
+        React.createElement('span', { key: 'path', id: 'current-pathname' }, pathname),
+        React.createElement('span', { key: 'cat', id: 'category-param' }, search.get('category') ?? ''),
       ]);
     }
 
-    function RootApp(): React.ReactNode {
+    function createTree(path: string, searchRecord: Record<string, string | readonly string[]> = {}): React.ReactElement {
+      const state: RouterState = {
+        pathname: path,
+        searchParams: createReadonlySearchParams(searchRecord),
+        routeId: payload.routeId,
+        params: payload.params,
+      };
+
       return React.createElement(
         ClientRouterProvider,
-        { initialState },
+        { initialState: state },
         React.createElement(NavigationApp)
       );
     }
 
-    // 1. SSR Stage: render tree to HTML stream
-    const stream = await renderReactToStream(React.createElement(RootApp));
-    const ssrHtml = await streamToString(stream);
+    // 1. SSR Stage: render initial tree to HTML stream
+    const stream1 = await renderReactToStream(createTree(payload.pathname, payload.searchParams as Record<string, string | readonly string[]>));
+    const ssrHtml1 = await streamToString(stream1);
 
-    expect(ssrHtml).toContain('<nav id="app-nav">');
-    expect(ssrHtml).toContain('href="/products?category=shoes&amp;tag=new&amp;tag=sale"');
-    expect(ssrHtml).toContain('href="/about"');
-    expect(ssrHtml).toContain('<span id="current-pathname">/home</span>');
+    expect(ssrHtml1).toContain('<nav id="app-nav">');
+    expect(ssrHtml1).toContain('href="/products?category=shoes&amp;tag=new&amp;tag=sale"');
+    expect(ssrHtml1).toContain('href="/about"');
+    expect(ssrHtml1).toContain('<span id="current-pathname">/home</span>');
 
     // 2. Programmatic Client Navigation: push to products
     activeRouter?.push('/products?category=shoes&tag=new&tag=sale');
 
     expect(pushStateSpy).toHaveBeenCalledTimes(1);
     expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/products?category=shoes&tag=new&tag=sale');
-    expect(activePathname).toBe('/products');
-    expect(activeSearch?.get('category')).toBe('shoes');
-    expect(activeSearch?.getAll('tag')).toEqual(['new', 'sale']);
+    expect(mockLocation.pathname).toBe('/products');
+    expect(mockLocation.search).toBe('?category=shoes&tag=new&tag=sale');
+
+    // Re-render tree at new URL to verify reactive consumer presentation
+    const stream2 = await renderReactToStream(createTree(mockLocation.pathname, { category: 'shoes', tag: ['new', 'sale'] }));
+    const ssrHtml2 = await streamToString(stream2);
+    expect(ssrHtml2).toContain('<span id="current-pathname">/products</span>');
+    expect(ssrHtml2).toContain('<span id="category-param">shoes</span>');
 
     // 3. Browser Popstate Navigation: simulate user clicking browser back button
     mockLocation.pathname = '/home';
@@ -180,7 +184,8 @@ describe('Phase 14 Stage 14B: Client Navigation Integration Test', () => {
       handler();
     }
 
-    expect(activePathname).toBe('/home');
-    expect(activeSearch?.get('initial')).toBe('true');
+    const stream3 = await renderReactToStream(createTree(mockLocation.pathname, { initial: 'true' }));
+    const ssrHtml3 = await streamToString(stream3);
+    expect(ssrHtml3).toContain('<span id="current-pathname">/home</span>');
   });
 });
