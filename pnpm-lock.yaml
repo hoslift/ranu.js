@@ -130,9 +130,15 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../manifests
+      '@ranu/react':
+        specifier: workspace:*
+        version: link:../react
       '@ranu/router':
         specifier: workspace:*
         version: link:../router
+      '@ranu/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
@@ -140,6 +146,9 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
     devDependencies:
+      '@ranu/server':
+        specifier: workspace:*
+        version: link:../server
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1

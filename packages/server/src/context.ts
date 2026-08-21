@@ -12,5 +12,13 @@ export function getRequestContext(): RanuRequestContext {
       'Server helpers (cookies, headers, redirect, notFound) may only be used during active request processing.'
     );
   }
+  if (context.locals.get('__ranu_ssg__') === true) {
+    const error = new Error(
+      'Dynamic server helpers (cookies, headers, getRequestContext) cannot be accessed during Static Site Generation (SSG).'
+    );
+    (error as any).code = 'RANU_SSG_DYNAMIC_ACCESS';
+    context.locals.set('__ranu_ssg_error__', error);
+    throw error;
+  }
   return context;
 }

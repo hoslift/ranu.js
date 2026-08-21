@@ -70,3 +70,13 @@ export {
   type EvaluateStaticRouteOptions,
   type EvaluateStaticRouteResult,
 } from './static/params-evaluator.js';
+export {
+  deriveStaticOutputPath,
+  writeStaticPage,
+} from './static/output.js';
+export {
+  renderStaticRoute,
+  renderStaticRoutesInBatch,
+  type StaticRouteArtifact,
+  type RenderStaticRouteOptions,
+} from './static/static-renderer.js';
