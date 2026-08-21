@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { EsbuildAdapter } from '../bundler/esbuild-adapter.js';
 import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
