@@ -274,10 +274,12 @@ export async function runStaticGenerationStage(
     };
   }
 
-  // 4. Render all static routes in batch using Stage 15B
+  // 4. Render static page routes in batch (excluding the global 404)
+  const pageRouteConfigs = routeConfigs.filter(rc => rc.routeId !== 'page:/404');
+  const global404Config = routeConfigs.find(rc => rc.routeId === 'page:/404');
   let artifacts: StaticRouteArtifact[] = [];
   try {
-    artifacts = await renderStaticRoutesInBatch(routeConfigs, concurrency);
+    artifacts = await renderStaticRoutesInBatch(pageRouteConfigs, concurrency);
   } catch (err: any) {
     diagnostics.push({
       code: err.code ?? 'RANU_SSG_RENDER_FAILED',
@@ -290,6 +292,21 @@ export async function runStaticGenerationStage(
       artifacts: [],
       diagnostics,
     };
+  }
+
+  // 4b. Render global 404 fallback separately — failure is a warning, not an error
+  if (global404Config) {
+    try {
+      const artifact404 = await renderStaticRoutesInBatch([global404Config], 1);
+      artifacts.push(...artifact404);
+    } catch (err: any) {
+      // Global 404 rendering failure is non-fatal: degrade gracefully
+      diagnostics.push({
+        code: 'RANU_SSG_404_SKIPPED',
+        severity: 'warning',
+        message: `Global 404 fallback page could not be pre-rendered and will be skipped: ${err.message ?? String(err)}`,
+      });
+    }
   }
 
   // 5. Convert artifacts to StaticManifestEntry[]
