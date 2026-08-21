@@ -9,6 +9,7 @@ import {
   type ServerManifest,
   type ClientManifest,
   type StaticManifest,
+  type StaticManifestEntry,
   type RouteManifestEntry,
   type ServerManifestEntry,
   type ClientAssetGroup,
