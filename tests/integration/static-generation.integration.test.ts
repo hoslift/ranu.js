@@ -60,7 +60,7 @@ describe('Phase 15: Static Site Generation (SSG) Integration Test', () => {
               React.createElement('p', { key: 'content' }, 'Static content pre-rendered at build time.'),
             ]);
           },
-          metadata: ({ params }: { params: { slug: string } }) => ({
+          generateMetadata: ({ params }: { params: { slug: string } }) => ({
             title: `Blog - ${params.slug}`,
           }),
         };
