@@ -9,7 +9,7 @@ import type { BuildContext } from '../build-config.js';
 import type { RouteEntryInfo } from './stage-routes.js';
 import {
   evaluateStaticRoute,
-  type EvaluatedStaticRoute,
+  type EvaluateStaticRouteResult,
   type EvaluatedStaticPath,
 } from '../static/params-evaluator.js';
 import {
@@ -106,7 +106,7 @@ export async function runStaticGenerationStage(
   );
 
   const routeConfigs: RenderStaticRouteOptions[] = [];
-  const evaluatedRoutes: EvaluatedStaticRoute[] = [];
+  const evaluatedRoutes: EvaluateStaticRouteResult[] = [];
 
   // 2. Evaluate each static route using Stage 15A
   for (const route of staticPageRoutes) {
@@ -181,9 +181,9 @@ export async function runStaticGenerationStage(
         target: {
           routeId: route.routeId,
           layouts: route.layouts,
-          loading: route.loading,
+          ...(route.loading !== undefined ? { loading: route.loading } : {}),
           errors: route.errors,
-          notFound: route.notFound,
+          ...(route.notFound !== undefined ? { notFound: route.notFound } : {}),
           params: targetParams,
         },
         loader,
@@ -218,7 +218,7 @@ export async function runStaticGenerationStage(
       routeId: 'page:/404',
       layouts: rootLayouts,
       errors: [],
-      notFound: rootNotFound,
+      ...(rootNotFound.length > 0 ? { notFound: rootNotFound } : {}),
       params: {},
     },
     loader: global404Loader,
