@@ -201,11 +201,11 @@ export async function runStaticGenerationStage(
   // Render root fallback 404
   const global404Loader: ComponentModuleLoader = {
     ...loader,
-    async loadPage() {
-      if (rootNotFound.length > 0) {
+    async loadPage(_routeId: string) {
+      if (rootNotFound.length > 0 && typeof rootNotFound[0] === 'string') {
         try {
           const nfMod = await loader.loadNotFound(rootNotFound[0]);
-          if (nfMod && nfMod.default) {
+          if (nfMod?.default) {
             return { default: nfMod.default };
           }
         } catch {
