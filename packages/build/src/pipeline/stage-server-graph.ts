@@ -33,6 +33,26 @@ export async function runServerGraphStage(
         .replace(/\.mjs$/, '');
       entryPoints[entryKey] = route.sourceFile;
     }
+
+    // Compile layouts
+    for (const layoutPath of route.layouts) {
+      const fullPath = path.isAbsolute(layoutPath) ? layoutPath : path.resolve(ctx.projectRoot, layoutPath);
+      if (fs.existsSync(fullPath)) {
+        const sanitized = layoutPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        entryPoints[`layouts/${sanitized}`] = fullPath;
+      }
+    }
+
+    // Compile notFound
+    if (route.notFound) {
+      for (const nfPath of route.notFound) {
+        const fullPath = path.isAbsolute(nfPath) ? nfPath : path.resolve(ctx.projectRoot, nfPath);
+        if (fs.existsSync(fullPath)) {
+          const sanitized = nfPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          entryPoints[`not-found/${sanitized}`] = fullPath;
+        }
+      }
+    }
   }
 
   if (Object.keys(entryPoints).length === 0) {

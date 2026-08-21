@@ -46,6 +46,11 @@ export function createBuildComponentLoader(
       return undefined;
     },
     async loadLayout(layoutPath: string) {
+      const sanitized = layoutPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const compiledPath = path.join(ctx.serverOutDir, 'layouts', `${sanitized}.mjs`);
+      if (fs.existsSync(compiledPath)) {
+        return import(pathToFileURL(compiledPath).href);
+      }
       const srcPath = path.isAbsolute(layoutPath)
         ? layoutPath
         : path.resolve(ctx.projectRoot, layoutPath);
@@ -55,6 +60,11 @@ export function createBuildComponentLoader(
       return undefined;
     },
     async loadNotFound(notFoundPath: string) {
+      const sanitized = notFoundPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const compiledPath = path.join(ctx.serverOutDir, 'not-found', `${sanitized}.mjs`);
+      if (fs.existsSync(compiledPath)) {
+        return import(pathToFileURL(compiledPath).href);
+      }
       const srcPath = path.isAbsolute(notFoundPath)
         ? notFoundPath
         : path.resolve(ctx.projectRoot, notFoundPath);
