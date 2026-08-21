@@ -1,15 +1,37 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import * as esbuild from 'esbuild';
 import type { BundlerAdapter, BundleOptions, BundleOutput } from './adapter.js';
 
 export class EsbuildAdapter implements BundlerAdapter {
   async bundle(options: BundleOptions): Promise<BundleOutput> {
     const isNode = options.platform === 'node';
+    const req = createRequire(import.meta.url);
 
     // Default node externals
     const external = [...(options.external ?? [])];
     if (isNode) {
       if (!external.includes('node:*')) {
         external.push('node:*');
+      }
+    }
+
+    let alias: Record<string, string> = { ...(options.alias ?? {}) };
+    const nodePaths: string[] = [];
+    if (isNode) {
+      try {
+        const reactPath = req.resolve('react');
+        alias = {
+          'react': reactPath,
+          'react/jsx-runtime': req.resolve('react/jsx-runtime'),
+          'react/jsx-dev-runtime': req.resolve('react/jsx-dev-runtime'),
+          'react-dom': req.resolve('react-dom'),
+          'react-dom/server.edge': req.resolve('react-dom/server.edge'),
+          ...alias,
+        };
+        nodePaths.push(path.dirname(reactPath), path.resolve(process.cwd(), 'node_modules'));
+      } catch {
+        // Fall back if cannot resolve directly
       }
     }
 
@@ -27,11 +49,12 @@ export class EsbuildAdapter implements BundlerAdapter {
       jsxImportSource: options.jsxImportSource ?? 'react',
       treeShaking: options.treeShaking ?? true,
       external,
+      alias,
+      nodePaths,
       define: options.define ?? {},
       plugins: options.plugins ?? [],
       metafile: true,
       write: true,
-      ...(isNode ? { packages: 'external' as const } : {}),
       conditions: options.conditions ?? (isNode ? ['node', 'import', 'default'] : ['browser', 'import', 'default']),
       mainFields: options.mainFields ?? (isNode ? ['module', 'main'] : ['browser', 'module', 'main']),
       assetNames: options.assetNames ?? 'assets/[name]-[hash]',
