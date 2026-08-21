@@ -80,7 +80,11 @@ export async function renderStaticRoute(
 
   const contextParams: Record<string, string | string[]> = {};
   for (const [k, v] of Object.entries(params)) {
-    contextParams[k] = Array.isArray(v) ? [...v] : v;
+    if (typeof v === 'string') {
+      contextParams[k] = v;
+    } else if (Array.isArray(v)) {
+      contextParams[k] = Array.from(v);
+    }
   }
 
   const context: RanuRequestContext = {
