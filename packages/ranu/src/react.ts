@@ -5,6 +5,7 @@
  */
 
 export {
+  Link,
   useRouter,
   usePathname,
   useSearchParams,
@@ -19,6 +20,7 @@ export type {
   PageProps,
   LayoutProps,
   ErrorProps,
+  LinkProps,
   RanuRouter,
   ReadonlyURLSearchParams,
   RouterState,
