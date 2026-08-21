@@ -19,3 +19,6 @@ export * from './client/router-context.js';
 export * from './client/hooks.js';
 export * from './client/link.js';
 export * from './client/navigation.js';
+export * from './client/route-loader.js';
+export * from './client/prefetch.js';
+export * from './client/transition.js';

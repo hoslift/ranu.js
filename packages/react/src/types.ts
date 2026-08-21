@@ -258,3 +258,41 @@ export interface LinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorEle
   readonly scroll?: boolean | undefined;
   readonly prefetch?: boolean | undefined;
 }
+
+/**
+ * Loaded route module contract.
+ */
+export interface LoadedRouteModule {
+  readonly default?: ComponentType<PageProps> | undefined;
+  readonly [key: string]: unknown;
+}
+
+/**
+ * Client Route Asset Registry mapping routeId to associated JS and CSS assets.
+ */
+export interface ClientRouteAssetRegistry {
+  readonly buildId: string;
+  readonly assets: Readonly<Record<string, RouteClientAssets>>;
+}
+
+/**
+ * Interface for loading client route modules.
+ */
+export interface RouteLoader {
+  loadRouteModule(routeId: string): Promise<LoadedRouteModule>;
+  getRouteAssets(routeId: string): RouteClientAssets | undefined;
+}
+
+/**
+ * Options for prefetching a route.
+ */
+export interface PrefetchOptions {
+  readonly kind?: 'hover' | 'viewport' | 'intent' | undefined;
+}
+
+/**
+ * Service interface for prefetching client routes.
+ */
+export interface PrefetchService {
+  prefetch(href: string, options?: PrefetchOptions): Promise<boolean>;
+}
