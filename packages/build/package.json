@@ -18,11 +18,13 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@ranu/config": "workspace:*",
     "@ranu/core": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/manifests": "workspace:*",
+    "@ranu/react": "workspace:*",
     "@ranu/router": "workspace:*",
-    "@ranu/config": "workspace:*",
+    "@ranu/runtime": "workspace:*",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
   },
