@@ -89,6 +89,12 @@ export async function runServerGraphStage(
     treeShaking: true,
     entryNames: '[dir]/[name]',
     outExtension: { '.js': '.mjs' },
+    // Resolve react from the project being built, supporting monorepo workspaces
+    nodePaths: [
+      path.join(ctx.projectRoot, 'node_modules'),
+      path.resolve(ctx.projectRoot, '..', 'node_modules'),
+      path.resolve(ctx.projectRoot, '..', '..', 'node_modules'),
+    ],
   });
 
   // 3. Process any errors/warnings from bundler
