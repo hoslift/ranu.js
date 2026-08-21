@@ -201,12 +201,12 @@ export async function runStaticGenerationStage(
   // Render root fallback 404
   const global404Loader: ComponentModuleLoader = {
     ...loader,
-    async loadPage() {
-      return {
+    loadPage() {
+      return Promise.resolve({
         default: () => {
           notFound();
         },
-      };
+      });
     },
   };
 
