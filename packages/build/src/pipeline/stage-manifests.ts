@@ -39,7 +39,8 @@ export interface ManifestStageResult {
 export function runManifestStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
-  clientAssets: Record<string, ClientAssetGroup> = {}
+  clientAssets: Record<string, ClientAssetGroup> = {},
+  staticRoutes: StaticManifestEntry[] = []
 ): ManifestStageResult {
   const diagnostics: RanuDiagnostic[] = [];
   const buildId = ctx.buildId;
@@ -96,10 +97,11 @@ export function runManifestStage(
   };
 
   // 4. Build StaticManifest
+  const sortedStaticRoutes = [...staticRoutes].sort((a, b) => a.pathname.localeCompare(b.pathname));
   const staticManifest: StaticManifest = {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
     buildId,
-    routes: [],
+    routes: sortedStaticRoutes,
   };
 
   // 5. BuildDescriptor

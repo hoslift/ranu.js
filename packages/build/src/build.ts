@@ -20,6 +20,7 @@ import { generateProductionEntrySource } from './output/production-entry.js';
 import { runRouteStage } from './pipeline/stage-routes.js';
 import { runServerGraphStage } from './pipeline/stage-server-graph.js';
 import { runClientGraphStage } from './pipeline/stage-client-graph.js';
+import { runStaticGenerationStage } from './pipeline/stage-static.js';
 import { runManifestStage } from './pipeline/stage-manifests.js';
 import { runValidationStage } from './pipeline/stage-validate.js';
 import { buildModuleGraph } from './graph/module-classifier.js';
@@ -279,11 +280,26 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       };
     }
 
-    // Stage 15: Manifest generation
+    // Stage 15: Static Site Generation (SSG)
+    const staticResult = await runStaticGenerationStage(ctx, routeResult.routes);
+    diagnostics.push(...staticResult.diagnostics);
+    if (diagnostics.some(d => d.severity === 'error')) {
+      cleanupTempArtifacts(tempOutDir);
+      return {
+        success: false,
+        buildId,
+        outDir,
+        diagnostics,
+        duration: Date.now() - startTime,
+      };
+    }
+
+    // Stage 15b: Manifest generation
     const manifestResult = await runManifestStage(
       ctx,
       routeResult.routes,
-      clientResult.assets
+      clientResult.assets,
+      staticResult.staticRoutes as any
     );
     diagnostics.push(...manifestResult.diagnostics);
     if (diagnostics.some(d => d.severity === 'error')) {
