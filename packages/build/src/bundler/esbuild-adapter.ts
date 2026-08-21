@@ -31,6 +31,7 @@ export class EsbuildAdapter implements BundlerAdapter {
       plugins: options.plugins ?? [],
       metafile: true,
       write: true,
+      ...(isNode ? { packages: 'external' as const } : {}),
       conditions: options.conditions ?? (isNode ? ['node', 'import', 'default'] : ['browser', 'import', 'default']),
       mainFields: options.mainFields ?? (isNode ? ['module', 'main'] : ['browser', 'module', 'main']),
       assetNames: options.assetNames ?? 'assets/[name]-[hash]',
