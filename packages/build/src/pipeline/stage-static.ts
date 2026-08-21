@@ -105,6 +105,15 @@ export async function runStaticGenerationStage(
     r => r.kind === 'page' && r.renderMode === 'static'
   );
 
+  if (staticPageRoutes.length === 0) {
+    return {
+      success: true,
+      staticRoutes: [],
+      artifacts: [],
+      diagnostics: [],
+    };
+  }
+
   const routeConfigs: RenderStaticRouteOptions[] = [];
   const evaluatedRoutes: EvaluateStaticRouteResult[] = [];
 
