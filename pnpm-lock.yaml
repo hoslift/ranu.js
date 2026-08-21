@@ -334,6 +334,9 @@ importers:
       '@ranu/config':
         specifier: workspace:*
         version: link:../config
+      '@ranu/core':
+        specifier: workspace:*
+        version: link:../core
       '@ranu/react':
         specifier: workspace:*
         version: link:../react
