@@ -193,3 +193,58 @@ export interface ClientBootstrapResult {
   readonly payload: RanuHydrationPayload;
   readonly root?: unknown;
 }
+
+/**
+ * Read-only interface for URL Search Parameters in client navigation.
+ */
+export interface ReadonlyURLSearchParams {
+  get(name: string): string | null;
+  getAll(name: string): readonly string[];
+  has(name: string): boolean;
+  entries(): IterableIterator<[string, string]>;
+  keys(): IterableIterator<string>;
+  values(): IterableIterator<string>;
+  forEach(callback: (value: string, key: string) => void): void;
+  toString(): string;
+  readonly size: number;
+  [Symbol.iterator](): IterableIterator<[string, string]>;
+}
+
+/**
+ * Immutable router state representation for client-side navigation.
+ */
+export interface RouterState {
+  readonly pathname: string;
+  readonly searchParams: ReadonlyURLSearchParams;
+  readonly routeId: string;
+  readonly params: Readonly<Record<string, string | readonly string[]>>;
+}
+
+/**
+ * Options for router navigation operations.
+ */
+export interface NavigateOptions {
+  readonly scroll?: boolean | undefined;
+}
+
+/**
+ * Router navigation delegate actions interface.
+ */
+export interface RouterNavigationActions {
+  push(href: string, options?: NavigateOptions): void;
+  replace(href: string, options?: NavigateOptions): void;
+  back(): void;
+  forward(): void;
+  refresh(): void;
+}
+
+/**
+ * Public Ranu Router contract exposed by useRouter().
+ */
+export interface RanuRouter {
+  push(href: string, options?: NavigateOptions): void;
+  replace(href: string, options?: NavigateOptions): void;
+  back(): void;
+  forward(): void;
+  refresh(): void;
+}
