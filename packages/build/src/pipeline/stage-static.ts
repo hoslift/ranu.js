@@ -1,10 +1,10 @@
+import React from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type { StaticManifestEntry } from '@ranu/manifests';
 import type { ComponentModuleLoader } from '@ranu/react';
-import { notFound } from '@ranu/server';
 import type { BuildContext } from '../build-config.js';
 import type { RouteEntryInfo } from './stage-routes.js';
 import {
@@ -201,12 +201,27 @@ export async function runStaticGenerationStage(
   // Render root fallback 404
   const global404Loader: ComponentModuleLoader = {
     ...loader,
-    loadPage() {
-      return Promise.resolve({
+    async loadPage() {
+      if (rootNotFound.length > 0) {
+        try {
+          const nfMod = await loader.loadNotFound(rootNotFound[0]);
+          if (nfMod && nfMod.default) {
+            return { default: nfMod.default };
+          }
+        } catch {
+          // Fall through to default fallback
+        }
+      }
+      return {
         default: () => {
-          notFound();
+          return React.createElement(
+            'div',
+            { id: 'not-found', style: { fontFamily: 'system-ui, sans-serif', textAlign: 'center', padding: '4rem 1rem' } },
+            React.createElement('h1', { style: { fontSize: '2rem', marginBottom: '1rem' } }, '404 - Page Not Found'),
+            React.createElement('p', { style: { color: '#666' } }, 'This page could not be found.')
+          );
         },
-      });
+      };
     },
   };
 
@@ -262,7 +277,7 @@ export async function runStaticGenerationStage(
       routeId: artifact.routeId,
       file: artifact.file.replace(/\\/g, '/'),
     };
-    if (artifact.status === 404) {
+    if (artifact.status === 404 || artifact.pathname === '/404') {
       entry.status = 404;
     }
     return entry;
