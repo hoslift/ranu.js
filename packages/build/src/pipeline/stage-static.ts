@@ -96,7 +96,8 @@ export async function runStaticGenerationStage(
 ): Promise<StaticStageResult> {
   const diagnostics: RanuDiagnostic[] = [];
   const loader = customLoader ?? createBuildComponentLoader(ctx, routes);
-  const trailingSlash = ctx.resolvedConfig?.routing?.trailingSlash ?? 'never';
+  const trailingSlash: 'never' | 'always' =
+    ctx.resolvedConfig?.routing?.trailingSlash === 'always' ? 'always' : 'never';
   const concurrency = 8;
 
   // 1. Filter for static page routes (skip server and client routes)
@@ -117,29 +118,34 @@ export async function runStaticGenerationStage(
         code: 'RANU_SSG_GENERATOR_FAILED',
         severity: 'error',
         message: `Failed to load static page module for route "${route.routeId}": ${err.message ?? String(err)}`,
-        location: route.sourceFile
-          ? { file: route.sourceFile, line: 1, column: 1 }
-          : undefined,
+        ...(route.sourceFile
+          ? { location: { file: route.sourceFile, line: 1, column: 1 } }
+          : {}),
       });
       continue;
     }
 
     const generatorFn = pageModule?.generateStaticParams;
 
-    const patternSegments = route.pathnameTemplate
+    const patternSegments: Array<
+      | { kind: 'static'; value: string }
+      | { kind: 'dynamic'; param: string }
+      | { kind: 'catch-all'; param: string }
+      | { kind: 'optional-catch-all'; param: string }
+    > = route.pathnameTemplate
       .split('/')
       .filter(Boolean)
       .map(seg => {
         if (seg.startsWith('[...') && seg.endsWith(']')) {
-          return { kind: 'catchall' as const, param: seg.slice(4, -1) };
+          return { kind: 'catch-all', param: seg.slice(4, -1) };
         }
         if (seg.startsWith('[[...') && seg.endsWith(']]')) {
-          return { kind: 'optionalCatchall' as const, param: seg.slice(5, -2) };
+          return { kind: 'optional-catch-all', param: seg.slice(5, -2) };
         }
         if (seg.startsWith('[') && seg.endsWith(']')) {
-          return { kind: 'dynamic' as const, param: seg.slice(1, -1) };
+          return { kind: 'dynamic', param: seg.slice(1, -1) };
         }
-        return { kind: 'static' as const, value: seg };
+        return { kind: 'static', value: seg };
       });
 
     const evaluated = await evaluateStaticRoute({
@@ -159,6 +165,15 @@ export async function runStaticGenerationStage(
     evaluatedRoutes.push(evaluated);
 
     for (const evaluatedPath of evaluated.paths) {
+      const targetParams: Record<string, string | string[]> = {};
+      for (const [k, v] of Object.entries(evaluatedPath.params)) {
+        if (typeof v === 'string') {
+          targetParams[k] = v;
+        } else if (Array.isArray(v)) {
+          targetParams[k] = Array.from(v);
+        }
+      }
+
       routeConfigs.push({
         routeId: route.routeId,
         pathname: evaluatedPath.pathname,
@@ -169,6 +184,7 @@ export async function runStaticGenerationStage(
           loading: route.loading,
           errors: route.errors,
           notFound: route.notFound,
+          params: targetParams,
         },
         loader,
         buildId: ctx.buildId,
@@ -201,7 +217,9 @@ export async function runStaticGenerationStage(
     target: {
       routeId: 'page:/404',
       layouts: rootLayouts,
+      errors: [],
       notFound: rootNotFound,
+      params: {},
     },
     loader: global404Loader,
     buildId: ctx.buildId,
