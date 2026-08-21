@@ -63,3 +63,10 @@ export type {
   ModuleImport,
   ModuleGraph,
 } from './graph/graph-types.js';
+export {
+  evaluateStaticRoute,
+  isUnsafeSegmentValue,
+  type EvaluatedStaticPath,
+  type EvaluateStaticRouteOptions,
+  type EvaluateStaticRouteResult,
+} from './static/params-evaluator.js';

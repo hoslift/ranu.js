@@ -46,3 +46,17 @@ export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 
 /** Supported HTTP method array */
 export const HTTP_METHODS: HttpMethod[] = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
+/** Static route parameter values */
+export type StaticParamValue = string | readonly string[];
+
+/** Static route parameter record mapping parameter names to string values or string arrays */
+export type StaticParamRecord = Readonly<Record<string, StaticParamValue>>;
+
+/** Result returned by generateStaticParams */
+export type GenerateStaticParamsResult = readonly StaticParamRecord[];
+
+/** Public function signature for generateStaticParams */
+export type GenerateStaticParams = () =>
+  | GenerateStaticParamsResult
+  | Promise<GenerateStaticParamsResult>;
+
