@@ -206,7 +206,10 @@ export async function runStaticGenerationStage(
         try {
           const nfMod = await loader.loadNotFound(rootNotFound[0]);
           if (nfMod?.default) {
-            return { default: nfMod.default };
+            const NFComp = nfMod.default;
+            return {
+              default: () => React.createElement(NFComp),
+            };
           }
         } catch {
           // Fall through to default fallback
