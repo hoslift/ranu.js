@@ -78,11 +78,16 @@ export async function renderStaticRoute(
   // Guard flag: Server helpers (cookies, headers, getRequestContext) throw RANU_SSG_DYNAMIC_ACCESS when active
   locals.set('__ranu_ssg__', true);
 
+  const contextParams: Record<string, string | string[]> = {};
+  for (const [k, v] of Object.entries(params)) {
+    contextParams[k] = Array.isArray(v) ? [...v] : v;
+  }
+
   const context: RanuRequestContext = {
     requestId,
     request,
     url: deterministicUrl,
-    params: Object.freeze({ ...params }),
+    params: contextParams,
     locals,
     signal: request.signal,
     responseCookies: [],
