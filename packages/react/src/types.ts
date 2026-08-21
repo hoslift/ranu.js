@@ -248,3 +248,13 @@ export interface RanuRouter {
   forward(): void;
   refresh(): void;
 }
+
+/**
+ * Public props supported by the <Link> component.
+ */
+export interface LinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
+  readonly href: string;
+  readonly replace?: boolean | undefined;
+  readonly scroll?: boolean | undefined;
+  readonly prefetch?: boolean | undefined;
+}

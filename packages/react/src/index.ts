@@ -17,3 +17,5 @@ export * from './client/serialization.js';
 export * from './client/bootstrap.js';
 export * from './client/router-context.js';
 export * from './client/hooks.js';
+export * from './client/link.js';
+export * from './client/navigation.js';

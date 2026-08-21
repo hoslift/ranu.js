@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type {
   RouterState,
   RouterNavigationActions,
   ReadonlyURLSearchParams,
   NavigateOptions,
 } from '../types.js';
+import { createBrowserNavigationActions, setupPopstateListener } from './navigation.js';
 
 /**
  * Creates a frozen, read-only wrapper around URL search parameters.
@@ -96,24 +97,33 @@ export function ClientRouterProvider({
   actions,
   children,
 }: ClientRouterProviderProps): React.JSX.Element {
-  const [state] = useState<RouterState>({
+  const [state, setState] = useState<RouterState>({
     pathname: initialState?.pathname ?? '/',
     searchParams: initialState?.searchParams ?? createReadonlySearchParams(),
     routeId: initialState?.routeId ?? '',
     params: initialState?.params ?? {},
   });
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    return setupPopstateListener(setState);
+  }, []);
+
+  const browserActions = useMemo<RouterNavigationActions>(() => {
+    return createBrowserNavigationActions(setState);
+  }, []);
+
   const mergedActions = useMemo<RouterNavigationActions>(
     () => ({
       push: (href: string, options?: NavigateOptions): void =>
-        actions?.push?.(href, options) ?? fallbackActions.push(href, options),
+        actions?.push ? actions.push(href, options) : browserActions.push(href, options),
       replace: (href: string, options?: NavigateOptions): void =>
-        actions?.replace?.(href, options) ?? fallbackActions.replace(href, options),
-      back: (): void => actions?.back?.() ?? fallbackActions.back(),
-      forward: (): void => actions?.forward?.() ?? fallbackActions.forward(),
-      refresh: (): void => actions?.refresh?.() ?? fallbackActions.refresh(),
+        actions?.replace ? actions.replace(href, options) : browserActions.replace(href, options),
+      back: (): void => (actions?.back ? actions.back() : browserActions.back()),
+      forward: (): void => (actions?.forward ? actions.forward() : browserActions.forward()),
+      refresh: (): void => (actions?.refresh ? actions.refresh() : browserActions.refresh()),
     }),
-    [actions]
+    [actions, browserActions]
   );
 
   const contextValue = useMemo<RouterContextValue>(
