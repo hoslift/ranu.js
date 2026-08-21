@@ -117,34 +117,44 @@ describe('Phase 14 Stage 14B: Client Navigation Integration Test', () => {
     let activeSearch: ReturnType<typeof useSearchParams> | null = null;
     let activeRouter: ReturnType<typeof useRouter> | null = null;
 
-    function NavigationApp(): React.JSX.Element {
+    function NavigationApp(): React.ReactNode {
       activePathname = usePathname();
       activeSearch = useSearchParams();
       activeRouter = useRouter();
 
-      return (
-        <nav id="app-nav">
-          <Link href="/products?category=shoes&tag=new&tag=sale" id="nav-products">
-            Products
-          </Link>
-          <Link href="/about" id="nav-about">
-            About
-          </Link>
-          <span id="current-pathname">{activePathname}</span>
-        </nav>
-      );
+      return React.createElement('nav', { id: 'app-nav' }, [
+        React.createElement(
+          Link,
+          {
+            key: 'products',
+            href: '/products?category=shoes&tag=new&tag=sale',
+            id: 'nav-products',
+          },
+          'Products'
+        ),
+        React.createElement(
+          Link,
+          {
+            key: 'about',
+            href: '/about',
+            id: 'nav-about',
+          },
+          'About'
+        ),
+        React.createElement('span', { key: 'path', id: 'current-pathname' }, activePathname),
+      ]);
     }
 
-    function RootApp(): React.JSX.Element {
-      return (
-        <ClientRouterProvider initialState={initialState}>
-          <NavigationApp />
-        </ClientRouterProvider>
+    function RootApp(): React.ReactNode {
+      return React.createElement(
+        ClientRouterProvider,
+        { initialState },
+        React.createElement(NavigationApp)
       );
     }
 
     // 1. SSR Stage: render tree to HTML stream
-    const stream = await renderReactToStream(<RootApp />);
+    const stream = await renderReactToStream(React.createElement(RootApp));
     const ssrHtml = await streamToString(stream);
 
     expect(ssrHtml).toContain('<nav id="app-nav">');
