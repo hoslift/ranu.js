@@ -4,8 +4,13 @@ import type {
   RouterNavigationActions,
   ReadonlyURLSearchParams,
   NavigateOptions,
+  RouteLoader,
+  PrefetchService,
+  PrefetchOptions,
 } from '../types.js';
 import { createBrowserNavigationActions, setupPopstateListener } from './navigation.js';
+import { createPrefetchService } from './prefetch.js';
+import { createTransitionCoordinator } from './transition.js';
 
 /**
  * Creates a frozen, read-only wrapper around URL search parameters.
@@ -67,6 +72,7 @@ export function createReadonlySearchParams(
 export interface RouterContextValue {
   readonly state: RouterState;
   readonly actions: RouterNavigationActions;
+  readonly prefetch?: ((href: string, options?: PrefetchOptions) => Promise<boolean>) | undefined;
 }
 
 const fallbackActions: RouterNavigationActions = {
@@ -89,12 +95,16 @@ export const ClientRouterContext = createContext<RouterContextValue | null>(null
 export interface ClientRouterProviderProps {
   readonly initialState?: Partial<RouterState> | undefined;
   readonly actions?: Partial<RouterNavigationActions> | undefined;
+  readonly loader?: RouteLoader | undefined;
+  readonly prefetchService?: PrefetchService | undefined;
   readonly children: React.ReactNode;
 }
 
 export function ClientRouterProvider({
   initialState,
   actions,
+  loader,
+  prefetchService,
   children,
 }: ClientRouterProviderProps): React.JSX.Element {
   const [state, setState] = useState<RouterState>({
@@ -109,9 +119,44 @@ export function ClientRouterProvider({
     return setupPopstateListener(setState);
   }, []);
 
+  const transitionCoordinator = useMemo(() => {
+    if (!loader) return null;
+    return createTransitionCoordinator({
+      loader,
+      onStateUpdate: setState,
+    });
+  }, [loader]);
+
+  const activePrefetchService = useMemo(() => {
+    if (prefetchService) return prefetchService;
+    if (loader) {
+      return createPrefetchService({ loader });
+    }
+    return null;
+  }, [prefetchService, loader]);
+
   const browserActions = useMemo<RouterNavigationActions>(() => {
+    if (transitionCoordinator) {
+      return {
+        push: (href: string, options?: NavigateOptions): void => {
+          void transitionCoordinator.navigate(href, 'push', options);
+        },
+        replace: (href: string, options?: NavigateOptions): void => {
+          void transitionCoordinator.navigate(href, 'replace', options);
+        },
+        back: (): void => {
+          if (typeof window !== 'undefined') window.history.back();
+        },
+        forward: (): void => {
+          if (typeof window !== 'undefined') window.history.forward();
+        },
+        refresh: (): void => {
+          if (typeof window !== 'undefined') window.location.reload();
+        },
+      };
+    }
     return createBrowserNavigationActions(setState);
-  }, []);
+  }, [transitionCoordinator]);
 
   const mergedActions = useMemo<RouterNavigationActions>(
     () => ({
@@ -126,12 +171,23 @@ export function ClientRouterProvider({
     [actions, browserActions]
   );
 
+  const prefetchCallback = useMemo(() => {
+    if (!activePrefetchService) return undefined;
+    return (href: string, options?: PrefetchOptions) => activePrefetchService.prefetch(href, options);
+  }, [activePrefetchService]);
+
   const contextValue = useMemo<RouterContextValue>(
-    () => ({
-      state,
-      actions: mergedActions,
-    }),
-    [state, mergedActions]
+    () => {
+      const val: RouterContextValue = {
+        state,
+        actions: mergedActions,
+      };
+      if (prefetchCallback) {
+        (val as { prefetch?: typeof prefetchCallback }).prefetch = prefetchCallback;
+      }
+      return val;
+    },
+    [state, mergedActions, prefetchCallback]
   );
 
   return (

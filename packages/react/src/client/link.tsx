@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { useRouter } from './hooks.js';
+import { useClientRouterContext } from './router-context.js';
 import { isModifiedEvent, isLeftClick } from './navigation.js';
 import type { LinkProps, RanuRouter } from '../types.js';
 
@@ -76,16 +77,33 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     href,
     replace = false,
     scroll = true,
-    prefetch: _prefetch,
+    prefetch = true,
     target,
     download,
     onClick,
+    onMouseEnter,
+    onFocus,
     children,
     ...rest
   },
   ref
 ) {
   const router = useRouter();
+  const { prefetch: prefetchFn } = useClientRouterContext();
+
+  const handleMouseEnter = (event: React.MouseEvent<HTMLAnchorElement>): void => {
+    onMouseEnter?.(event);
+    if (prefetch !== false && prefetchFn) {
+      void prefetchFn(href, { kind: 'hover' });
+    }
+  };
+
+  const handleFocus = (event: React.FocusEvent<HTMLAnchorElement>): void => {
+    onFocus?.(event);
+    if (prefetch !== false && prefetchFn) {
+      void prefetchFn(href, { kind: 'hover' });
+    }
+  };
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>): void => {
     handleLinkClick(event, {
@@ -106,6 +124,8 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
       target={target}
       download={download}
       onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onFocus={handleFocus}
       {...rest}
     >
       {children}

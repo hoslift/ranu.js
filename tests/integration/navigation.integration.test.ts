@@ -188,4 +188,64 @@ describe('Phase 14 Stage 14B: Client Navigation Integration Test', () => {
     const ssrHtml3 = await streamToString(stream3);
     expect(ssrHtml3).toContain('<span id="current-pathname">/home</span>');
   });
+
+  it('hydrated app -> Link prefetch -> route asset resolved -> transition coordinator updates RouterState', async () => {
+    const mockModuleLoader = vi.fn().mockResolvedValue({
+      default: () => React.createElement('div', { id: 'settings-page' }, 'Settings Content'),
+    });
+
+    const registry = {
+      buildId: 'b_int_14c',
+      assets: {
+        'page:/settings': {
+          js: ['/_ranu/assets/settings.js'],
+          css: [],
+        },
+      },
+    };
+
+    const loader = {
+      loadRouteModule: mockModuleLoader,
+      getRouteAssets: (rId: string) => registry.assets[rId as keyof typeof registry.assets],
+    };
+
+    let activeRouter: ReturnType<typeof useRouter> | null = null;
+    let currentPath = '';
+
+    function SettingsApp(): React.ReactNode {
+      currentPath = usePathname();
+      activeRouter = useRouter();
+      return React.createElement(
+        'div',
+        null,
+        React.createElement(Link, { href: '/settings', id: 'settings-link' }, 'Settings'),
+        React.createElement('span', { id: 'active-path' }, currentPath)
+      );
+    }
+
+    const initialState: RouterState = {
+      pathname: '/home',
+      searchParams: createReadonlySearchParams(),
+      routeId: 'page:/home',
+      params: {},
+    };
+
+    // Render tree with loader and prefetch
+    const stream = await renderReactToStream(
+      React.createElement(
+        ClientRouterProvider,
+        { initialState, loader },
+        React.createElement(SettingsApp)
+      )
+    );
+    const html = await streamToString(stream);
+    expect(html).toContain('Settings');
+    expect(html).toContain('<span id="active-path">/home</span>');
+
+    // Trigger navigation to settings
+    activeRouter?.push('/settings');
+
+    // Verify chunk loader was called
+    expect(mockModuleLoader).toHaveBeenCalledWith('page:/settings');
+  });
 });

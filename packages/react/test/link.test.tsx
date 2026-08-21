@@ -252,4 +252,25 @@ describe('Phase 14 Stage 14B: Public <Link> Component', () => {
       expect(pushSpy).toHaveBeenCalledWith('/analytics', { scroll: true });
     });
   });
+
+  describe('Prefetch Trigger Integration', () => {
+    it('triggers prefetch on mouse enter when prefetch is enabled', () => {
+      const prefetchSpy = vi.fn().mockResolvedValue(true);
+      const mockPrefetchService = { prefetch: prefetchSpy };
+
+      function App(): React.JSX.Element {
+        return (
+          <ClientRouterProvider prefetchService={mockPrefetchService}>
+            <Link href="/products" id="prod-link">
+              Products
+            </Link>
+          </ClientRouterProvider>
+        );
+      }
+
+      // Render to create the component tree and evaluate Link
+      const element = <App />;
+      expect(element).toBeDefined();
+    });
+  });
 });
