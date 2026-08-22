@@ -187,16 +187,13 @@ export default function DashboardPage() {
         return { default: () => null };
       },
       loadLayout: async () => ({
-        default: ({ children }: any) => (
-          <html>
-            <head>
-              <title>App Shell</title>
-            </head>
-            <body>
-              <div id="layout-shell">{children}</div>
-            </body>
-          </html>
-        ),
+        default: ({ children }: any) =>
+          React.createElement(
+            'html',
+            { lang: 'en' },
+            React.createElement('head', null, React.createElement('title', null, 'App Shell')),
+            React.createElement('body', null, React.createElement('div', { id: 'layout-shell' }, children))
+          ),
       }),
       loadLoading: async () => undefined,
       loadError: async () => undefined,
