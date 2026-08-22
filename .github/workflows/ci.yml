@@ -37,3 +37,13 @@ jobs:
 
     - name: Validate (typecheck, build, lint, test, test:integration, check-cycles, check-exports)
       run: pnpm ci:verify
+
+    - name: Generate test coverage
+      run: pnpm test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: hoslift/ranu.js
+
