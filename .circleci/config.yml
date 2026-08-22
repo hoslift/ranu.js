@@ -1,0 +1,43 @@
+version: 2.1
+
+jobs:
+  validate:
+    docker:
+      - image: cimg/node:22.22
+
+    steps:
+      - checkout
+
+      - run:
+          name: Enable pnpm
+          command: |
+            sudo corepack enable
+            corepack prepare pnpm@11.7.0 --activate
+            pnpm --version
+
+      - run:
+          name: Configure pnpm store
+          command: pnpm config set store-dir ~/.pnpm-store
+
+      - restore_cache:
+          keys:
+            - pnpm-v1-{{ checksum "pnpm-lock.yaml" }}
+            - pnpm-v1-
+
+      - run:
+          name: Install dependencies
+          command: pnpm install --frozen-lockfile
+
+      - save_cache:
+          key: pnpm-v1-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.pnpm-store
+
+      - run:
+          name: Validate Ranu.js
+          command: pnpm ci:verify
+
+workflows:
+  build-and-test:
+    jobs:
+      - validate
