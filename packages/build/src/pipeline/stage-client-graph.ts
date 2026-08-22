@@ -8,6 +8,7 @@ import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import { buildPublicEnvDefines } from '../env/env-validator.js';
 import type { BuildContext } from '../build-config.js';
 import type { ModuleGraph } from '../graph/graph-types.js';
+import type { RouteEntryInfo } from './stage-routes.js';
 
 export interface ClientGraphResult {
   success: boolean;
@@ -24,7 +25,8 @@ export interface ClientGraphResult {
  */
 export async function runClientGraphStage(
   ctx: BuildContext,
-  graph?: ModuleGraph
+  graph?: ModuleGraph,
+  routes?: RouteEntryInfo[]
 ): Promise<ClientGraphResult> {
   const diagnostics: RanuDiagnostic[] = [];
   const assets: Record<string, ClientAssetGroup> = {};
@@ -149,6 +151,18 @@ if (typeof document !== 'undefined') {
           js: matchedJs,
           css: matchedCss,
         };
+      }
+    }
+
+    // Map routeId aliases (e.g. "page:/dashboard" -> assets["app/dashboard/page.tsx"])
+    if (routes) {
+      for (const route of routes) {
+        if (route.sourceFile) {
+          const relSource = path.relative(ctx.projectRoot, route.sourceFile).replace(/\\/g, '/');
+          if (assets[relSource]) {
+            assets[route.routeId] = assets[relSource];
+          }
+        }
       }
     }
   }

@@ -72,6 +72,7 @@ export class ReactRenderer implements RanuRenderer {
         loading: loadingModule,
         metadata: resolvedMetadata,
         pageProps,
+        renderMode: pageModule?.render,
       });
 
       // 6. Execute Streaming SSR via React 19 renderToReadableStream

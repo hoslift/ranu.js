@@ -26,6 +26,7 @@ export interface ComposeTreeOptions {
   readonly metadata?: ResolvedMetadata | undefined;
   readonly pageProps: PageProps;
   readonly hydrationPayload?: RanuHydrationPayload | undefined;
+  readonly renderMode?: ('server' | 'static' | 'client') | undefined;
 }
 
 /**
@@ -70,10 +71,19 @@ export function HydrationBootstrapScript({
  * Root Layout -> Nested Layouts -> Loading / Suspense -> Page.
  */
 export function composeComponentTree(options: ComposeTreeOptions): ReactNode {
-  const { page, layouts, loading, metadata, pageProps, hydrationPayload } = options;
+  const { page, layouts, loading, metadata, pageProps, hydrationPayload, renderMode } = options;
 
   const PageComponent = page.default;
-  let currentChild: ReactNode = (
+  const isClientRender = renderMode === 'client' || page.render === 'client';
+
+  let currentChild: ReactNode = isClientRender ? (
+    <>
+      <MetadataHeadElements metadata={metadata} />
+      <HydrationDataScript payload={hydrationPayload} />
+      <HydrationBootstrapScript assets={hydrationPayload?.assets} />
+      <div id="ranu-client-root" />
+    </>
+  ) : (
     <>
       <MetadataHeadElements metadata={metadata} />
       <HydrationDataScript payload={hydrationPayload} />

@@ -171,6 +171,7 @@ export interface RanuHydrationPayload {
   readonly searchParams: Readonly<Record<string, string | readonly string[] | undefined>>;
   readonly publicEnv: Readonly<Record<string, string>>;
   readonly assets: RouteClientAssets;
+  readonly renderMode?: ('server' | 'static' | 'client') | undefined;
 }
 
 /**

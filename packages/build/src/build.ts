@@ -267,7 +267,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     fs.writeFileSync(path.join(serverOutDir, 'entry.mjs'), entrySource, 'utf8');
 
     // Stage 11: Client graph compilation & browser bundling
-    const clientResult = await runClientGraphStage(ctx, moduleGraph);
+    const clientResult = await runClientGraphStage(ctx, moduleGraph, routeResult.routes);
     diagnostics.push(...clientResult.diagnostics);
     if (diagnostics.some(d => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);

@@ -54,13 +54,19 @@ class MockDocument {
   }
 }
 
-// Mock react-dom/client hydrateRoot for pure deterministic Node environment
+// Mock react-dom/client hydrateRoot and createRoot for pure deterministic Node environment
 vi.mock('react-dom/client', () => ({
   hydrateRoot: vi.fn((container: unknown, element: unknown, options?: { onRecoverableError?: (err: unknown) => void }) => ({
     render: vi.fn(),
     unmount: vi.fn(),
     _container: container,
     _element: element,
+    _options: options,
+  })),
+  createRoot: vi.fn((container: unknown, options?: { onRecoverableError?: (err: unknown) => void }) => ({
+    render: vi.fn(),
+    unmount: vi.fn(),
+    _container: container,
     _options: options,
   })),
 }));
@@ -201,6 +207,27 @@ describe('Stage 13B: Browser Hydration Bootstrap Runtime', () => {
       ).rejects.toThrow(/Component module not found/);
 
       expect(onHydrationErrorSpy).toHaveBeenCalled();
+    });
+
+    it('mounts initial tree using createRoot when renderMode is "client"', async () => {
+      const clientPayload: RanuHydrationPayload = {
+        ...samplePayload,
+        renderMode: 'client',
+      };
+      const doc = createMockDocWithPayload(clientPayload);
+      const mountEl = new MockElement('DIV', 'ranu-client-root');
+      doc.registerElement(mountEl);
+
+      const onHydratedSpy = vi.fn();
+      const result = await bootstrapClientHydration({
+        container: doc as unknown as Document,
+        componentLoader: async () => CounterComponent,
+        onHydrated: onHydratedSpy,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.payload.renderMode).toBe('client');
+      expect(onHydratedSpy).toHaveBeenCalled();
     });
   });
 });
