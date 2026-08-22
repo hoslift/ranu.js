@@ -28,6 +28,21 @@ export interface RouteStageResult {
   diagnostics: RanuDiagnostic[];
 }
 
+/** Resolve a router-discovered component path, which is relative to the app directory. */
+export function resolveRouteComponentPath(projectRoot: string, componentPath: string): string {
+  if (path.isAbsolute(componentPath)) {
+    return componentPath;
+  }
+
+  const appRelativePath = path.resolve(projectRoot, 'app', componentPath);
+  if (fs.existsSync(appRelativePath)) {
+    return appRelativePath;
+  }
+
+  // Preserve compatibility with callers that already include the app/ prefix.
+  return path.resolve(projectRoot, componentPath);
+}
+
 /**
  * Statically analyzes a page source file to check for exported render mode (e.g. `export const render = 'static'`).
  */

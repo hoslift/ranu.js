@@ -1,14 +1,25 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { EsbuildAdapter } from '../bundler/esbuild-adapter.js';
 import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import type { BuildContext } from '../build-config.js';
-import type { RouteEntryInfo } from './stage-routes.js';
+import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
 
 export interface ServerGraphResult {
   success: boolean;
   diagnostics: RanuDiagnostic[];
+}
+
+function getFrameworkNodePaths(): string[] {
+  try {
+    const require = createRequire(import.meta.url);
+    const reactPackageDir = path.dirname(require.resolve('react/package.json'));
+    return [path.dirname(reactPackageDir)];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -37,7 +48,7 @@ export async function runServerGraphStage(
 
     // Compile layouts
     for (const layoutPath of route.layouts) {
-      const fullPath = path.isAbsolute(layoutPath) ? layoutPath : path.resolve(ctx.projectRoot, layoutPath);
+      const fullPath = resolveRouteComponentPath(ctx.projectRoot, layoutPath);
       if (fs.existsSync(fullPath)) {
         const sanitized = layoutPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
         entryPoints[`layouts/${sanitized}`] = fullPath;
@@ -47,7 +58,7 @@ export async function runServerGraphStage(
     // Compile notFound
     if (route.notFound) {
       for (const nfPath of route.notFound) {
-        const fullPath = path.isAbsolute(nfPath) ? nfPath : path.resolve(ctx.projectRoot, nfPath);
+        const fullPath = resolveRouteComponentPath(ctx.projectRoot, nfPath);
         if (fs.existsSync(fullPath)) {
           const sanitized = nfPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
           entryPoints[`not-found/${sanitized}`] = fullPath;
@@ -94,6 +105,7 @@ export async function runServerGraphStage(
       path.join(ctx.projectRoot, 'node_modules'),
       path.resolve(ctx.projectRoot, '..', 'node_modules'),
       path.resolve(ctx.projectRoot, '..', '..', 'node_modules'),
+      ...getFrameworkNodePaths(),
     ],
   });
 

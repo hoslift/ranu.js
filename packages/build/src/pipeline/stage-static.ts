@@ -6,7 +6,7 @@ import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type { StaticManifestEntry } from '@ranu/manifests';
 import type { ComponentModuleLoader } from '@ranu/react';
 import type { BuildContext } from '../build-config.js';
-import type { RouteEntryInfo } from './stage-routes.js';
+import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
 import {
   evaluateStaticRoute,
   type EvaluateStaticRouteResult,
@@ -51,9 +51,7 @@ export function createBuildComponentLoader(
       if (fs.existsSync(compiledPath)) {
         return import(pathToFileURL(compiledPath).href);
       }
-      const srcPath = path.isAbsolute(layoutPath)
-        ? layoutPath
-        : path.resolve(ctx.projectRoot, layoutPath);
+      const srcPath = resolveRouteComponentPath(ctx.projectRoot, layoutPath);
       if (fs.existsSync(srcPath)) {
         return import(pathToFileURL(srcPath).href);
       }
@@ -65,27 +63,21 @@ export function createBuildComponentLoader(
       if (fs.existsSync(compiledPath)) {
         return import(pathToFileURL(compiledPath).href);
       }
-      const srcPath = path.isAbsolute(notFoundPath)
-        ? notFoundPath
-        : path.resolve(ctx.projectRoot, notFoundPath);
+      const srcPath = resolveRouteComponentPath(ctx.projectRoot, notFoundPath);
       if (fs.existsSync(srcPath)) {
         return import(pathToFileURL(srcPath).href);
       }
       return undefined;
     },
     async loadLoading(loadingPath: string) {
-      const srcPath = path.isAbsolute(loadingPath)
-        ? loadingPath
-        : path.resolve(ctx.projectRoot, loadingPath);
+      const srcPath = resolveRouteComponentPath(ctx.projectRoot, loadingPath);
       if (fs.existsSync(srcPath)) {
         return import(pathToFileURL(srcPath).href);
       }
       return undefined;
     },
     async loadError(errorPath: string) {
-      const srcPath = path.isAbsolute(errorPath)
-        ? errorPath
-        : path.resolve(ctx.projectRoot, errorPath);
+      const srcPath = resolveRouteComponentPath(ctx.projectRoot, errorPath);
       if (fs.existsSync(srcPath)) {
         return import(pathToFileURL(srcPath).href);
       }

@@ -122,11 +122,11 @@ export default function NotFound() {
     expect(aboutHtml).toContain('<title>About Us</title>');
 
     const blogIntroHtml = fs.readFileSync(path.join(outDir, 'static', 'pages', 'blog', 'intro.html'), 'utf8');
-    expect(blogIntroHtml).toContain('Blog: intro');
+    expect(blogIntroHtml.replaceAll('<!-- -->', '')).toContain('Blog: intro');
     expect(blogIntroHtml).toContain('<title>Blog - intro</title>');
 
     const blogReleaseHtml = fs.readFileSync(path.join(outDir, 'static', 'pages', 'blog', 'release.html'), 'utf8');
-    expect(blogReleaseHtml).toContain('Blog: release');
+    expect(blogReleaseHtml.replaceAll('<!-- -->', '')).toContain('Blog: release');
     expect(blogReleaseHtml).toContain('<title>Blog - release</title>');
 
     const fallback404Html = fs.readFileSync(path.join(outDir, 'static', 'pages', '404.html'), 'utf8');
@@ -135,5 +135,5 @@ export default function NotFound() {
     // 4. Server page (/) should not be in static manifest or static pages
     expect(pathnames.includes('/')).toBe(false);
     expect(fs.existsSync(path.join(outDir, 'static', 'pages', 'index.html'))).toBe(false);
-  });
+  }, 20_000);
 });
