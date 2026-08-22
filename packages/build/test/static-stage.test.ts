@@ -270,4 +270,49 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     expect(foundEntry).toBeDefined();
     expect(foundEntry?.status).toBeUndefined(); // 200 OK omits status
   });
+
+  it('keeps a failed global 404 render non-fatal', async () => {
+    const routes: RouteEntryInfo[] = [
+      {
+        routeId: 'page:/about',
+        kind: 'page',
+        pathnameTemplate: '/about',
+        params: [],
+        renderMode: 'static',
+        methods: [],
+        sourceFile: 'app/about/page.tsx',
+        layouts: ['app/layout.tsx'],
+        errors: [],
+        outputRelativePath: 'server/routes/page-about.mjs',
+      },
+    ];
+
+    const loader = createMockLoader({
+      'page:/about': {
+        default: () => React.createElement('h1', null, 'About Page'),
+      },
+    });
+    let layoutLoadCount = 0;
+    loader.loadLayout = async () => {
+      layoutLoadCount += 1;
+      if (layoutLoadCount > 1) {
+        throw new Error('global 404 layout failed');
+      }
+      return {
+        default: ({ children }: { children: React.ReactNode }) =>
+          React.createElement('html', null, React.createElement('body', null, children)),
+      };
+    };
+
+    const result = await runStaticGenerationStage(mockContext, routes, loader);
+
+    expect(result.success).toBe(true);
+    expect(result.staticRoutes.map(route => route.pathname)).toEqual(['/about']);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'RANU_SSG_404_SKIPPED',
+        severity: 'warning',
+      }),
+    ]);
+  });
 });

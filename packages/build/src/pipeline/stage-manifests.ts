@@ -41,7 +41,7 @@ export function runManifestStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
   clientAssets: Record<string, ClientAssetGroup> = {},
-  staticRoutes: StaticManifestEntry[] = []
+  staticRoutes: readonly StaticManifestEntry[] = []
 ): ManifestStageResult {
   const diagnostics: RanuDiagnostic[] = [];
   const buildId = ctx.buildId;

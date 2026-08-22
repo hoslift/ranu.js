@@ -295,11 +295,11 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     }
 
     // Stage 15b: Manifest generation
-    const manifestResult = await runManifestStage(
+    const manifestResult = runManifestStage(
       ctx,
       routeResult.routes,
       clientResult.assets,
-      staticResult.staticRoutes as any
+      staticResult.staticRoutes
     );
     diagnostics.push(...manifestResult.diagnostics);
     if (diagnostics.some(d => d.severity === 'error')) {

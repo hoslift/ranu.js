@@ -5,13 +5,18 @@ import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { EsbuildAdapter } from '../bundler/esbuild-adapter.js';
 import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import type { BuildContext } from '../build-config.js';
-import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
+import {
+  getRouteComponentEntryName,
+  resolveRouteComponentPath,
+  type RouteEntryInfo,
+} from './stage-routes.js';
 
 export interface ServerGraphResult {
   success: boolean;
   diagnostics: RanuDiagnostic[];
 }
 
+/** Return framework-local package search paths for standalone build inputs. */
 function getFrameworkNodePaths(): string[] {
   try {
     const require = createRequire(import.meta.url);
@@ -50,8 +55,7 @@ export async function runServerGraphStage(
     for (const layoutPath of route.layouts) {
       const fullPath = resolveRouteComponentPath(ctx.projectRoot, layoutPath);
       if (fs.existsSync(fullPath)) {
-        const sanitized = layoutPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        entryPoints[`layouts/${sanitized}`] = fullPath;
+        entryPoints[`layouts/${getRouteComponentEntryName(layoutPath)}`] = fullPath;
       }
     }
 
@@ -60,8 +64,7 @@ export async function runServerGraphStage(
       for (const nfPath of route.notFound) {
         const fullPath = resolveRouteComponentPath(ctx.projectRoot, nfPath);
         if (fs.existsSync(fullPath)) {
-          const sanitized = nfPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-          entryPoints[`not-found/${sanitized}`] = fullPath;
+          entryPoints[`not-found/${getRouteComponentEntryName(nfPath)}`] = fullPath;
         }
       }
     }

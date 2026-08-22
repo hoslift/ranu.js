@@ -6,11 +6,14 @@ import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type { StaticManifestEntry } from '@ranu/manifests';
 import type { ComponentModuleLoader } from '@ranu/react';
 import type { BuildContext } from '../build-config.js';
-import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
+import {
+  getRouteComponentEntryName,
+  resolveRouteComponentPath,
+  type RouteEntryInfo,
+} from './stage-routes.js';
 import {
   evaluateStaticRoute,
   type EvaluateStaticRouteResult,
-  type EvaluatedStaticPath,
 } from '../static/params-evaluator.js';
 import {
   renderStaticRoutesInBatch,
@@ -46,8 +49,8 @@ export function createBuildComponentLoader(
       return undefined;
     },
     async loadLayout(layoutPath: string) {
-      const sanitized = layoutPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      const compiledPath = path.join(ctx.serverOutDir, 'layouts', `${sanitized}.mjs`);
+      const entryName = getRouteComponentEntryName(layoutPath);
+      const compiledPath = path.join(ctx.serverOutDir, 'layouts', `${entryName}.mjs`);
       if (fs.existsSync(compiledPath)) {
         return import(pathToFileURL(compiledPath).href);
       }
@@ -58,8 +61,8 @@ export function createBuildComponentLoader(
       return undefined;
     },
     async loadNotFound(notFoundPath: string) {
-      const sanitized = notFoundPath.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      const compiledPath = path.join(ctx.serverOutDir, 'not-found', `${sanitized}.mjs`);
+      const entryName = getRouteComponentEntryName(notFoundPath);
+      const compiledPath = path.join(ctx.serverOutDir, 'not-found', `${entryName}.mjs`);
       if (fs.existsSync(compiledPath)) {
         return import(pathToFileURL(compiledPath).href);
       }
@@ -318,7 +321,7 @@ export async function runStaticGenerationStage(
   staticManifestEntries.sort((a, b) => a.pathname.localeCompare(b.pathname));
 
   return {
-    success: diagnostics.length === 0,
+    success: !diagnostics.some(d => d.severity === 'error'),
     staticRoutes: staticManifestEntries,
     artifacts,
     diagnostics,
