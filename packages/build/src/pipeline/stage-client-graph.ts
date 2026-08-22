@@ -26,7 +26,7 @@ export interface ClientGraphResult {
 export async function runClientGraphStage(
   ctx: BuildContext,
   graph?: ModuleGraph,
-  routes?: RouteEntryInfo[]
+  routes?: RouteEntryInfo[],
 ): Promise<ClientGraphResult> {
   const diagnostics: RanuDiagnostic[] = [];
   const assets: Record<string, ClientAssetGroup> = {};
@@ -61,10 +61,40 @@ export async function runClientGraphStage(
     };
   }
 
-  // Include framework browser hydration bootstrap entrypoint
+  // Include framework browser hydration bootstrap entrypoint with a route module registry.
+  const clientRoutes = (routes ?? []).filter(
+    (route) => route.kind === 'page' && route.renderMode === 'client' && route.sourceFile,
+  );
+  const clientRouteImports = clientRoutes
+    .map((route, index) => {
+      const importPath = route.sourceFile.replace(/\\/g, '/');
+      return `import * as clientRoute${index} from ${JSON.stringify(importPath)};`;
+    })
+    .join('\n');
+  const clientRouteModules = clientRoutes
+    .map((route, index) => `  ${JSON.stringify(route.routeId)}: clientRoute${index}`)
+    .join(',\n');
+
   const bootstrapSource = `import { bootstrapClientHydration } from '@ranu/react';
+${clientRouteImports}
+
+const routeModules = {
+${clientRouteModules}
+};
+
+async function loadRouteComponent(routeId) {
+  const routeModule = routeModules[routeId];
+  if (!routeModule) {
+    throw new Error(\`Client route module "\${routeId}" was not registered in this build.\`);
+  }
+  return routeModule;
+}
+
 if (typeof document !== 'undefined') {
-  bootstrapClientHydration({ buildId: ${JSON.stringify(ctx.buildId)} }).catch(() => {});
+  bootstrapClientHydration({
+    buildId: ${JSON.stringify(ctx.buildId)},
+    componentLoader: loadRouteComponent,
+  }).catch(() => {});
 }
 `;
   const bootstrapEntryPath = path.join(ctx.tempOutDir, 'bootstrap-entry.tsx');
@@ -81,7 +111,7 @@ if (typeof document !== 'undefined') {
   const ranuPlugin = createRanuEsbuildPlugin({
     platform: 'browser',
     publicEnv,
-    onDiagnostic: d => diagnostics.push(d),
+    onDiagnostic: (d) => diagnostics.push(d),
   });
 
   const bundleResult = await adapter.bundle({
@@ -139,12 +169,12 @@ if (typeof document !== 'undefined') {
         .replace(/[^a-zA-Z0-9_-]/g, '-');
 
       const matchedJs = files
-        .filter(f => f.startsWith(`c_${cleanKey}`) && f.endsWith('.js'))
-        .map(f => `/_ranu/assets/${f}`);
+        .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.js'))
+        .map((f) => `/_ranu/assets/${f}`);
 
       const matchedCss = files
-        .filter(f => f.startsWith(`c_${cleanKey}`) && f.endsWith('.css'))
-        .map(f => `/_ranu/assets/${f}`);
+        .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.css'))
+        .map((f) => `/_ranu/assets/${f}`);
 
       if (matchedJs.length > 0 || matchedCss.length > 0) {
         assets[entryId] = {

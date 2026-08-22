@@ -73,6 +73,14 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
       expect(HYDRATION_DATA_SCRIPT_TYPE).toBe('application/json');
     });
 
+    it('preserves the optional render mode through serialization', () => {
+      const restored = deserializeHydrationData(
+        serializeHydrationData({ ...validPayload, renderMode: 'client' }),
+      );
+
+      expect(restored.renderMode).toBe('client');
+    });
+
     it('freezes returned deserialized payload objects to prevent accidental runtime mutation', () => {
       const serialized = serializeHydrationData(validPayload);
       const restored = deserializeHydrationData(serialized);
@@ -149,36 +157,68 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
 
     it('rejects missing or invalid buildId', () => {
       expect(() => validateHydrationPayload({ ...validPayload, buildId: '' })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, buildId: '   ' })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, buildId: 123 as any })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, buildId: '   ' })).toThrow(
+        TypeError,
+      );
+      expect(() => validateHydrationPayload({ ...validPayload, buildId: 123 as any })).toThrow(
+        TypeError,
+      );
     });
 
     it('rejects missing or invalid routeId', () => {
       expect(() => validateHydrationPayload({ ...validPayload, routeId: '' })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, routeId: null as any })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, routeId: null as any })).toThrow(
+        TypeError,
+      );
     });
 
     it('rejects invalid pathname (must be absolute starting with "/")', () => {
-      expect(() => validateHydrationPayload({ ...validPayload, pathname: 'products/42' })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, pathname: 'products/42' })).toThrow(
+        TypeError,
+      );
       expect(() => validateHydrationPayload({ ...validPayload, pathname: '' })).toThrow(TypeError);
     });
 
     it('rejects malformed params and searchParams', () => {
-      expect(() => validateHydrationPayload({ ...validPayload, params: null as any })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, params: { id: 123 as any } })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, searchParams: { tab: 456 as any } })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, searchParams: { tab: [true as any] } })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, params: null as any })).toThrow(
+        TypeError,
+      );
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, params: { id: 123 as any } }),
+      ).toThrow(TypeError);
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, searchParams: { tab: 456 as any } }),
+      ).toThrow(TypeError);
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, searchParams: { tab: [true as any] } }),
+      ).toThrow(TypeError);
     });
 
     it('rejects malformed publicEnv', () => {
-      expect(() => validateHydrationPayload({ ...validPayload, publicEnv: null as any })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, publicEnv: { KEY: 123 as any } })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, publicEnv: null as any })).toThrow(
+        TypeError,
+      );
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, publicEnv: { KEY: 123 as any } }),
+      ).toThrow(TypeError);
     });
 
     it('rejects malformed assets', () => {
-      expect(() => validateHydrationPayload({ ...validPayload, assets: null as any })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, assets: { js: 'not-array' as any, css: [] } })).toThrow(TypeError);
-      expect(() => validateHydrationPayload({ ...validPayload, assets: { js: [], css: [123 as any] } })).toThrow(TypeError);
+      expect(() => validateHydrationPayload({ ...validPayload, assets: null as any })).toThrow(
+        TypeError,
+      );
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, assets: { js: 'not-array' as any, css: [] } }),
+      ).toThrow(TypeError);
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, assets: { js: [], css: [123 as any] } }),
+      ).toThrow(TypeError);
+    });
+
+    it('rejects an unsupported render mode', () => {
+      expect(() =>
+        validateHydrationPayload({ ...validPayload, renderMode: 'edge' as any }),
+      ).toThrow(TypeError);
     });
   });
 
@@ -275,7 +315,7 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
             'html',
             { lang: 'en' },
             React.createElement('head', null, React.createElement('title', null, 'Ranu Store')),
-            React.createElement('body', null, children)
+            React.createElement('body', null, children),
           ),
       };
 
@@ -300,7 +340,9 @@ describe('Stage 13A: Hydration Serialization & Document Payload', () => {
       expect(html).toContain('<h1>Product 42</h1>');
 
       // Verify executable module script tags for bootstrap assets
-      expect(html).toContain('<script type="module" src="/_ranu/assets/client-bootstrap.js"></script>');
+      expect(html).toContain(
+        '<script type="module" src="/_ranu/assets/client-bootstrap.js"></script>',
+      );
       expect(html).toContain('<script type="module" src="/_ranu/assets/products.js"></script>');
 
       // Verify no artificial root div wrapper was injected

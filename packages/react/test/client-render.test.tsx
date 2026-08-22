@@ -55,7 +55,22 @@ describe('Phase 16: Client-Side Rendering Mode in @ranu/react', () => {
       loadNotFound: async () => undefined,
     };
 
-    const renderer = new ReactRenderer({ loader, mode: 'production' });
+    const renderer = new ReactRenderer({
+      loader,
+      mode: 'production',
+      buildId: 'bld_client_renderer',
+      publicEnv: { RANU_PUBLIC_APP_NAME: 'Client Test' },
+      clientAssets: {
+        'page:/dashboard': {
+          js: ['/_ranu/assets/c_dashboard.js'],
+          css: ['/_ranu/assets/c_dashboard.css'],
+        },
+        bootstrap: {
+          js: ['/_ranu/assets/c_bootstrap.js'],
+          css: [],
+        },
+      },
+    });
 
     const request = new Request('http://localhost:3000/dashboard');
     const context: RanuRequestContext = {
@@ -88,6 +103,15 @@ describe('Phase 16: Client-Side Rendering Mode in @ranu/react', () => {
 
     // Must contain client mount root
     expect(html).toContain('id="ranu-client-root"');
+
+    // Must contain the complete bootstrap payload and both route/bootstrap assets
+    expect(html).toContain('id="__ranu_data__"');
+    expect(html).toContain('"buildId":"bld_client_renderer"');
+    expect(html).toContain('"routeId":"page:/dashboard"');
+    expect(html).toContain('"pathname":"/dashboard"');
+    expect(html).toContain('"RANU_PUBLIC_APP_NAME":"Client Test"');
+    expect(html).toContain('src="/_ranu/assets/c_dashboard.js"');
+    expect(html).toContain('src="/_ranu/assets/c_bootstrap.js"');
 
     // Must NOT contain server page body content
     expect(html).not.toContain('Server Page Content');

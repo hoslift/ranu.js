@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import React from 'react';
 import { build } from '@ranu/build';
 import { ReactRenderer } from '@ranu/react';
 import type { RanuRequestContext, PageRenderTarget } from '@ranu/runtime';
@@ -24,8 +25,8 @@ describe('Phase 16: Full Client Rendering Mode Integration Test', () => {
           type: 'module',
         },
         null,
-        2
-      )
+        2,
+      ),
     );
 
     // Create ranu.config.ts
@@ -35,9 +36,11 @@ describe('Phase 16: Full Client Rendering Mode Integration Test', () => {
   routing: {
     trailingSlash: 'never',
   },
-  sourceMaps: false,
-  minify: false,
-};`
+  build: {
+    sourceMaps: false,
+    minify: false,
+  },
+};`,
     );
 
     const appDir = path.join(tempProjectDir, 'app');
@@ -63,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </body>
     </html>
   );
-}`
+}`,
     );
 
     // Home Page (Server SSR mode default)
@@ -73,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 export const render = 'server';
 export default function HomePage() {
   return <div id="home-content">Home Server Page</div>;
-}`
+}`,
     );
 
     // About Page (Static mode)
@@ -83,7 +86,7 @@ export default function HomePage() {
 export const render = 'static';
 export default function AboutPage() {
   return <div id="about-content">About Static Page</div>;
-}`
+}`,
     );
 
     // Dashboard Page (Client render mode!)
@@ -103,14 +106,14 @@ export default function DashboardPage() {
       <button id="count-btn" onClick={() => setCount(c => c + 1)}>Count: {count}</button>
     </div>
   );
-}`
+}`,
     );
 
     // Execute full framework production build
     buildResult = await build({
       projectRoot: tempProjectDir,
     });
-  });
+  }, 60_000);
 
   afterAll(() => {
     if (fs.existsSync(tempProjectDir)) {
@@ -124,11 +127,17 @@ export default function DashboardPage() {
   });
 
   it('correctly classifies renderMode = "client" in RouteManifest', () => {
-    const routeManifestPath = path.join(tempProjectDir, '.ranu', 'build', 'manifest', 'routes.json');
+    const routeManifestPath = path.join(
+      tempProjectDir,
+      '.ranu',
+      'build',
+      'manifest',
+      'routes.json',
+    );
     expect(fs.existsSync(routeManifestPath)).toBe(true);
 
     const routeManifest: RouteManifest = JSON.parse(fs.readFileSync(routeManifestPath, 'utf8'));
-    const dashboardRoute = routeManifest.routes.find(r => r.id === 'page:/dashboard');
+    const dashboardRoute = routeManifest.routes.find((r) => r.id === 'page:/dashboard');
 
     expect(dashboardRoute).toBeDefined();
     expect(dashboardRoute?.kind).toBe('page');
@@ -138,15 +147,20 @@ export default function DashboardPage() {
   });
 
   it('compiles browser client assets for the client route and registers them in ClientManifest', () => {
-    const clientManifestPath = path.join(tempProjectDir, '.ranu', 'build', 'manifest', 'client.json');
+    const clientManifestPath = path.join(
+      tempProjectDir,
+      '.ranu',
+      'build',
+      'manifest',
+      'client.json',
+    );
     expect(fs.existsSync(clientManifestPath)).toBe(true);
 
     const clientManifest: ClientManifest = JSON.parse(fs.readFileSync(clientManifestPath, 'utf8'));
 
     // Check entry in assets by file path or routeId
     const dashboardAssets =
-      clientManifest.assets['app/dashboard/page.tsx'] ??
-      clientManifest.assets['page:/dashboard'];
+      clientManifest.assets['app/dashboard/page.tsx'] ?? clientManifest.assets['page:/dashboard'];
 
     expect(dashboardAssets).toBeDefined();
     expect(dashboardAssets.js.length).toBeGreaterThan(0);
@@ -159,16 +173,22 @@ export default function DashboardPage() {
   });
 
   it('excludes client-rendered route from StaticManifest', () => {
-    const staticManifestPath = path.join(tempProjectDir, '.ranu', 'build', 'manifest', 'static.json');
+    const staticManifestPath = path.join(
+      tempProjectDir,
+      '.ranu',
+      'build',
+      'manifest',
+      'static.json',
+    );
     expect(fs.existsSync(staticManifestPath)).toBe(true);
 
     const staticManifest: StaticManifest = JSON.parse(fs.readFileSync(staticManifestPath, 'utf8'));
 
     // Static route (/about) should be present
-    expect(staticManifest.routes.some(r => r.pathname === '/about')).toBe(true);
+    expect(staticManifest.routes.some((r) => r.pathname === '/about')).toBe(true);
 
     // Client route (/dashboard) MUST NOT be present in static manifest
-    expect(staticManifest.routes.some(r => r.pathname === '/dashboard')).toBe(false);
+    expect(staticManifest.routes.some((r) => r.pathname === '/dashboard')).toBe(false);
   });
 
   it('server renders a complete document shell with mount point and payload for client route without rendering server page body', async () => {
@@ -192,7 +212,11 @@ export default function DashboardPage() {
             'html',
             { lang: 'en' },
             React.createElement('head', null, React.createElement('title', null, 'App Shell')),
-            React.createElement('body', null, React.createElement('div', { id: 'layout-shell' }, children))
+            React.createElement(
+              'body',
+              null,
+              React.createElement('div', { id: 'layout-shell' }, children),
+            ),
           ),
       }),
       loadLoading: async () => undefined,
@@ -200,7 +224,19 @@ export default function DashboardPage() {
       loadNotFound: async () => undefined,
     };
 
-    const renderer = new ReactRenderer({ loader, mode: 'production' });
+    const clientManifest: ClientManifest = JSON.parse(
+      fs.readFileSync(
+        path.join(tempProjectDir, '.ranu', 'build', 'manifest', 'client.json'),
+        'utf8',
+      ),
+    );
+    const renderer = new ReactRenderer({
+      loader,
+      mode: 'production',
+      buildId: buildResult.buildId,
+      publicEnv: {},
+      clientAssets: clientManifest.assets,
+    });
 
     const request = new Request('http://localhost:3000/dashboard');
     const context: RanuRequestContext = {
@@ -221,9 +257,8 @@ export default function DashboardPage() {
     };
 
     const response = await renderer.render(request, context, target);
-    expect(response.status).toBe(200);
-
     const html = await response.text();
+    expect(response.status, html).toBe(200);
 
     // Document shell
     expect(html).toContain('<!DOCTYPE html>');
@@ -239,5 +274,8 @@ export default function DashboardPage() {
     expect(html).toContain('id="__ranu_data__"');
     expect(html).toContain('"routeId":"page:/dashboard"');
     expect(html).toContain('"pathname":"/dashboard"');
+    expect(html).toContain('"renderMode":"client"');
+    expect(html).toContain('/_ranu/assets/c_dashboard-page-');
+    expect(html).toContain('/_ranu/assets/c_bootstrap-');
   });
 });

@@ -59,13 +59,15 @@ function validateSerializableValue(value: unknown, seen = new WeakSet<object>())
 
     if (!isPlainObject(value)) {
       throw new TypeError(
-        `Cannot serialize class instance or non-plain object "${obj.constructor?.name ?? 'Unknown'}" into hydration payload.`
+        `Cannot serialize class instance or non-plain object "${obj.constructor?.name ?? 'Unknown'}" into hydration payload.`,
       );
     }
 
     for (const key of Object.keys(value)) {
       if (FORBIDDEN_KEYS.has(key)) {
-        throw new TypeError(`Cannot serialize object with forbidden prototype pollution key "${key}".`);
+        throw new TypeError(
+          `Cannot serialize object with forbidden prototype pollution key "${key}".`,
+        );
       }
       validateSerializableValue((value as Record<string, unknown>)[key], seen);
     }
@@ -106,7 +108,7 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
     throw new TypeError('Hydration payload must be a non-null plain object.');
   }
 
-  const { buildId, routeId, pathname, params, searchParams, publicEnv, assets } = input;
+  const { buildId, routeId, pathname, params, searchParams, publicEnv, assets, renderMode } = input;
 
   if (typeof buildId !== 'string' || buildId.trim().length === 0) {
     throw new TypeError('Hydration payload "buildId" must be a non-empty string.');
@@ -117,7 +119,9 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
   }
 
   if (typeof pathname !== 'string' || !pathname.startsWith('/')) {
-    throw new TypeError('Hydration payload "pathname" must be a valid absolute pathname starting with "/".');
+    throw new TypeError(
+      'Hydration payload "pathname" must be a valid absolute pathname starting with "/".',
+    );
   }
 
   if (!isPlainObject(params)) {
@@ -130,7 +134,7 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
     if (typeof v === 'string') {
       continue;
     }
-    if (Array.isArray(v) && v.every(item => typeof item === 'string')) {
+    if (Array.isArray(v) && v.every((item) => typeof item === 'string')) {
       continue;
     }
     throw new TypeError(`Hydration payload param "${k}" must be a string or array of strings.`);
@@ -146,10 +150,12 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
     if (v === undefined || typeof v === 'string') {
       continue;
     }
-    if (Array.isArray(v) && v.every(item => typeof item === 'string')) {
+    if (Array.isArray(v) && v.every((item) => typeof item === 'string')) {
       continue;
     }
-    throw new TypeError(`Hydration payload searchParam "${k}" must be a string, array of strings, or undefined.`);
+    throw new TypeError(
+      `Hydration payload searchParam "${k}" must be a string, array of strings, or undefined.`,
+    );
   }
 
   if (!isPlainObject(publicEnv)) {
@@ -168,11 +174,22 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
     throw new TypeError('Hydration payload "assets" must be a plain object.');
   }
   const rawAssets = assets as Record<string, unknown>;
-  if (!Array.isArray(rawAssets.js) || !rawAssets.js.every(item => typeof item === 'string')) {
+  if (!Array.isArray(rawAssets.js) || !rawAssets.js.every((item) => typeof item === 'string')) {
     throw new TypeError('Hydration payload "assets.js" must be an array of string paths.');
   }
-  if (!Array.isArray(rawAssets.css) || !rawAssets.css.every(item => typeof item === 'string')) {
+  if (!Array.isArray(rawAssets.css) || !rawAssets.css.every((item) => typeof item === 'string')) {
     throw new TypeError('Hydration payload "assets.css" must be an array of string paths.');
+  }
+
+  if (
+    renderMode !== undefined &&
+    renderMode !== 'server' &&
+    renderMode !== 'static' &&
+    renderMode !== 'client'
+  ) {
+    throw new TypeError(
+      'Hydration payload "renderMode" must be "server", "static", or "client" when provided.',
+    );
   }
 
   const validatedAssets: RouteClientAssets = {
@@ -185,9 +202,13 @@ export function validateHydrationPayload(input: unknown): RanuHydrationPayload {
     routeId,
     pathname,
     params: Object.freeze({ ...params } as Record<string, string | readonly string[]>),
-    searchParams: Object.freeze({ ...searchParams } as Record<string, string | readonly string[] | undefined>),
+    searchParams: Object.freeze({ ...searchParams } as Record<
+      string,
+      string | readonly string[] | undefined
+    >),
     publicEnv: Object.freeze({ ...publicEnv } as Record<string, string>),
     assets: validatedAssets,
+    ...(renderMode !== undefined ? { renderMode } : {}),
   };
 }
 
