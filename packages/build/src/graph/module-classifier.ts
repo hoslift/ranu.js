@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { isClientDirective } from '../compiler/directive-detector.js';
 import { isServerOnlyModule } from '../compiler/server-only-detector.js';
+import { analyzePageRenderMode } from '../pipeline/stage-routes.js';
 import type { ModuleGraph, ModuleNode, ModuleImport } from './graph-types.js';
 
 const NODE_BUILTINS = new Set([
@@ -147,7 +148,9 @@ export function buildModuleGraph(serverRootFiles: string[], projectRoot: string)
       fileContent = '';
     }
 
-    const isClient = isClientDirective(normPath, fileContent);
+    const hasClientDirective = isClientDirective(normPath, fileContent);
+    const hasClientRender = fileContent.includes('render') && fileContent.includes('client') && analyzePageRenderMode(normPath, fileContent).renderMode === 'client';
+    const isClient = hasClientDirective || hasClientRender;
     const serverOnlyCheck = isServerOnlyModule(normPath, fileContent, projectRoot);
 
     const node: ModuleNode = {

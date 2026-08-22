@@ -5,6 +5,7 @@ import os from 'node:os';
 import { runClientGraphStage } from '../src/pipeline/stage-client-graph.js';
 import { buildModuleGraph } from '../src/graph/module-classifier.js';
 import type { BuildContext } from '../src/build-config.js';
+import type { RouteEntryInfo } from '../src/pipeline/stage-routes.js';
 
 describe('Stage 11 & Stage 13B: Client Graph & Bootstrap Asset Bundling', () => {
   let tempDir: string;
@@ -34,21 +35,21 @@ describe('Stage 11 & Stage 13B: Client Graph & Bootstrap Asset Bundling', () => 
     const counterFile = path.join(compDir, 'Counter.tsx');
     fs.writeFileSync(
       counterFile,
-      `"use client";
-import React, { useState } from 'react';
+      `import React, { useState } from 'react';
 export function Counter() {
   const [c, setC] = useState(0);
   return <button onClick={() => setC(c + 1)}>{c}</button>;
-}`
+}`,
     );
 
     const pageFile = path.join(appDir, 'page.tsx');
     fs.writeFileSync(
       pageFile,
       `import { Counter } from './components/Counter.js';
+export const render = 'client';
 export default function Page() {
   return <Counter />;
-}`
+}`,
     );
 
     const graph = buildModuleGraph([pageFile], tempDir);
@@ -75,7 +76,22 @@ export default function Page() {
       diagnostics: [],
     };
 
-    const result = await runClientGraphStage(ctx, graph);
+    const routes: RouteEntryInfo[] = [
+      {
+        routeId: 'page:/',
+        kind: 'page',
+        pathnameTemplate: '/',
+        params: [],
+        renderMode: 'client',
+        methods: [],
+        sourceFile: pageFile,
+        layouts: [],
+        errors: [],
+        outputRelativePath: 'server/routes/page-root.mjs',
+      },
+    ];
+
+    const result = await runClientGraphStage(ctx, graph, routes);
 
     expect(result.success).toBe(true);
     expect(result.diagnostics.length).toBe(0);
@@ -85,20 +101,26 @@ export default function Page() {
     expect(result.assets['bootstrap']?.js.length).toBeGreaterThan(0);
     expect(result.assets['bootstrap']?.js[0]).toMatch(/^\/_ranu\/assets\/c_bootstrap-/);
 
-    // Verify counter asset is recorded
-    expect(result.assets['app/components/Counter.tsx']).toBeDefined();
-    expect(result.assets['app/components/Counter.tsx']?.js[0]).toMatch(/^\/_ranu\/assets\/c_components-Counter-/);
+    // Verify the client-rendered route asset and route alias are recorded
+    expect(result.assets['app/page.tsx']).toBeDefined();
+    expect(result.assets['app/page.tsx']?.js[0]).toMatch(/^\/_ranu\/assets\/c_page-/);
+    expect(result.assets['page:/']).toEqual(result.assets['app/page.tsx']);
 
     // Verify physical file was emitted into static/assets
     const staticAssetsDir = path.join(staticOutDir, 'assets');
     expect(fs.existsSync(staticAssetsDir)).toBe(true);
 
     const emittedFiles = fs.readdirSync(staticAssetsDir);
-    const bootstrapFile = emittedFiles.find(f => f.startsWith('c_bootstrap-') && f.endsWith('.js'));
+    const bootstrapFile = emittedFiles.find(
+      (f) => f.startsWith('c_bootstrap-') && f.endsWith('.js'),
+    );
     expect(bootstrapFile).toBeDefined();
 
     // Verify bootstrap bundle contains the baked build ID
     const bootstrapContent = fs.readFileSync(path.join(staticAssetsDir, bootstrapFile!), 'utf8');
     expect(bootstrapContent).toContain('test_build_stage13b_asset');
-  });
+    expect(bootstrapContent).toContain('page:/');
+    expect(bootstrapContent).toContain('componentLoader');
+    expect(bootstrapContent).toContain('Client route module');
+  }, 60_000);
 });

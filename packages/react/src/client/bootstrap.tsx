@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { hydrateRoot, type RootOptions } from 'react-dom/client';
+import { hydrateRoot, createRoot, type RootOptions } from 'react-dom/client';
 import {
   deserializeHydrationData,
   HYDRATION_DATA_SCRIPT_ID,
@@ -46,7 +46,7 @@ export function getHydrationPayloadFromDocument(
 }
 
 /**
- * Bootstraps client-side hydration for Ranu.js full-document SSR/SSG markup.
+ * Bootstraps client-side hydration for Ranu.js full-document SSR/SSG markup or initial mounting for client routes.
  */
 export async function bootstrapClientHydration(
   options: ClientBootstrapOptions = {}
@@ -79,7 +79,7 @@ export async function bootstrapClientHydration(
     throw error;
   }
 
-  // 3. Resolve hydratable component tree
+  // 3. Resolve hydratable / mountable component tree
   let appElement: ReactNode = null;
   try {
     if (options.renderApp) {
@@ -107,7 +107,7 @@ export async function bootstrapClientHydration(
     throw error;
   }
 
-  // 4. Hydrate root document using React 19 hydrateRoot
+  // 4. Mount or Hydrate depending on renderMode
   try {
     const rootOptions: RootOptions = {
       onRecoverableError: (error) => {
@@ -115,6 +115,26 @@ export async function bootstrapClientHydration(
       },
     };
 
+    if (payload.renderMode === 'client') {
+      // Client Rendering Mode: Mount initial React component using createRoot
+      const clientMountEl =
+        typeof doc.getElementById === 'function'
+          ? doc.getElementById('ranu-client-root')
+          : null;
+      const targetMount = clientMountEl ?? container;
+
+      const root = createRoot(targetMount as Element | DocumentFragment, rootOptions);
+      root.render(appElement);
+
+      options.onHydrated?.();
+      return {
+        success: true,
+        payload,
+        root,
+      };
+    }
+
+    // Server / Static Rendering Mode: Hydrate existing server-rendered HTML
     const root = hydrateRoot(container, appElement, rootOptions);
 
     options.onHydrated?.();

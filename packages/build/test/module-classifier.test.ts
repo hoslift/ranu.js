@@ -121,4 +121,23 @@ export function Counter() { return null; }`
     expect(graph.serverRoots).toContain('app/page.tsx');
     expect(graph.clientEntries).toContain('app/components/Counter.tsx');
   });
+
+  it('classifies render = "client" page module as client-entry in module graph', () => {
+    const appDir = path.join(tempDir, 'app', 'dashboard');
+    fs.mkdirSync(appDir, { recursive: true });
+
+    const clientPageFile = path.join(appDir, 'page.tsx');
+    fs.writeFileSync(
+      clientPageFile,
+      `export const render = 'client';
+export default function DashboardPage() { return null; }`
+    );
+
+    const graph = buildModuleGraph([clientPageFile], tempDir);
+    const clientNode = graph.nodes.get('app/dashboard/page.tsx');
+
+    expect(clientNode?.isClientEntry).toBe(true);
+    expect(clientNode?.classification).toBe('client-entry');
+    expect(graph.clientEntries).toContain('app/dashboard/page.tsx');
+  });
 });

@@ -1,6 +1,13 @@
 import type { RanuRenderer, RanuRequestContext, PageRenderTarget } from '@ranu/runtime';
 import { isControlSignal, RedirectSignal, NotFoundSignal } from '@ranu/runtime';
-import type { ComponentModuleLoader, LayoutModule, PageProps, ResolvedMetadata } from './types.js';
+import type {
+  ComponentModuleLoader,
+  LayoutModule,
+  PageProps,
+  RanuHydrationPayload,
+  ResolvedMetadata,
+  RouteClientAssets,
+} from './types.js';
 import { resolveHierarchyMetadata } from './metadata.js';
 import { composeComponentTree, composeNotFoundTree, composeErrorDocument } from './composition.js';
 import { renderReactToStream } from './stream.js';
@@ -9,6 +16,9 @@ import { sanitizeRenderError } from './sanitizer.js';
 export interface ReactRendererOptions {
   readonly loader: ComponentModuleLoader;
   readonly mode?: 'development' | 'production';
+  readonly buildId?: string | undefined;
+  readonly publicEnv?: Readonly<Record<string, string>> | undefined;
+  readonly clientAssets?: Readonly<Record<string, RouteClientAssets>> | undefined;
 }
 
 function parseSearchParams(url: URL): Record<string, string | string[] | undefined> {
@@ -18,6 +28,17 @@ function parseSearchParams(url: URL): Record<string, string | string[] | undefin
     result[key] = values.length > 1 ? values : values[0];
   }
   return Object.freeze(result);
+}
+
+/** Combines route and bootstrap asset groups without emitting duplicate URLs. */
+function mergeClientAssets(
+  routeAssets: RouteClientAssets,
+  bootstrapAssets: RouteClientAssets,
+): RouteClientAssets {
+  return Object.freeze({
+    js: Object.freeze([...new Set([...routeAssets.js, ...bootstrapAssets.js])]),
+    css: Object.freeze([...new Set([...routeAssets.css, ...bootstrapAssets.css])]),
+  });
 }
 
 /**
@@ -66,12 +87,47 @@ export class ReactRenderer implements RanuRenderer {
       }
 
       // 5. Compose Component Tree
+      let hydrationPayload: RanuHydrationPayload | undefined;
+      if (pageModule.render === 'client') {
+        const buildId = this.options.buildId?.trim();
+        if (!buildId) {
+          throw new Error(
+            `Client route "${target.routeId}" requires a build ID for browser bootstrap.`,
+          );
+        }
+
+        const routeAssets = this.options.clientAssets?.[target.routeId];
+        if (!routeAssets) {
+          throw new Error(
+            `Client assets for route "${target.routeId}" were not provided to ReactRenderer.`,
+          );
+        }
+
+        const bootstrapAssets = this.options.clientAssets?.['bootstrap'];
+        if (!bootstrapAssets) {
+          throw new Error('The client bootstrap asset was not provided to ReactRenderer.');
+        }
+
+        hydrationPayload = Object.freeze({
+          buildId,
+          routeId: target.routeId,
+          pathname: context.url.pathname,
+          params: pageProps.params,
+          searchParams: pageProps.searchParams,
+          publicEnv: Object.freeze({ ...(this.options.publicEnv ?? {}) }),
+          assets: mergeClientAssets(routeAssets, bootstrapAssets),
+          renderMode: 'client',
+        });
+      }
+
       const tree = composeComponentTree({
         page: pageModule,
         layouts: layoutModules,
         loading: loadingModule,
         metadata: resolvedMetadata,
         pageProps,
+        hydrationPayload,
+        renderMode: pageModule?.render,
       });
 
       // 6. Execute Streaming SSR via React 19 renderToReadableStream
@@ -194,12 +250,15 @@ export class ReactRenderer implements RanuRenderer {
       });
     } catch {
       // Ultimate fallback if React rendering itself is completely corrupted
-      return new Response('<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>', {
-        status: 500,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
+      return new Response(
+        '<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>',
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+          },
         },
-      });
+      );
     }
   }
 }
