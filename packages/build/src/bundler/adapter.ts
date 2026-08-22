@@ -22,6 +22,8 @@ export interface BundleOptions {
   chunkNames?: string | undefined;
   entryNames?: string | undefined;
   outExtension?: Record<string, string> | undefined;
+  alias?: Record<string, string> | undefined;
+  nodePaths?: string[] | undefined;
 }
 
 /** Output result from bundler execution */

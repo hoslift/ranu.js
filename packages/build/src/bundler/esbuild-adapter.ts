@@ -27,6 +27,8 @@ export class EsbuildAdapter implements BundlerAdapter {
       jsxImportSource: options.jsxImportSource ?? 'react',
       treeShaking: options.treeShaking ?? true,
       external,
+      ...(options.alias ? { alias: options.alias } : {}),
+      ...(options.nodePaths && options.nodePaths.length > 0 ? { nodePaths: options.nodePaths } : {}),
       define: options.define ?? {},
       plugins: options.plugins ?? [],
       metafile: true,

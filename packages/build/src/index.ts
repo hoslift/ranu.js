@@ -51,6 +51,11 @@ export {
 } from './pipeline/stage-routes.js';
 export { runServerGraphStage, type ServerGraphResult } from './pipeline/stage-server-graph.js';
 export { runClientGraphStage, type ClientGraphResult } from './pipeline/stage-client-graph.js';
+export {
+  runStaticGenerationStage,
+  createBuildComponentLoader,
+  type StaticStageResult,
+} from './pipeline/stage-static.js';
 export { runManifestStage, type ManifestStageResult } from './pipeline/stage-manifests.js';
 export { runValidationStage, type ValidationStageResult } from './pipeline/stage-validate.js';
 

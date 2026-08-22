@@ -1,13 +1,30 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { EsbuildAdapter } from '../bundler/esbuild-adapter.js';
 import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import type { BuildContext } from '../build-config.js';
-import type { RouteEntryInfo } from './stage-routes.js';
+import {
+  getRouteComponentEntryName,
+  resolveRouteComponentPath,
+  type RouteEntryInfo,
+} from './stage-routes.js';
 
 export interface ServerGraphResult {
   success: boolean;
   diagnostics: RanuDiagnostic[];
+}
+
+/** Return framework-local package search paths for standalone build inputs. */
+function getFrameworkNodePaths(): string[] {
+  try {
+    const require = createRequire(import.meta.url);
+    const reactPackageDir = path.dirname(require.resolve('react/package.json'));
+    return [path.dirname(reactPackageDir)];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -32,6 +49,24 @@ export async function runServerGraphStage(
         .replace(/^server\//, '')
         .replace(/\.mjs$/, '');
       entryPoints[entryKey] = route.sourceFile;
+    }
+
+    // Compile layouts
+    for (const layoutPath of route.layouts) {
+      const fullPath = resolveRouteComponentPath(ctx.projectRoot, layoutPath);
+      if (fs.existsSync(fullPath)) {
+        entryPoints[`layouts/${getRouteComponentEntryName(layoutPath)}`] = fullPath;
+      }
+    }
+
+    // Compile notFound
+    if (route.notFound) {
+      for (const nfPath of route.notFound) {
+        const fullPath = resolveRouteComponentPath(ctx.projectRoot, nfPath);
+        if (fs.existsSync(fullPath)) {
+          entryPoints[`not-found/${getRouteComponentEntryName(nfPath)}`] = fullPath;
+        }
+      }
     }
   }
 
@@ -68,6 +103,13 @@ export async function runServerGraphStage(
     treeShaking: true,
     entryNames: '[dir]/[name]',
     outExtension: { '.js': '.mjs' },
+    // Resolve react from the project being built, supporting monorepo workspaces
+    nodePaths: [
+      path.join(ctx.projectRoot, 'node_modules'),
+      path.resolve(ctx.projectRoot, '..', 'node_modules'),
+      path.resolve(ctx.projectRoot, '..', '..', 'node_modules'),
+      ...getFrameworkNodePaths(),
+    ],
   });
 
   // 3. Process any errors/warnings from bundler

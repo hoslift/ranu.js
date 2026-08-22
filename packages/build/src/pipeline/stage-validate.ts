@@ -86,6 +86,19 @@ export function runValidationStage(
     }
   }
 
+  // 6. Verify all static page files exist on disk
+  for (const entry of manifestResult.staticManifest.routes) {
+    const relFsPath = entry.file.replace(/^\.\//, '');
+    const entryPath = path.join(ctx.tempOutDir, relFsPath);
+    if (!fs.existsSync(entryPath)) {
+      diagnostics.push({
+        code: 'RANU_BUILD_MANIFEST_INVALID',
+        severity: 'error',
+        message: `Integrity check failed: Static page artifact for "${entry.pathname}" was not found on disk at: ${entry.file}`,
+      });
+    }
+  }
+
   return {
     success: diagnostics.length === 0,
     diagnostics,

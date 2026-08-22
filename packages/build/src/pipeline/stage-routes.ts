@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { Buffer } from 'node:buffer';
 import path from 'node:path';
 import ts from 'typescript';
 import type { RouteKind, RenderMode, HttpMethod } from '@ranu/core';
@@ -26,6 +27,27 @@ export interface RouteStageResult {
   routes: RouteEntryInfo[];
   records: CompiledRouteRecord[];
   diagnostics: RanuDiagnostic[];
+}
+
+/** Resolve a router-discovered component path, which is relative to the app directory. */
+export function resolveRouteComponentPath(projectRoot: string, componentPath: string): string {
+  if (path.isAbsolute(componentPath)) {
+    return componentPath;
+  }
+
+  const appRelativePath = path.resolve(projectRoot, 'app', componentPath);
+  if (fs.existsSync(appRelativePath)) {
+    return appRelativePath;
+  }
+
+  // Preserve compatibility with callers that already include the app/ prefix.
+  return path.resolve(projectRoot, componentPath);
+}
+
+/** Encode an app-relative component path as a deterministic, collision-free file name. */
+export function getRouteComponentEntryName(componentPath: string): string {
+  const normalizedPath = componentPath.replace(/\\/g, '/');
+  return Buffer.from(normalizedPath, 'utf8').toString('base64url');
 }
 
 /**
