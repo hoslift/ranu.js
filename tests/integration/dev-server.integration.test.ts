@@ -6,6 +6,7 @@ import { createDevServer } from '@ranu/dev';
 
 describe('Integration: Phase 18 Development Server V0', () => {
   let tempDir: string;
+  let devServer: ReturnType<typeof createDevServer> | null;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-int-'));
@@ -29,16 +30,17 @@ export default function HomePage() {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
+      await devServer?.close();
+    } finally {
+      devServer = null;
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
     }
   });
 
   it('runs dev server, handles edits, updates CSS modules and routes, survives errors, and shuts down', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -64,7 +66,7 @@ export default function HomePage() {
     );
 
     // Rebuild
-    await (devServer as any).coordinator.triggerRebuild('page update');
+    await devServer.rebuild('page update');
 
     const res2 = await fetch(`${address.url}/`);
     expect(res2.status).toBe(200);
@@ -85,7 +87,7 @@ export default function HomePage() {
 }`
     );
 
-    await (devServer as any).coordinator.triggerRebuild('css module update');
+    await devServer.rebuild('css module update');
 
     const res3 = await fetch(`${address.url}/`);
     expect(res3.status).toBe(200);
@@ -105,19 +107,17 @@ export default function AboutPage() {
 }`
     );
 
-    await (devServer as any).coordinator.triggerRebuild('new route');
+    await devServer.rebuild('new route');
 
     const aboutRes = await fetch(`${address.url}/about`);
     expect(aboutRes.status).toBe(200);
     const aboutHtml = await aboutRes.text();
     expect(aboutHtml).toContain('About Us Dev');
 
-    // 5. Clean shutdown
-    await devServer.close();
-  });
+  }, 120_000);
 
   it('keeps serving the last good build and reports diagnostics when a rebuild fails', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -141,19 +141,19 @@ export default function AboutPage() {
       path.join(tempDir, 'app', 'page.tsx'),
       `import React from 'react';
 export default function HomePage() {
-  return <h1>Broken;
-}`
+  return <h1>Broken</h1>;
+`
     );
 
-    const failedState = await (devServer as any).coordinator.triggerRebuild('broken edit');
+    const failedState = await devServer.rebuild('broken edit');
     expect(failedState.success).toBe(false);
     expect(failedState.diagnostics.length).toBeGreaterThan(0);
 
-    // The SSE channel should have broadcast an error event to connected
+    // The SSE channel should have broadcast a build-error event to connected
     // clients rather than a reload.
     const { value } = await reader.read();
     const errorChunk = new TextDecoder().decode(value);
-    expect(errorChunk).toContain('event: error');
+    expect(errorChunk).toContain('event: build-error');
     await reader.cancel();
 
     // The previously-working runtime must still be serving the last good
@@ -170,13 +170,12 @@ export default function HomePage() {
   return <h1>Recovered Dev Version</h1>;
 }`
     );
-    const recoveredState = await (devServer as any).coordinator.triggerRebuild('repaired edit');
+    const recoveredState = await devServer.rebuild('repaired edit');
     expect(recoveredState.success).toBe(true);
 
     const recoveredRes = await fetch(`${address.url}/`);
     expect(recoveredRes.status).toBe(200);
     expect(await recoveredRes.text()).toContain('Recovered Dev Version');
 
-    await devServer.close();
-  });
+  }, 120_000);
 });

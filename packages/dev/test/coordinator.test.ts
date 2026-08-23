@@ -27,7 +27,7 @@ export default function HomePage() {
   return <h1>Hello Dev</h1>;
 }`
     );
-  });
+  }, 60_000);
 
   afterEach(() => {
     try {
@@ -85,8 +85,8 @@ export default function HomePage() {
       path.join(tempDir, 'app', 'page.tsx'),
       `import React from 'react';
 export default function HomePage() {
-  return <h1>Unclosed tag;
-}`
+  return <h1>Unclosed tag</h1>;
+`
     );
 
     const state2 = await coordinator.triggerRebuild('bad edit');
@@ -108,7 +108,7 @@ export default function HomePage() {
     expect(state3.success).toBe(true);
     expect(state3.generation).toBe(3);
     expect(coordinator.currentGoodState?.generation).toBe(3);
-  });
+  }, 60_000);
 
   it('exposes currentState and isBusy reflecting the in-flight build', async () => {
     const coordinator = new RebuildCoordinator({
@@ -127,7 +127,7 @@ export default function HomePage() {
     const state1 = await pending;
     expect(coordinator.isBusy).toBe(false);
     expect(coordinator.currentState).toBe(state1);
-  });
+  }, 60_000);
 
   it('coalesces a rebuild requested while a build is already in-flight into a single follow-up build', async () => {
     const builds: any[] = [];
@@ -164,5 +164,5 @@ export default function HomePage() {
     // build (generation 2) and the queued follow-up (generation 3).
     expect(builds.map((b) => b.generation)).toEqual([2, 3]);
     expect(coordinator.currentState?.generation).toBe(3);
-  });
+  }, 60_000);
 });

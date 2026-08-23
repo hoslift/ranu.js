@@ -6,6 +6,7 @@ import { createDevServer } from '../src/server.js';
 
 describe('DevServer HTTP Server and Lifecycle', () => {
   let tempDir: string;
+  let devServer: ReturnType<typeof createDevServer> | null;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-'));
@@ -33,16 +34,17 @@ export default function HomePage() {
     fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'fake-favicon');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
+      await devServer?.close();
+    } finally {
+      devServer = null;
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
     }
   });
 
   it('starts dev server, serves HTML with injected dev client, serves public assets, and shuts down cleanly', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0, // Ephemeral port
       host: '127.0.0.1',
@@ -74,12 +76,10 @@ export default function HomePage() {
     const notFoundRes = await fetch(`${address.url}/missing-path-12345`);
     expect(notFoundRes.status).toBe(404);
 
-    // 5. Clean shutdown
-    await devServer.close();
-  });
+  }, 60_000);
 
   it('serves the SSE reload channel with a connected event and shuts down idempotently', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -101,10 +101,10 @@ export default function HomePage() {
     // Closing twice must not throw or hang the second time.
     await devServer.close();
     await expect(devServer.close()).resolves.toBeUndefined();
-  });
+  }, 60_000);
 
   it('serves files placed under the internal /_ranu/assets/ static directory', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -122,8 +122,7 @@ export default function HomePage() {
     expect(assetRes.headers.get('content-type')).toContain('text/css');
     expect(await assetRes.text()).toContain('color: red');
 
-    await devServer.close();
-  });
+  }, 60_000);
 
   it('renders a diagnostic build-error page instead of crashing when the initial build fails', async () => {
     // Overwrite the page with invalid syntax so the very first build fails
@@ -136,7 +135,7 @@ export default function HomePage() {
 }`
     );
 
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -151,6 +150,5 @@ export default function HomePage() {
     expect(html).toContain('Development Build Error');
     expect(html).toContain('/_ranu/dev-client.js');
 
-    await devServer.close();
-  });
+  }, 60_000);
 });

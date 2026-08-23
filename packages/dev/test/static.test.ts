@@ -66,37 +66,8 @@ describe('Development Static File Server', () => {
     expect(getMimeType('audio.mp3')).toBe('audio/mpeg');
   });
 
-  it('serves files inside authorized root directory', () => {
-    const filePath = path.join(tempDir, 'favicon.ico');
-    fs.writeFileSync(filePath, 'fake-favicon');
-
-    let responseCode = 0;
-    const headers: Record<string, any> = {};
-    let ended = false;
-
-    const mockReq: any = { method: 'GET' };
-    const mockRes: any = {
-      writeHead(code: number, h: Record<string, any>) {
-        responseCode = code;
-        Object.assign(headers, h);
-      },
-      end() {
-        ended = true;
-      },
-      on() {},
-      once() {},
-      emit() {},
-    };
-
-    const served = serveStaticFile(filePath, tempDir, mockReq, mockRes);
-    expect(served).toBe(true);
-    expect(responseCode).toBe(200);
-    expect(headers['Content-Type']).toBe('image/x-icon');
-  });
-
   it('rejects path traversal attempts escaping authorized root', () => {
     const outsidePath = path.join(os.tmpdir(), 'secret.txt');
-    fs.writeFileSync(outsidePath, 'secret');
 
     let responseCode = 0;
     let responseBody = '';

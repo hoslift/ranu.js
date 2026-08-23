@@ -51,7 +51,7 @@ describe('DevReloadChannel SSE Transport', () => {
     expect(channel.clientCount).toBe(0);
   });
 
-  it('broadcasts diagnostics to all clients via the error event', () => {
+  it('broadcasts diagnostics to all clients via the build-error event', () => {
     const channel = new DevReloadChannel();
     const written: string[] = [];
     const mockRes = createMockRes(written);
@@ -64,7 +64,7 @@ describe('DevReloadChannel SSE Transport', () => {
     ]);
 
     expect(written.length).toBe(1);
-    expect(written[0]).toContain('event: error');
+    expect(written[0]).toContain('event: build-error');
     expect(written[0]).toContain('RANU_TEST_ERROR');
     expect(written[0]).toContain('Something broke');
 

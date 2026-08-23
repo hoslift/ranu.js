@@ -17,9 +17,10 @@ describe('DEV_CLIENT_SCRIPT browser injection payload', () => {
     expect(DEV_CLIENT_SCRIPT).toContain('new EventSource(reloadEndpoint)');
   });
 
-  it('registers connected, reload, and error SSE listeners', () => {
+  it('registers connected, reload, build-error, and connection error SSE listeners', () => {
     expect(DEV_CLIENT_SCRIPT).toContain("addEventListener('connected'");
     expect(DEV_CLIENT_SCRIPT).toContain("addEventListener('reload'");
+    expect(DEV_CLIENT_SCRIPT).toContain("addEventListener('build-error'");
     expect(DEV_CLIENT_SCRIPT).toContain("addEventListener('error'");
   });
 
