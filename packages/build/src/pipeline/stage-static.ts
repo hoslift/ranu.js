@@ -11,10 +11,7 @@ import {
   resolveRouteComponentPath,
   type RouteEntryInfo,
 } from './stage-routes.js';
-import {
-  evaluateStaticRoute,
-  type EvaluateStaticRouteResult,
-} from '../static/params-evaluator.js';
+import { evaluateStaticRoute, type EvaluateStaticRouteResult } from '../static/params-evaluator.js';
 import {
   renderStaticRoutesInBatch,
   type StaticRouteArtifact,
@@ -33,11 +30,11 @@ export interface StaticStageResult {
  */
 export function createBuildComponentLoader(
   ctx: BuildContext,
-  routes: RouteEntryInfo[]
+  routes: RouteEntryInfo[],
 ): ComponentModuleLoader {
   return {
     async loadPage(routeId: string) {
-      const route = routes.find(r => r.routeId === routeId);
+      const route = routes.find((r) => r.routeId === routeId);
       if (!route) return undefined;
       const compiledPath = path.join(ctx.tempOutDir, route.outputRelativePath);
       if (fs.existsSync(compiledPath)) {
@@ -97,7 +94,8 @@ export function createBuildComponentLoader(
 export async function runStaticGenerationStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
-  customLoader?: ComponentModuleLoader
+  customLoader?: ComponentModuleLoader,
+  clientAssets?: Record<string, any>,
 ): Promise<StaticStageResult> {
   const diagnostics: RanuDiagnostic[] = [];
   const loader = customLoader ?? createBuildComponentLoader(ctx, routes);
@@ -106,9 +104,7 @@ export async function runStaticGenerationStage(
   const concurrency = 8;
 
   // 1. Filter for static page routes (skip server and client routes)
-  const staticPageRoutes = routes.filter(
-    r => r.kind === 'page' && r.renderMode === 'static'
-  );
+  const staticPageRoutes = routes.filter((r) => r.kind === 'page' && r.renderMode === 'static');
 
   if (staticPageRoutes.length === 0) {
     return {
@@ -132,9 +128,7 @@ export async function runStaticGenerationStage(
         code: 'RANU_SSG_GENERATOR_FAILED',
         severity: 'error',
         message: `Failed to load static page module for route "${route.routeId}": ${err.message ?? String(err)}`,
-        ...(route.sourceFile
-          ? { location: { file: route.sourceFile, line: 1, column: 1 } }
-          : {}),
+        ...(route.sourceFile ? { location: { file: route.sourceFile, line: 1, column: 1 } } : {}),
       });
       continue;
     }
@@ -149,7 +143,7 @@ export async function runStaticGenerationStage(
     > = route.pathnameTemplate
       .split('/')
       .filter(Boolean)
-      .map(seg => {
+      .map((seg) => {
         if (seg.startsWith('[...') && seg.endsWith(']')) {
           return { kind: 'catch-all', param: seg.slice(4, -1) };
         }
@@ -172,7 +166,7 @@ export async function runStaticGenerationStage(
     });
 
     diagnostics.push(...evaluated.diagnostics);
-    if (evaluated.diagnostics.some(d => d.severity === 'error')) {
+    if (evaluated.diagnostics.some((d) => d.severity === 'error')) {
       continue;
     }
 
@@ -204,13 +198,14 @@ export async function runStaticGenerationStage(
         buildId: ctx.buildId,
         outputDir: ctx.tempOutDir,
         trailingSlash,
+        clientAssets,
       });
     }
   }
 
   // 3. Generate global fallback 404.html artifact if root layout or not-found is present
-  const rootLayouts = routes.find(r => r.layouts.length > 0)?.layouts ?? [];
-  const rootNotFound = routes.find(r => r.notFound && r.notFound.length > 0)?.notFound ?? [];
+  const rootLayouts = routes.find((r) => r.layouts.length > 0)?.layouts ?? [];
+  const rootNotFound = routes.find((r) => r.notFound && r.notFound.length > 0)?.notFound ?? [];
 
   // Render root fallback 404
   const global404Loader: ComponentModuleLoader = {
@@ -233,9 +228,20 @@ export async function runStaticGenerationStage(
         default: () => {
           return React.createElement(
             'div',
-            { id: 'not-found', style: { fontFamily: 'system-ui, sans-serif', textAlign: 'center', padding: '4rem 1rem' } },
-            React.createElement('h1', { style: { fontSize: '2rem', marginBottom: '1rem' } }, '404 - Page Not Found'),
-            React.createElement('p', { style: { color: '#666' } }, 'This page could not be found.')
+            {
+              id: 'not-found',
+              style: {
+                fontFamily: 'system-ui, sans-serif',
+                textAlign: 'center',
+                padding: '4rem 1rem',
+              },
+            },
+            React.createElement(
+              'h1',
+              { style: { fontSize: '2rem', marginBottom: '1rem' } },
+              '404 - Page Not Found',
+            ),
+            React.createElement('p', { style: { color: '#666' } }, 'This page could not be found.'),
           );
         },
       };
@@ -257,10 +263,11 @@ export async function runStaticGenerationStage(
     buildId: ctx.buildId,
     outputDir: ctx.tempOutDir,
     trailingSlash: 'never',
+    clientAssets,
   });
 
   // Stop if evaluation generated errors
-  if (diagnostics.some(d => d.severity === 'error')) {
+  if (diagnostics.some((d) => d.severity === 'error')) {
     return {
       success: false,
       staticRoutes: [],
@@ -270,8 +277,8 @@ export async function runStaticGenerationStage(
   }
 
   // 4. Render static page routes in batch (excluding the global 404)
-  const pageRouteConfigs = routeConfigs.filter(rc => rc.routeId !== 'page:/404');
-  const global404Config = routeConfigs.find(rc => rc.routeId === 'page:/404');
+  const pageRouteConfigs = routeConfigs.filter((rc) => rc.routeId !== 'page:/404');
+  const global404Config = routeConfigs.find((rc) => rc.routeId === 'page:/404');
   let artifacts: StaticRouteArtifact[] = [];
   try {
     artifacts = await renderStaticRoutesInBatch(pageRouteConfigs, concurrency);
@@ -305,7 +312,7 @@ export async function runStaticGenerationStage(
   }
 
   // 5. Convert artifacts to StaticManifestEntry[]
-  const staticManifestEntries: StaticManifestEntry[] = artifacts.map(artifact => {
+  const staticManifestEntries: StaticManifestEntry[] = artifacts.map((artifact) => {
     const entry: StaticManifestEntry = {
       pathname: artifact.pathname,
       routeId: artifact.routeId,
@@ -321,7 +328,7 @@ export async function runStaticGenerationStage(
   staticManifestEntries.sort((a, b) => a.pathname.localeCompare(b.pathname));
 
   return {
-    success: !diagnostics.some(d => d.severity === 'error'),
+    success: !diagnostics.some((d) => d.severity === 'error'),
     staticRoutes: staticManifestEntries,
     artifacts,
     diagnostics,

@@ -3,11 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  runStaticGenerationStage,
-  type RouteEntryInfo,
-  type BuildContext,
-} from '../src/index.js';
+import { runStaticGenerationStage, type RouteEntryInfo, type BuildContext } from '../src/index.js';
 import type { ComponentModuleLoader } from '@ranu/react';
 import { notFound, redirect, cookies } from '@ranu/server';
 
@@ -55,7 +51,12 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
       async loadLayout() {
         return {
           default: ({ children }: { children: React.ReactNode }) =>
-            React.createElement('html', null, React.createElement('body', null, children)),
+            React.createElement(
+              'html',
+              null,
+              React.createElement('head'),
+              React.createElement('body', null, children),
+            ),
         };
       },
       async loadNotFound() {
@@ -123,13 +124,19 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
       },
     });
 
-    const result = await runStaticGenerationStage(mockContext, routes, loader);
+    const clientAssets = {
+      bootstrap: {
+        js: [],
+        css: ['/_ranu/assets/global-test.css'],
+      },
+    };
+    const result = await runStaticGenerationStage(mockContext, routes, loader, clientAssets);
 
     expect(result.success).toBe(true);
     expect(result.diagnostics).toEqual([]);
 
     // Should contain: /404, /about, /posts/hello, /posts/world (deterministically sorted by pathname)
-    const pathnames = result.staticRoutes.map(r => r.pathname);
+    const pathnames = result.staticRoutes.map((r) => r.pathname);
     expect(pathnames).toEqual(['/404', '/about', '/posts/hello', '/posts/world']);
 
     // Check physical file generation
@@ -137,6 +144,12 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     expect(fs.existsSync(path.join(tempDir, 'static', 'pages', 'about.html'))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, 'static', 'pages', 'posts', 'hello.html'))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, 'static', 'pages', 'posts', 'world.html'))).toBe(true);
+
+    const fallback404Html = fs.readFileSync(
+      path.join(tempDir, 'static', 'pages', '404.html'),
+      'utf8',
+    );
+    expect(fallback404Html).toContain('href="/_ranu/assets/global-test.css"');
 
     // / (server route) should NOT have static page generated
     expect(fs.existsSync(path.join(tempDir, 'static', 'pages', 'index.html'))).toBe(false);
@@ -167,7 +180,7 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     const result = await runStaticGenerationStage(mockContext, routes, loader);
 
     expect(result.success).toBe(false);
-    expect(result.diagnostics.some(d => d.code === 'RANU_SSG_MISSING_GENERATOR')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'RANU_SSG_MISSING_GENERATOR')).toBe(true);
   });
 
   it('propagates Stage 15B dynamic access errors and fails the stage', async () => {
@@ -198,7 +211,7 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     const result = await runStaticGenerationStage(mockContext, routes, loader);
 
     expect(result.success).toBe(false);
-    expect(result.diagnostics.some(d => d.code === 'RANU_SSG_DYNAMIC_ACCESS')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'RANU_SSG_DYNAMIC_ACCESS')).toBe(true);
   });
 
   it('propagates redirect rejection with RANU_SSG_REDIRECT_UNSUPPORTED', async () => {
@@ -228,7 +241,7 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     const result = await runStaticGenerationStage(mockContext, routes, loader);
 
     expect(result.success).toBe(false);
-    expect(result.diagnostics.some(d => d.code === 'RANU_SSG_REDIRECT_UNSUPPORTED')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'RANU_SSG_REDIRECT_UNSUPPORTED')).toBe(true);
   });
 
   it('correctly marks notFound() routes with status: 404 in StaticManifest entries', async () => {
@@ -262,11 +275,11 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     const result = await runStaticGenerationStage(mockContext, routes, loader);
 
     expect(result.success).toBe(true);
-    const missingEntry = result.staticRoutes.find(r => r.pathname === '/products/missing');
+    const missingEntry = result.staticRoutes.find((r) => r.pathname === '/products/missing');
     expect(missingEntry).toBeDefined();
     expect(missingEntry?.status).toBe(404);
 
-    const foundEntry = result.staticRoutes.find(r => r.pathname === '/products/found');
+    const foundEntry = result.staticRoutes.find((r) => r.pathname === '/products/found');
     expect(foundEntry).toBeDefined();
     expect(foundEntry?.status).toBeUndefined(); // 200 OK omits status
   });
@@ -307,7 +320,7 @@ describe('Phase 15 Stage 15C: Static Generation Stage & Manifest Integration', (
     const result = await runStaticGenerationStage(mockContext, routes, loader);
 
     expect(result.success).toBe(true);
-    expect(result.staticRoutes.map(route => route.pathname)).toEqual(['/about']);
+    expect(result.staticRoutes.map((route) => route.pathname)).toEqual(['/about']);
     expect(result.diagnostics).toEqual([
       expect.objectContaining({
         code: 'RANU_SSG_404_SKIPPED',

@@ -8,7 +8,7 @@ import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import { buildPublicEnvDefines } from '../env/env-validator.js';
 import type { BuildContext } from '../build-config.js';
 import type { ModuleGraph } from '../graph/graph-types.js';
-import type { RouteEntryInfo } from './stage-routes.js';
+import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
 
 export interface ClientGraphResult {
   success: boolean;
@@ -17,11 +17,12 @@ export interface ClientGraphResult {
 }
 
 /**
- * Stage 11: Client graph compilation and browser bundling.
+ * Stage 11: Client graph compilation, browser bundling, and CSS extraction.
  *
- * Discovers "use client" entrypoints from the module graph, compiles them using
- * esbuild browser mode with RANU_PUBLIC_* environment variable substitution,
- * and records generated asset files into the client manifest assets dictionary.
+ * Discovers "use client" entrypoints, root layout, and route CSS from the module graph,
+ * compiles them using esbuild browser mode with RANU_PUBLIC_* environment variable substitution,
+ * extracts CSS stylesheets into content-hashed assets, and records generated asset files into
+ * the client manifest assets dictionary.
  */
 export async function runClientGraphStage(
   ctx: BuildContext,
@@ -31,37 +32,39 @@ export async function runClientGraphStage(
   const diagnostics: RanuDiagnostic[] = [];
   const assets: Record<string, ClientAssetGroup> = {};
 
-  if (!graph || graph.clientEntries.length === 0) {
-    return {
-      success: true,
-      assets,
-      diagnostics,
-    };
-  }
-
-  // 1. Map client entry points
+  // 1. Map client entry points and CSS-bearing entry points
   const entryPoints: Record<string, string> = {};
-  for (const entryId of graph.clientEntries) {
-    const node = graph.nodes.get(entryId);
-    if (node?.filePath && fs.existsSync(node.filePath)) {
-      // Clean entry key e.g. "Counter" or "components-Counter"
-      const entryKey = entryId
-        .replace(/^app\//, '')
-        .replace(/\.[^.]+$/, '')
-        .replace(/[^a-zA-Z0-9_-]/g, '-');
-      entryPoints[entryKey] = node.filePath;
+
+  // A. Client entries from graph (e.g. components with "use client")
+  if (graph) {
+    for (const entryId of graph.clientEntries) {
+      const node = graph.nodes.get(entryId);
+      if (node?.filePath && fs.existsSync(node.filePath)) {
+        const entryKey = entryId
+          .replace(/^app[/\\]/, '')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^a-zA-Z0-9_-]/g, '-');
+        entryPoints[entryKey] = node.filePath;
+      }
     }
   }
 
-  if (Object.keys(entryPoints).length === 0) {
-    return {
-      success: true,
-      assets,
-      diagnostics,
-    };
+  // B. Discovered CSS files from graph (global and module CSS)
+  if (graph) {
+    for (const [id, node] of graph.nodes.entries()) {
+      if (id.endsWith('.css') && node.filePath && fs.existsSync(node.filePath)) {
+        const entryKey =
+          'css-' +
+          id
+            .replace(/^app[/\\]/, '')
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9_-]/g, '-');
+        entryPoints[entryKey] = node.filePath;
+      }
+    }
   }
 
-  // Include framework browser hydration bootstrap entrypoint with a route module registry.
+  // C. Include framework browser hydration bootstrap entrypoint with a route module registry
   const clientRoutes = (routes ?? []).filter(
     (route) => route.kind === 'page' && route.renderMode === 'client' && route.sourceFile,
   );
@@ -101,6 +104,14 @@ if (typeof document !== 'undefined') {
   fs.writeFileSync(bootstrapEntryPath, bootstrapSource, 'utf8');
   entryPoints['bootstrap'] = bootstrapEntryPath;
 
+  if (Object.keys(entryPoints).length === 0) {
+    return {
+      success: true,
+      assets,
+      diagnostics,
+    };
+  }
+
   // 2. Prepare public environment defines
   const rawEnv = process.env as Record<string, string>;
   const publicEnv = filterPublicEnv(rawEnv);
@@ -110,6 +121,9 @@ if (typeof document !== 'undefined') {
   const adapter = new EsbuildAdapter();
   const ranuPlugin = createRanuEsbuildPlugin({
     platform: 'browser',
+    projectRoot: ctx.projectRoot,
+    staticOutDir: ctx.staticOutDir,
+    tempOutDir: ctx.tempOutDir,
     publicEnv,
     onDiagnostic: (d) => diagnostics.push(d),
   });
@@ -161,38 +175,163 @@ if (typeof document !== 'undefined') {
   const staticAssetsDir = path.join(ctx.staticOutDir, 'assets');
   if (fs.existsSync(staticAssetsDir)) {
     const files = fs.readdirSync(staticAssetsDir);
-    const allKeys = [...graph.clientEntries, 'bootstrap'];
-    for (const entryId of allKeys) {
-      const cleanKey = entryId
-        .replace(/^app\//, '')
+
+    const findMatched = (cleanKey: string) => {
+      const js = files
+        .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.js'))
+        .map((f) => `/_ranu/assets/${f}`);
+      const css = files
+        .filter(
+          (f) =>
+            (f.startsWith(`c_${cleanKey}`) || f.startsWith(`c_css-${cleanKey}`)) &&
+            f.endsWith('.css'),
+        )
+        .map((f) => `/_ranu/assets/${f}`);
+      return { js, css };
+    };
+
+    // Helper to find all CSS generated for a source file path
+    const findCssForSource = (sourcePath: string): string[] => {
+      const rel = path.relative(ctx.projectRoot, sourcePath).replace(/\\/g, '/');
+      const cleanKey = rel
+        .replace(/^app[/\\]/, '')
         .replace(/\.[^.]+$/, '')
         .replace(/[^a-zA-Z0-9_-]/g, '-');
 
-      const matchedJs = files
-        .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.js'))
-        .map((f) => `/_ranu/assets/${f}`);
+      const directCss = findMatched(cleanKey).css;
+      const cssNodeMatch: string[] = [];
 
-      const matchedCss = files
-        .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.css'))
-        .map((f) => `/_ranu/assets/${f}`);
+      // Traverse imports so CSS from components used by a route is associated transitively.
+      if (graph) {
+        const visited = new Set<string>();
 
-      if (matchedJs.length > 0 || matchedCss.length > 0) {
-        assets[entryId] = {
-          js: matchedJs,
-          css: matchedCss,
+        const collectImportedCss = (nodeId: string): void => {
+          if (visited.has(nodeId)) {
+            return;
+          }
+          visited.add(nodeId);
+
+          const node = graph.nodes.get(nodeId);
+          if (!node) {
+            return;
+          }
+
+          for (const imp of node.imports) {
+            if (imp.resolvedPath && imp.resolvedPath.endsWith('.css')) {
+              const impRel = path.relative(ctx.projectRoot, imp.resolvedPath).replace(/\\/g, '/');
+              const impKey = impRel
+                .replace(/^app[/\\]/, '')
+                .replace(/\.[^.]+$/, '')
+                .replace(/[^a-zA-Z0-9_-]/g, '-');
+              cssNodeMatch.push(...findMatched(impKey).css);
+            } else if (imp.resolvedPath) {
+              const importedNodeId = path
+                .relative(ctx.projectRoot, imp.resolvedPath)
+                .replace(/\\/g, '/');
+              collectImportedCss(importedNodeId);
+            }
+          }
         };
+
+        collectImportedCss(rel);
+      }
+
+      return [...new Set([...directCss, ...cssNodeMatch])];
+    };
+
+    // Bootstrap assets
+    const bootstrapMatched = findMatched('bootstrap');
+    const rootLayoutCandidates = [
+      'app/layout.tsx',
+      'app/layout.ts',
+      'app/layout.jsx',
+      'app/layout.js',
+    ];
+    const rootCss: string[] = [];
+    for (const cand of rootLayoutCandidates) {
+      const full = path.join(ctx.projectRoot, cand);
+      if (fs.existsSync(full)) {
+        rootCss.push(...findCssForSource(full));
+      }
+    }
+    // Also check global.css in app
+    const globalCssPath = path.join(ctx.projectRoot, 'app', 'global.css');
+    if (fs.existsSync(globalCssPath)) {
+      rootCss.push(...findCssForSource(globalCssPath));
+    }
+
+    assets['bootstrap'] = {
+      js: bootstrapMatched.js,
+      css: [...new Set([...bootstrapMatched.css, ...rootCss])],
+    };
+
+    // Client entries
+    if (graph) {
+      for (const entryId of graph.clientEntries) {
+        const cleanKey = entryId
+          .replace(/^app[/\\]/, '')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^a-zA-Z0-9_-]/g, '-');
+        const matched = findMatched(cleanKey);
+        const entryNode = graph.nodes.get(entryId);
+        const nodeCss = entryNode?.filePath ? findCssForSource(entryNode.filePath) : [];
+        if (matched.js.length > 0 || matched.css.length > 0 || nodeCss.length > 0) {
+          assets[entryId] = {
+            js: matched.js,
+            css: [...new Set([...matched.css, ...nodeCss])],
+          };
+        }
       }
     }
 
-    // Map routeId aliases (e.g. "page:/dashboard" -> assets["app/dashboard/page.tsx"])
+    // Map routeId entries (including layouts CSS in order: root -> nested -> page)
     if (routes) {
       for (const route of routes) {
-        if (route.sourceFile) {
-          const relSource = path.relative(ctx.projectRoot, route.sourceFile).replace(/\\/g, '/');
-          if (assets[relSource]) {
-            assets[route.routeId] = assets[relSource];
+        const routeJs: string[] = [];
+        const routeCss: string[] = [...assets['bootstrap'].css];
+
+        // Layout CSS in hierarchy order
+        for (const layoutPath of route.layouts) {
+          const fullPath = resolveRouteComponentPath(ctx.projectRoot, layoutPath);
+          if (fs.existsSync(fullPath)) {
+            for (const c of findCssForSource(fullPath)) {
+              if (!routeCss.includes(c)) {
+                routeCss.push(c);
+              }
+            }
           }
         }
+
+        // Page component JS & CSS
+        if (route.sourceFile && fs.existsSync(route.sourceFile)) {
+          const rel = path.relative(ctx.projectRoot, route.sourceFile);
+          const cleanKey = rel
+            .replace(/^app[/\\]/, '')
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9_-]/g, '-');
+          const matched = findMatched(cleanKey);
+          for (const j of matched.js) {
+            if (!routeJs.includes(j)) {
+              routeJs.push(j);
+            }
+          }
+          for (const c of findCssForSource(route.sourceFile)) {
+            if (!routeCss.includes(c)) {
+              routeCss.push(c);
+            }
+          }
+
+          const relSource = rel.replace(/\\/g, '/');
+          assets[relSource] = {
+            js: routeJs,
+            css: routeCss,
+          };
+        }
+
+        assets[route.routeId] = {
+          js: routeJs,
+          css: routeCss,
+        };
       }
     }
   }

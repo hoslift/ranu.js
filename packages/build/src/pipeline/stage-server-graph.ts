@@ -78,6 +78,9 @@ export async function runServerGraphStage(
   const adapter = new EsbuildAdapter();
   const ranuPlugin = createRanuEsbuildPlugin({
     platform: 'node',
+    projectRoot: ctx.projectRoot,
+    staticOutDir: ctx.staticOutDir,
+    tempOutDir: ctx.tempOutDir,
     onDiagnostic: d => diagnostics.push(d),
   });
 

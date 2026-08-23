@@ -22,6 +22,11 @@ export function isNodeBuiltinModule(specifier: string): boolean {
   return NODE_BUILTINS.has(specifier);
 }
 
+import { isStaticAssetFile, ALL_STATIC_ASSET_EXTENSIONS } from '../assets/asset-emitter.js';
+
+const ASSET_EXTENSIONS = Array.from(ALL_STATIC_ASSET_EXTENSIONS);
+const EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.cjs', '.module.css', '.css', ...ASSET_EXTENSIONS];
+
 /**
  * Resolves a module import specifier to an absolute file path if it is a local relative import.
  */
@@ -38,8 +43,6 @@ export function resolveImportPath(
   const importerDir = path.dirname(importerFile);
   const targetBase = path.resolve(importerDir, specifier);
 
-  const extensions = ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.cjs'];
-
   // 1. Direct file with extension
   if (fs.existsSync(targetBase) && fs.statSync(targetBase).isFile()) {
     return targetBase;
@@ -49,7 +52,7 @@ export function resolveImportPath(
   const extName = path.extname(targetBase);
   const baseWithoutExt = extName ? targetBase.slice(0, -extName.length) : targetBase;
 
-  for (const ext of extensions) {
+  for (const ext of EXTENSIONS) {
     const candidate = `${baseWithoutExt}${ext}`;
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
       return candidate;
@@ -58,7 +61,7 @@ export function resolveImportPath(
 
   // 3. Try directory index file
   if (fs.existsSync(targetBase) && fs.statSync(targetBase).isDirectory()) {
-    for (const ext of extensions) {
+    for (const ext of EXTENSIONS) {
       const candidate = path.join(targetBase, `index${ext}`);
       if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
         return candidate;
@@ -139,6 +142,23 @@ export function buildModuleGraph(serverRootFiles: string[], projectRoot: string)
 
     if (nodes.has(relId)) {
       return nodes.get(relId)!;
+    }
+
+    const isCss = normPath.endsWith('.css');
+    const isAsset = isStaticAssetFile(normPath);
+
+    if (isCss || isAsset) {
+      const node: ModuleNode = {
+        id: relId,
+        filePath: normPath,
+        classification: 'shared',
+        isClientEntry: false,
+        isServerOnly: false,
+        imports: [],
+        importedBy: [],
+      };
+      nodes.set(relId, node);
+      return node;
     }
 
     let fileContent = '';

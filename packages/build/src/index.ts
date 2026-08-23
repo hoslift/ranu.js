@@ -85,3 +85,20 @@ export {
   type StaticRouteArtifact,
   type RenderStaticRouteOptions,
 } from './static/static-renderer.js';
+export {
+  transformCssModule,
+  generateScopedClassName,
+  type CssModuleTransformResult,
+} from './assets/css-modules.js';
+export {
+  emitStaticAsset,
+  rewriteCssUrls,
+  isStaticAssetFile,
+  ALL_STATIC_ASSET_EXTENSIONS,
+  type EmittedAssetResult,
+  type RewriteCssUrlsResult,
+} from './assets/asset-emitter.js';
+export {
+  copyPublicDirectory,
+  type CopyPublicDirectoryResult,
+} from './assets/public-dir.js';
