@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { EventEmitter } from 'node:events';
 import { Writable } from 'node:stream';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getMimeType, serveStaticFile } from '../src/static.js';
 
 class MockWritableResponse extends Writable {
@@ -46,6 +47,7 @@ describe('Development Static File Server', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {
@@ -141,5 +143,32 @@ describe('Development Static File Server', () => {
     expect(mockRes.statusCode).toBe(200);
     expect(mockRes.writableEnded).toBe(true);
     expect(mockRes.chunks.length).toBe(0);
+  });
+
+  it('destroys the response when a file stream fails after headers are sent', () => {
+    const filePath = path.join(tempDir, 'broken.txt');
+    fs.writeFileSync(filePath, 'unreadable');
+    const stream = new EventEmitter() as EventEmitter & { pipe(destination: unknown): unknown };
+    stream.pipe = (destination) => destination;
+    vi.spyOn(fs, 'createReadStream').mockReturnValue(
+      stream as unknown as ReturnType<typeof fs.createReadStream>,
+    );
+    const error = new Error('read failed');
+    const res = {
+      headersSent: false,
+      writeHead: vi.fn(),
+      end: vi.fn(),
+      destroy: vi.fn(),
+    };
+    res.writeHead.mockImplementation(() => {
+      res.headersSent = true;
+    });
+
+    expect(serveStaticFile(filePath, tempDir, { method: 'GET' } as any, res as any)).toBe(true);
+    expect(res.headersSent).toBe(true);
+    stream.emit('error', error);
+
+    expect(res.destroy).toHaveBeenCalledWith(error);
+    expect(res.end).not.toHaveBeenCalled();
   });
 });

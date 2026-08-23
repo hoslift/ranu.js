@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { DevReloadChannel } from '../src/channel.js';
 
-function createMockRes(written: string[], options?: { failWrite?: boolean; closeHandlers?: Array<() => void> }) {
+function createMockRes(
+  written: string[],
+  options?: { failWrite?: boolean; closeHandlers?: Array<() => void> },
+) {
   const mockRes: any = {
     writeHead: () => {},
     write: (data: string) => {
@@ -196,5 +199,43 @@ describe('DevReloadChannel SSE Transport', () => {
     expect(written[0]).toBe(': ping\n\n');
 
     channel.close();
+  });
+
+  it('runs the heartbeat timer and prunes clients that reject keep-alive writes', () => {
+    vi.useFakeTimers();
+    const channel = new DevReloadChannel();
+    const written: string[] = [];
+    const options = { failWrite: false };
+
+    try {
+      channel.handleConnection({} as any, createMockRes(written, options), 'dev-build-1');
+      written.length = 0;
+      options.failWrite = true;
+
+      vi.advanceTimersByTime(15_000);
+
+      expect(channel.clientCount).toBe(0);
+    } finally {
+      channel.close();
+      vi.useRealTimers();
+    }
+  });
+
+  it('ignores client end failures while closing the channel', () => {
+    const channel = new DevReloadChannel();
+    const mockRes: any = {
+      writeHead: () => {},
+      write: () => {},
+      flushHeaders: () => {},
+      on: () => {},
+      end: () => {
+        throw new Error('socket already closed');
+      },
+    };
+
+    channel.handleConnection({} as any, mockRes, 'dev-build-1');
+
+    expect(() => channel.close()).not.toThrow();
+    expect(channel.clientCount).toBe(0);
   });
 });
