@@ -26,6 +26,7 @@ import { runValidationStage } from './pipeline/stage-validate.js';
 import { buildModuleGraph } from './graph/module-classifier.js';
 import { validateGraphBoundaries } from './graph/boundary-validator.js';
 import { validateGraphEnvAccess } from './env/env-validator.js';
+import { copyPublicDirectory } from './assets/public-dir.js';
 
 /**
  * Main Ranu.js production build orchestrator.
@@ -266,7 +267,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     const entrySource = generateProductionEntrySource(buildId);
     fs.writeFileSync(path.join(serverOutDir, 'entry.mjs'), entrySource, 'utf8');
 
-    // Stage 11: Client graph compilation & browser bundling
+    // Stage 11: Client graph compilation & browser bundling & CSS extraction
     const clientResult = await runClientGraphStage(ctx, moduleGraph, routeResult.routes);
     diagnostics.push(...clientResult.diagnostics);
     if (diagnostics.some(d => d.severity === 'error')) {
@@ -280,8 +281,22 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       };
     }
 
+    // Stage 12: Copy public directory assets
+    const publicResult = copyPublicDirectory(projectRoot, staticOutDir, routeResult.routes);
+    diagnostics.push(...publicResult.diagnostics);
+    if (diagnostics.some(d => d.severity === 'error')) {
+      cleanupTempArtifacts(tempOutDir);
+      return {
+        success: false,
+        buildId,
+        outDir,
+        diagnostics,
+        duration: Date.now() - startTime,
+      };
+    }
+
     // Stage 15: Static Site Generation (SSG)
-    const staticResult = await runStaticGenerationStage(ctx, routeResult.routes);
+    const staticResult = await runStaticGenerationStage(ctx, routeResult.routes, undefined, clientResult.assets);
     diagnostics.push(...staticResult.diagnostics);
     if (diagnostics.some(d => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);

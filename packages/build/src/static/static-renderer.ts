@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { RanuRequestContext, PageRenderTarget } from '@ranu/runtime';
 import { registerRequestContextStore } from '@ranu/runtime';
-import { ReactRenderer, type ComponentModuleLoader } from '@ranu/react';
+import { ReactRenderer, type ComponentModuleLoader, type RouteClientAssets } from '@ranu/react';
 import type { StaticParamRecord } from '@ranu/core';
 import { deriveStaticOutputPath, writeStaticPage } from './output.js';
 
@@ -22,6 +22,7 @@ export interface RenderStaticRouteOptions {
   readonly buildId: string;
   readonly outputDir: string;
   readonly trailingSlash?: 'never' | 'always' | undefined;
+  readonly clientAssets?: Readonly<Record<string, RouteClientAssets>> | undefined;
 }
 
 /**
@@ -60,6 +61,7 @@ export async function renderStaticRoute(
     buildId,
     outputDir,
     trailingSlash = 'never',
+    clientAssets,
   } = options;
 
   // 1. Construct deterministic build-time Request
@@ -102,6 +104,8 @@ export async function renderStaticRoute(
   const renderer = new ReactRenderer({
     loader,
     mode: 'production',
+    clientAssets,
+    buildId,
   });
 
   const response = await buildContextStore.run(context, async () => {

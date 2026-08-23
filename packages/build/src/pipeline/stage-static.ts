@@ -97,7 +97,8 @@ export function createBuildComponentLoader(
 export async function runStaticGenerationStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
-  customLoader?: ComponentModuleLoader
+  customLoader?: ComponentModuleLoader,
+  clientAssets?: Record<string, any>
 ): Promise<StaticStageResult> {
   const diagnostics: RanuDiagnostic[] = [];
   const loader = customLoader ?? createBuildComponentLoader(ctx, routes);
@@ -204,6 +205,7 @@ export async function runStaticGenerationStage(
         buildId: ctx.buildId,
         outputDir: ctx.tempOutDir,
         trailingSlash,
+        clientAssets,
       });
     }
   }

@@ -22,6 +22,29 @@ export function isTrustedAssetUrl(url: string): boolean {
 }
 
 /**
+ * Injects a stylesheet into document.head if not already present.
+ */
+export function injectStylesheet(href: string): Promise<void> {
+  if (typeof document === 'undefined') {
+    return Promise.resolve();
+  }
+
+  const existing = document.querySelector(`link[rel="stylesheet"][href="${href}"]`);
+  if (existing) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.onload = () => resolve();
+    link.onerror = () => resolve(); // Non-fatal for graceful degradation
+    document.head.appendChild(link);
+  });
+}
+
+/**
  * Validates that a dynamically imported module has a valid export shape.
  */
 export function validateRouteModule(module: unknown, routeId: string): LoadedRouteModule {
@@ -83,6 +106,13 @@ export function createRouteLoader(options: CreateRouteLoaderOptions): RouteLoade
 
       const loadPromise = (async () => {
         try {
+          // Preload route stylesheets if any
+          if (assets.css && Array.isArray(assets.css)) {
+            await Promise.all(
+              assets.css.filter(isTrustedAssetUrl).map(injectStylesheet)
+            );
+          }
+
           const rawModule = await defaultImporter(primaryJs);
           return validateRouteModule(rawModule, routeId);
         } catch (err: unknown) {

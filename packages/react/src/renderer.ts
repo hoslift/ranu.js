@@ -87,6 +87,16 @@ export class ReactRenderer implements RanuRenderer {
       }
 
       // 5. Compose Component Tree
+      let resolvedClientAssets: RouteClientAssets | undefined;
+      const rawRouteAssets = this.options.clientAssets?.[target.routeId];
+      const rawBootstrapAssets = this.options.clientAssets?.['bootstrap'];
+      if (rawRouteAssets || rawBootstrapAssets) {
+        resolvedClientAssets = mergeClientAssets(
+          rawRouteAssets ?? { js: [], css: [] },
+          rawBootstrapAssets ?? { js: [], css: [] }
+        );
+      }
+
       let hydrationPayload: RanuHydrationPayload | undefined;
       if (pageModule.render === 'client') {
         const buildId = this.options.buildId?.trim();
@@ -115,7 +125,7 @@ export class ReactRenderer implements RanuRenderer {
           params: pageProps.params,
           searchParams: pageProps.searchParams,
           publicEnv: Object.freeze({ ...(this.options.publicEnv ?? {}) }),
-          assets: mergeClientAssets(routeAssets, bootstrapAssets),
+          assets: resolvedClientAssets!,
           renderMode: 'client',
         });
       }
@@ -128,6 +138,7 @@ export class ReactRenderer implements RanuRenderer {
         pageProps,
         hydrationPayload,
         renderMode: pageModule?.render,
+        clientAssets: resolvedClientAssets,
       });
 
       // 6. Execute Streaming SSR via React 19 renderToReadableStream

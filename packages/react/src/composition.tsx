@@ -27,6 +27,7 @@ export interface ComposeTreeOptions {
   readonly pageProps: PageProps;
   readonly hydrationPayload?: RanuHydrationPayload | undefined;
   readonly renderMode?: ('server' | 'static' | 'client') | undefined;
+  readonly clientAssets?: RouteClientAssets | undefined;
 }
 
 /**
@@ -67,6 +68,25 @@ export function HydrationBootstrapScript({
 }
 
 /**
+ * Renders stylesheet link tags for client and route CSS assets in the document head.
+ */
+export function HydrationStylesheetLinks({
+  assets,
+}: {
+  readonly assets?: RouteClientAssets | undefined;
+}): React.ReactElement | null {
+  if (!assets || !assets.css || assets.css.length === 0) return null;
+  const uniqueCss = Array.from(new Set(assets.css));
+  return (
+    <>
+      {uniqueCss.map(href => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
+    </>
+  );
+}
+
+/**
  * Composes the React component tree following the authoritative layout hierarchy (04_RENDERING_MODEL.md §12):
  * Root Layout -> Nested Layouts -> Loading / Suspense -> Page.
  */
@@ -75,19 +95,22 @@ export function composeComponentTree(options: ComposeTreeOptions): ReactNode {
 
   const PageComponent = page.default;
   const isClientRender = renderMode === 'client' || page.render === 'client';
+  const effectiveAssets = hydrationPayload?.assets ?? options.clientAssets;
 
   let currentChild: ReactNode = isClientRender ? (
     <>
       <MetadataHeadElements metadata={metadata} />
+      <HydrationStylesheetLinks assets={effectiveAssets} />
       <HydrationDataScript payload={hydrationPayload} />
-      <HydrationBootstrapScript assets={hydrationPayload?.assets} />
+      <HydrationBootstrapScript assets={effectiveAssets} />
       <div id="ranu-client-root" />
     </>
   ) : (
     <>
       <MetadataHeadElements metadata={metadata} />
+      <HydrationStylesheetLinks assets={effectiveAssets} />
       <HydrationDataScript payload={hydrationPayload} />
-      <HydrationBootstrapScript assets={hydrationPayload?.assets} />
+      <HydrationBootstrapScript assets={effectiveAssets} />
       <PageComponent params={pageProps.params} searchParams={pageProps.searchParams} />
     </>
   );
