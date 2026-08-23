@@ -15,4 +15,5 @@ export default defineConfig({
     '@ranu/manifests',
     '@ranu/react',
   ],
+  tsconfig: 'tsconfig.build.json',
 });

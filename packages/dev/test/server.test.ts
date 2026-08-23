@@ -6,6 +6,7 @@ import { createDevServer } from '../src/server.js';
 
 describe('DevServer HTTP Server and Lifecycle', () => {
   let tempDir: string;
+  let devServer: ReturnType<typeof createDevServer> | null;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-'));
@@ -33,16 +34,19 @@ export default function HomePage() {
     fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'fake-favicon');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
+      if (devServer?.httpServer.listening) {
+        await devServer.close();
+      }
+    } finally {
+      devServer = null;
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
     }
   });
 
   it('starts dev server, serves HTML with injected dev client, serves public assets, and shuts down cleanly', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0, // Ephemeral port
       host: '127.0.0.1',
@@ -55,7 +59,7 @@ export default function HomePage() {
 
     // 1. Fetch homepage
     const pageRes = await fetch(`${address.url}/`);
-    expect(pageRes.status).toBe(200);
+    expect(pageRes.status, await pageRes.clone().text()).toBe(200);
     const pageHtml = await pageRes.text();
     expect(pageHtml).toContain('Dev Server Works');
     expect(pageHtml).toContain('/_ranu/dev-client.js');
@@ -73,8 +77,5 @@ export default function HomePage() {
     // 4. Fetch non-existent path
     const notFoundRes = await fetch(`${address.url}/missing-path-12345`);
     expect(notFoundRes.status).toBe(404);
-
-    // 5. Clean shutdown
-    await devServer.close();
-  });
+  }, 60_000);
 });

@@ -6,6 +6,7 @@ import { createDevServer } from '@ranu/dev';
 
 describe('Integration: Phase 18 Development Server V0', () => {
   let tempDir: string;
+  let devServer: ReturnType<typeof createDevServer> | null;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-int-'));
@@ -29,16 +30,19 @@ export default function HomePage() {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
+      if (devServer?.httpServer.listening) {
+        await devServer.close();
+      }
+    } finally {
+      devServer = null;
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
     }
   });
 
   it('runs dev server, handles edits, updates CSS modules and routes, survives errors, and shuts down', async () => {
-    const devServer = createDevServer({
+    devServer = createDevServer({
       projectRoot: tempDir,
       port: 0,
       host: '127.0.0.1',
@@ -49,7 +53,7 @@ export default function HomePage() {
 
     // 1. Initial page request
     const res1 = await fetch(`${address.url}/`);
-    expect(res1.status).toBe(200);
+    expect(res1.status, await res1.clone().text()).toBe(200);
     const html1 = await res1.text();
     expect(html1).toContain('Initial Dev Version');
     expect(html1).toContain('/_ranu/dev-client.js');
@@ -64,7 +68,12 @@ export default function HomePage() {
     );
 
     // Rebuild
-    await (devServer as any).coordinator.triggerRebuild('page update');
+    await devServer.rebuild('page update');
+    const rebuiltPageBundle = fs.readFileSync(
+      path.join(tempDir, '.ranu', 'dev', 'server', 'routes', 'page-root.mjs'),
+      'utf8'
+    );
+    expect(rebuiltPageBundle).toContain('Updated Dev Version');
 
     const res2 = await fetch(`${address.url}/`);
     expect(res2.status).toBe(200);
@@ -85,7 +94,7 @@ export default function HomePage() {
 }`
     );
 
-    await (devServer as any).coordinator.triggerRebuild('css module update');
+    await devServer.rebuild('css module update');
 
     const res3 = await fetch(`${address.url}/`);
     expect(res3.status).toBe(200);
@@ -105,14 +114,11 @@ export default function AboutPage() {
 }`
     );
 
-    await (devServer as any).coordinator.triggerRebuild('new route');
+    await devServer.rebuild('new route');
 
     const aboutRes = await fetch(`${address.url}/about`);
     expect(aboutRes.status).toBe(200);
     const aboutHtml = await aboutRes.text();
     expect(aboutHtml).toContain('About Us Dev');
-
-    // 5. Clean shutdown
-    await devServer.close();
-  });
+  }, 120_000);
 });

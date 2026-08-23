@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { Writable } from 'node:stream';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getMimeType, serveStaticFile } from '../src/static.js';
 
@@ -32,37 +33,43 @@ describe('Development Static File Server', () => {
     expect(getMimeType('audio.mp3')).toBe('audio/mpeg');
   });
 
-  it('serves files inside authorized root directory', () => {
+  it('serves files inside authorized root directory', async () => {
     const filePath = path.join(tempDir, 'favicon.ico');
     fs.writeFileSync(filePath, 'fake-favicon');
 
     let responseCode = 0;
     const headers: Record<string, any> = {};
-    let ended = false;
+    const responseChunks: Buffer[] = [];
 
     const mockReq: any = { method: 'GET' };
-    const mockRes: any = {
-      writeHead(code: number, h: Record<string, any>) {
-        responseCode = code;
-        Object.assign(headers, h);
+    const mockRes: any = new Writable({
+      write(chunk, _encoding, callback) {
+        responseChunks.push(Buffer.from(chunk));
+        callback();
       },
-      end() {
-        ended = true;
-      },
-      on() {},
-      once() {},
-      emit() {},
+    });
+    mockRes.headersSent = false;
+    mockRes.writeHead = (code: number, h: Record<string, any>) => {
+      responseCode = code;
+      Object.assign(headers, h);
+      mockRes.headersSent = true;
+      return mockRes;
     };
+    const finished = new Promise<void>((resolve, reject) => {
+      mockRes.once('finish', resolve);
+      mockRes.once('error', reject);
+    });
 
     const served = serveStaticFile(filePath, tempDir, mockReq, mockRes);
+    await finished;
     expect(served).toBe(true);
     expect(responseCode).toBe(200);
     expect(headers['Content-Type']).toBe('image/x-icon');
+    expect(Buffer.concat(responseChunks).toString()).toBe('fake-favicon');
   });
 
   it('rejects path traversal attempts escaping authorized root', () => {
     const outsidePath = path.join(os.tmpdir(), 'secret.txt');
-    fs.writeFileSync(outsidePath, 'secret');
 
     let responseCode = 0;
     let responseBody = '';

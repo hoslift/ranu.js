@@ -1,5 +1,6 @@
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type { RouteEntryInfo } from '@ranu/build';
+import type { CompiledRouteRecord } from '@ranu/router';
 
 export interface DevServerOptions {
   readonly projectRoot: string;
@@ -40,5 +41,6 @@ export interface DevBuildState {
   readonly diagnostics: readonly RanuDiagnostic[];
   readonly outDir: string;
   readonly routes: readonly RouteEntryInfo[];
+  readonly routeRecords?: readonly CompiledRouteRecord[];
   readonly timestamp: number;
 }

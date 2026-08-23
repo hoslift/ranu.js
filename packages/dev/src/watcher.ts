@@ -85,7 +85,7 @@ export class ProjectWatcher {
   private readonly projectRoot: string;
   private readonly debounceMs: number;
   private readonly onChange: (events: DevFileEvent[]) => void;
-  private readonly onError?: (error: Error) => void;
+  private readonly onError: ((error: Error) => void) | undefined;
   private isClosed = false;
 
   private watchers: fs.FSWatcher[] = [];

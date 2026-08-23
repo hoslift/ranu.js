@@ -26,6 +26,15 @@ export const DEV_CLIENT_SCRIPT = `
       window.location.reload();
     });
 
+    source.addEventListener('build-error', function(e) {
+      try {
+        var payload = JSON.parse(e.data);
+        console.error('[ranu] Development build failed', payload.diagnostics || []);
+      } catch (error) {
+        console.error('[ranu] Development build failed');
+      }
+    });
+
     source.addEventListener('error', function(e) {
       source.close();
       if (!reconnectTimer) {

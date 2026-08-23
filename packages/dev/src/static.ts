@@ -76,10 +76,12 @@ export function serveStaticFile(
   }
 
   const stream = fs.createReadStream(normalizedFile);
-  stream.on('error', () => {
+  stream.on('error', (error) => {
     if (!res.headersSent) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Internal Server Error');
+    } else {
+      res.destroy(error);
     }
   });
   stream.pipe(res);

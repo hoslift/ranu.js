@@ -4,8 +4,7 @@ import type { RanuDiagnostic } from '@ranu/diagnostics';
 import {
   discoverConfig,
   loadConfig,
-  validateUserConfig,
-  loadEnv,
+  resolveConfig,
 } from '@ranu/config';
 import {
   runRouteStage,
@@ -19,6 +18,7 @@ import {
   type RouteEntryInfo,
   type BuildContext,
 } from '@ranu/build';
+import type { CompiledRouteRecord } from '@ranu/router';
 import type { DevBuildState, DevServerOptions } from './types.js';
 
 export interface CoordinatorOptions {
@@ -33,7 +33,7 @@ export class RebuildCoordinator {
   private readonly staticOutDir: string;
   private readonly serverOutDir: string;
   private readonly onBuildComplete: (state: DevBuildState) => void;
-  private readonly onConfigRestart?: (reason: string) => void;
+  private readonly onConfigRestart: ((reason: string) => void) | undefined;
 
   private generation = 0;
   private isBuilding = false;
@@ -76,6 +76,7 @@ export class RebuildCoordinator {
     const buildId = `dev-${this.generation}-${Date.now().toString(36)}`;
     const diagnostics: RanuDiagnostic[] = [];
     let discoveredRoutes: RouteEntryInfo[] = [];
+    let discoveredRecords: CompiledRouteRecord[] = [];
 
     try {
       // 1. Ensure output directories exist
@@ -84,16 +85,17 @@ export class RebuildCoordinator {
       fs.mkdirSync(this.serverOutDir, { recursive: true });
 
       // 2. Discover and load configuration
-      const configPath = discoverConfig(this.projectRoot);
+      const { configPath, diagnostic: configDiagnostic } = discoverConfig(this.projectRoot);
+      if (configDiagnostic) {
+        diagnostics.push(configDiagnostic);
+      }
       const rawUserConfig = configPath ? await loadConfig(configPath) : {};
-      const { config: validatedUserConfig, diagnostics: configDiags } = validateUserConfig(rawUserConfig);
+      const { config: resolvedConfig, diagnostics: configDiags } = resolveConfig(
+        rawUserConfig,
+        this.projectRoot,
+        'development'
+      );
       diagnostics.push(...configDiags);
-
-      const envResult = loadEnv(this.projectRoot, 'development');
-      const resolvedConfig = {
-        ...validatedUserConfig,
-        mode: 'development' as const,
-      };
 
       const manifestOutDir = path.join(this.outDir, 'manifest');
       fs.mkdirSync(manifestOutDir, { recursive: true });
@@ -110,27 +112,38 @@ export class RebuildCoordinator {
           projectRoot: this.projectRoot,
           mode: 'development',
           outDir: this.outDir,
-          clean: false,
           minify: false,
-          sourceMaps: true,
+          sourceMaps: 'inline',
         },
         resolvedConfig,
         buildId,
       };
 
       // 3. Stage 1: Route discovery
-      const routeResult = await runRouteStage(ctx);
+      const routeResult = runRouteStage(ctx);
       diagnostics.push(...routeResult.diagnostics);
       discoveredRoutes = routeResult.routes;
+      discoveredRecords = routeResult.records;
 
       if (!diagnostics.some(d => d.severity === 'error')) {
         // 4. Stage 2: Module graph classification & boundary validation
-        const moduleGraph = await buildModuleGraph(this.projectRoot, routeResult.routes);
-        const boundaryDiags = validateGraphBoundaries(moduleGraph, this.projectRoot);
-        diagnostics.push(...boundaryDiags);
+        const serverRootFiles = routeResult.routes
+          .map(route => route.sourceFile)
+          .filter(file => Boolean(file) && fs.existsSync(file));
+        const rootLayoutCandidates = ['layout.tsx', 'layout.ts', 'layout.jsx', 'layout.js'];
+        for (const candidate of rootLayoutCandidates) {
+          const layoutPath = path.join(this.projectRoot, 'app', candidate);
+          if (fs.existsSync(layoutPath) && !serverRootFiles.includes(layoutPath)) {
+            serverRootFiles.push(layoutPath);
+          }
+        }
 
-        const envDiags = validateGraphEnvAccess(moduleGraph, this.projectRoot, envResult.publicEnv);
-        diagnostics.push(...envDiags);
+        const moduleGraph = buildModuleGraph(serverRootFiles, this.projectRoot);
+        const boundaryResult = validateGraphBoundaries(moduleGraph);
+        diagnostics.push(...boundaryResult.diagnostics);
+
+        const envResultValidation = validateGraphEnvAccess(moduleGraph);
+        diagnostics.push(...envResultValidation.diagnostics);
 
         if (!diagnostics.some(d => d.severity === 'error')) {
           // 5. Stage 3: Server graph compilation
@@ -173,6 +186,7 @@ export class RebuildCoordinator {
       diagnostics,
       outDir: this.outDir,
       routes: discoveredRoutes,
+      routeRecords: discoveredRecords,
       timestamp: Date.now(),
     };
 

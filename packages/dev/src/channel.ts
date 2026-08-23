@@ -97,7 +97,7 @@ export class DevReloadChannel {
   broadcastError(diagnostics: readonly RanuDiagnostic[]): void {
     if (this.isClosed || this.clients.size === 0) return;
     for (const client of this.clients) {
-      this.sendTo(client, 'error', { diagnostics });
+      this.sendTo(client, 'build-error', { diagnostics });
     }
   }
 

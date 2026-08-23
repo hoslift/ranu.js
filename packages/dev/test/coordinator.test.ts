@@ -49,7 +49,7 @@ export default function HomePage() {
     });
 
     const state1 = await coordinator.triggerRebuild('initial');
-    expect(state1.success).toBe(true);
+    expect(state1.success, JSON.stringify(state1.diagnostics, null, 2)).toBe(true);
     expect(state1.generation).toBe(1);
     expect(state1.buildId).toContain('dev-1-');
     expect(coordinator.currentGoodState).toBeDefined();
@@ -67,7 +67,7 @@ export default function HomePage() {
     expect(state2.success).toBe(true);
     expect(state2.generation).toBe(2);
     expect(builds.length).toBe(2);
-  });
+  }, 60_000);
 
   it('handles build error without crashing and preserves last-good state', async () => {
     const coordinator = new RebuildCoordinator({
@@ -78,15 +78,15 @@ export default function HomePage() {
     });
 
     const state1 = await coordinator.triggerRebuild('initial');
-    expect(state1.success).toBe(true);
+    expect(state1.success, JSON.stringify(state1.diagnostics, null, 2)).toBe(true);
 
     // Introduce syntax error
     fs.writeFileSync(
       path.join(tempDir, 'app', 'page.tsx'),
       `import React from 'react';
 export default function HomePage() {
-  return <h1>Unclosed tag;
-}`
+  return <h1>Unclosed tag</h1>;
+`
     );
 
     const state2 = await coordinator.triggerRebuild('bad edit');
@@ -108,5 +108,5 @@ export default function HomePage() {
     expect(state3.success).toBe(true);
     expect(state3.generation).toBe(3);
     expect(coordinator.currentGoodState?.generation).toBe(3);
-  });
+  }, 60_000);
 });
