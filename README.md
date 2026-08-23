@@ -245,7 +245,11 @@ See [`LICENSE`](./LICENSE) for the full license text.
   <strong>Ranu.js</strong><br>
   Rethinking the Full-Stack Web.
 </p>
-
+<p align="center">
+ <a href="https://codecov.io/gh/hoslift/ranu.js" > 
+ <img src="https://codecov.io/gh/hoslift/ranu.js/branch/main/graph/badge.svg?token=XZLQF6Q65N"/> 
+</p>
+   
 <p align="center">
   Open source under the MIT License.<br>
   Created and maintained by <a href="https://github.com/hoslift">Hoslift</a>.
