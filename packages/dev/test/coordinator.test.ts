@@ -17,7 +17,7 @@ describe('RebuildCoordinator Incremental Builds', () => {
       `import React from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><head></head><body>{children}</body></html>;
-}`
+}`,
     );
 
     fs.writeFileSync(
@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       `import React from 'react';
 export default function HomePage() {
   return <h1>Hello Dev</h1>;
-}`
+}`,
     );
   }, 60_000);
 
@@ -60,14 +60,14 @@ export default function HomePage() {
       `import React from 'react';
 export default function HomePage() {
   return <h1>Hello Updated Dev</h1>;
-}`
+}`,
     );
 
     const state2 = await coordinator.triggerRebuild('page update');
     expect(state2.success).toBe(true);
     expect(state2.generation).toBe(2);
     expect(builds.length).toBe(2);
-  });
+  }, 60_000);
 
   it('handles build error without crashing and preserves last-good state', async () => {
     const coordinator = new RebuildCoordinator({
@@ -86,7 +86,7 @@ export default function HomePage() {
       `import React from 'react';
 export default function HomePage() {
   return <h1>Unclosed tag</h1>;
-`
+`,
     );
 
     const state2 = await coordinator.triggerRebuild('bad edit');
@@ -101,7 +101,7 @@ export default function HomePage() {
       `import React from 'react';
 export default function HomePage() {
   return <h1>Repaired</h1>;
-}`
+}`,
     );
 
     const state3 = await coordinator.triggerRebuild('fixed edit');
@@ -165,4 +165,40 @@ export default function HomePage() {
     expect(builds.map((b) => b.generation)).toEqual([2, 3]);
     expect(coordinator.currentState?.generation).toBe(3);
   }, 60_000);
+
+  it('reports ambiguous configuration files as build diagnostics', async () => {
+    fs.writeFileSync(path.join(tempDir, 'ranu.config.js'), 'export default {};');
+    fs.writeFileSync(path.join(tempDir, 'ranu.config.mjs'), 'export default {};');
+    const coordinator = new RebuildCoordinator({
+      options: { projectRoot: tempDir },
+      onBuildComplete: () => {},
+    });
+
+    const state = await coordinator.triggerRebuild('ambiguous config');
+
+    expect(state.success).toBe(false);
+    expect(state.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'RANU_CONFIG_AMBIGUOUS' })]),
+    );
+  });
+
+  it('converts unexpected config loading failures into build diagnostics', async () => {
+    fs.writeFileSync(path.join(tempDir, 'ranu.config.mjs'), 'throw new Error("config exploded");');
+    const coordinator = new RebuildCoordinator({
+      options: { projectRoot: tempDir },
+      onBuildComplete: () => {},
+    });
+
+    const state = await coordinator.triggerRebuild('broken config');
+
+    expect(state.success).toBe(false);
+    expect(state.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'RANU_DEV_BUILD_FAILED',
+          message: expect.stringContaining('config exploded'),
+        }),
+      ]),
+    );
+  });
 });
