@@ -113,11 +113,13 @@ describe('DevReloadChannel SSE Transport', () => {
     const channel = new DevReloadChannel();
     const writtenGood: string[] = [];
     const writtenBad: string[] = [];
+    const badClientOptions = { failWrite: false };
 
-    channel.handleConnection({} as any, createMockRes(writtenBad, { failWrite: true }), 'dev-build-1');
+    channel.handleConnection({} as any, createMockRes(writtenBad, badClientOptions), 'dev-build-1');
     channel.handleConnection({} as any, createMockRes(writtenGood), 'dev-build-1');
     expect(channel.clientCount).toBe(2);
 
+    badClientOptions.failWrite = true;
     writtenGood.length = 0;
 
     expect(() => channel.broadcastReload({ buildId: 'dev-build-2' })).not.toThrow();
