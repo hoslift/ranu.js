@@ -40,7 +40,7 @@ export function serveStaticFile(
   fullPath: string,
   authorizedRoot: string,
   req: http.IncomingMessage,
-  res: http.ServerResponse
+  res: http.ServerResponse,
 ): boolean {
   const normalizedFile = path.resolve(fullPath);
   const normalizedRoot = path.resolve(authorizedRoot);
@@ -77,12 +77,7 @@ export function serveStaticFile(
 
   const stream = fs.createReadStream(normalizedFile);
   stream.on('error', (error) => {
-    if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Internal Server Error');
-    } else {
-      res.destroy(error);
-    }
+    res.destroy(error);
   });
   stream.pipe(res);
   return true;
