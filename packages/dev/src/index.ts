@@ -1,10 +1,14 @@
 /**
  * @ranu/dev
  *
- * Development server orchestration: watcher, HMR, React Fast Refresh, error overlay.
+ * Development server orchestration: watcher, incremental compilation, reload channel, and server lifecycle.
  * Internal package — not public application API.
- *
- * Phase 0 skeleton — full implementation in Phases 18-19.
  */
 
-export {};
+export * from './types.js';
+export * from './watcher.js';
+export * from './channel.js';
+export * from './client.js';
+export * from './static.js';
+export * from './coordinator.js';
+export * from './server.js';
