@@ -122,6 +122,6 @@ export default function HomePage() {
 
     const cssContent = fs.readFileSync(extractedFilePath, 'utf8');
     expect(cssContent).toMatch(/Home_hero__[a-zA-Z0-9_-]{5}/);
-    expect(cssContent).toContain('color:rebeccapurple');
+    expect(cssContent).toContain('font-size:32px');
   });
 });
