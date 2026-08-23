@@ -22,8 +22,10 @@
     "@ranu/build": "workspace:*",
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
+    "@ranu/runtime": "workspace:*",
     "@ranu/runtime-node": "workspace:*",
     "@ranu/router": "workspace:*",
+    "@ranu/manifests": "workspace:*",
     "@ranu/react": "workspace:*"
   },
   "devDependencies": {

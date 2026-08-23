@@ -256,12 +256,18 @@ importers:
       '@ranu/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      '@ranu/manifests':
+        specifier: workspace:*
+        version: link:../manifests
       '@ranu/react':
         specifier: workspace:*
         version: link:../react
       '@ranu/router':
         specifier: workspace:*
         version: link:../router
+      '@ranu/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@ranu/runtime-node':
         specifier: workspace:*
         version: link:../runtime-node
