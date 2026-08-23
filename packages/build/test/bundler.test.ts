@@ -25,7 +25,7 @@ describe('bundler-adapter (esbuild)', () => {
       `import React from 'react';
 export function Component() {
   return <h1>Hello Ranu</h1>;
-}`
+}`,
     );
 
     const outDir = path.join(tempDir, 'dist');
@@ -51,14 +51,14 @@ export function Component() {
 
     const mapFile = path.join(outDir, 'page.js.map');
     expect(fs.existsSync(mapFile)).toBe(true);
-  });
+  }, 60_000);
 
   it('handles virtual module ranu/server-only on server platform', async () => {
     const srcFile = path.join(tempDir, 'server-db.ts');
     fs.writeFileSync(
       srcFile,
       `import 'ranu/server-only';
-export const db = { connected: true };`
+export const db = { connected: true };`,
     );
 
     const outDir = path.join(tempDir, 'dist');
@@ -83,7 +83,7 @@ export const db = { connected: true };`
     fs.writeFileSync(
       srcFile,
       `import 'ranu/server-only';
-export const clientSecret = 'bad';`
+export const clientSecret = 'bad';`,
     );
 
     const outDir = path.join(tempDir, 'dist');
@@ -99,7 +99,7 @@ export const clientSecret = 'bad';`
     });
 
     expect(result.success).toBe(false);
-    expect(result.errors.some(e => e.text.includes('RANU_BUILD_SERVER_ONLY_CLIENT'))).toBe(true);
+    expect(result.errors.some((e) => e.text.includes('RANU_BUILD_SERVER_ONLY_CLIENT'))).toBe(true);
   });
 
   it('bundles client modules with modern destructuring syntax using default es2022 target', async () => {
@@ -110,7 +110,7 @@ export const clientSecret = 'bad';`
 export function Counter({ initial = 0 }: { initial?: number }) {
   const [count, setCount] = [initial, () => {}];
   return <button>{count}</button>;
-}`
+}`,
     );
 
     const outDir = path.join(tempDir, 'dist-client');

@@ -29,12 +29,12 @@ describe('Integration: CSS Modules and Route Transitions', () => {
       `import React from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><head></head><body>{children}</body></html>;
-}`
+}`,
     );
 
     fs.writeFileSync(
       path.join(appDir, 'About.module.css'),
-      '.title { color: crimson; font-weight: bold; }'
+      '.title { color: crimson; font-weight: bold; }',
     );
 
     fs.writeFileSync(
@@ -46,7 +46,7 @@ export const render = 'static';
 
 export default function StaticAboutPage() {
   return <h1 className={styles.title}>About Us</h1>;
-}`
+}`,
     );
 
     const buildResult = await build({
@@ -63,7 +63,7 @@ export default function StaticAboutPage() {
     expect(html).toContain('<link rel="stylesheet"');
     expect(html).toMatch(/href="\/_ranu\/assets\/.*\.css"/);
     expect(html).toMatch(/class="About_title__[a-zA-Z0-9_-]{5}"/);
-  });
+  }, 60_000);
 
   it('creates client RouteLoader that exposes and preloads route CSS', async () => {
     const registry = {

@@ -2,11 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  isStaticAssetFile,
-  emitStaticAsset,
-  rewriteCssUrls,
-} from '../src/assets/asset-emitter.js';
+import { isStaticAssetFile, emitStaticAsset, rewriteCssUrls } from '../src/assets/asset-emitter.js';
 import { copyPublicDirectory } from '../src/assets/public-dir.js';
 
 describe('Static Asset Handling and public/ Directory', () => {
@@ -70,12 +66,18 @@ describe('Static Asset Handling and public/ Directory', () => {
   });
 
   it('prevents path traversal when emitting static assets', () => {
-    const outsidePath = path.join(os.tmpdir(), 'outside-secret.png');
+    const outsideDir = `${tempDir}-secrets`;
+    const outsidePath = path.join(outsideDir, 'outside-secret.png');
+    fs.mkdirSync(outsideDir, { recursive: true });
     fs.writeFileSync(outsidePath, 'secret');
 
-    expect(() => {
-      emitStaticAsset(outsidePath, staticOutDir, tempDir);
-    }).toThrow(/escapes project root/);
+    try {
+      expect(() => {
+        emitStaticAsset(outsidePath, staticOutDir, tempDir);
+      }).toThrow(/escapes project root/);
+    } finally {
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
   });
 
   it('rewrites relative url(...) paths in CSS', () => {
@@ -96,9 +98,28 @@ describe('Static Asset Handling and public/ Directory', () => {
 
     const result = rewriteCssUrls(cssContent, cssPath, staticOutDir, tempDir);
 
-    expect(result.code).toMatch(/background-image:\s*url\((['"])\/_ranu\/assets\/bg-[a-f0-9]{8}\.svg\1\)/);
+    expect(result.code).toMatch(
+      /background-image:\s*url\((['"])\/_ranu\/assets\/bg-[a-f0-9]{8}\.svg\1\)/,
+    );
     expect(result.code).toContain('https://cdn.example.com/external.png');
     expect(result.code).toContain('data:image/png;base64,abc');
+  });
+
+  it('preserves query strings and fragments when rewriting CSS asset URLs', () => {
+    const fontPath = path.join(tempDir, 'font.woff2');
+    const iconPath = path.join(tempDir, 'icon.svg');
+    fs.writeFileSync(fontPath, 'font');
+    fs.writeFileSync(iconPath, '<svg></svg>');
+
+    const result = rewriteCssUrls(
+      `@font-face { src: url('./font.woff2?v=2'); } .icon { mask: url('./icon.svg#glyph'); }`,
+      path.join(tempDir, 'styles.css'),
+      staticOutDir,
+      tempDir,
+    );
+
+    expect(result.code).toMatch(/\/_ranu\/assets\/font-[a-f0-9]{8}\.woff2\?v=2/);
+    expect(result.code).toMatch(/\/_ranu\/assets\/icon-[a-f0-9]{8}\.svg#glyph/);
   });
 
   it('copies public directory files to static output', () => {
@@ -125,7 +146,9 @@ describe('Static Asset Handling and public/ Directory', () => {
     const result = copyPublicDirectory(tempDir, staticOutDir, []);
 
     expect(result.success).toBe(false);
-    expect(result.diagnostics.some(d => d.code === 'RANU_BUILD_PUBLIC_RESERVED_NAMESPACE')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'RANU_BUILD_PUBLIC_RESERVED_NAMESPACE')).toBe(
+      true,
+    );
   });
 
   it('detects collisions between public files and application routes', () => {
@@ -133,13 +156,13 @@ describe('Static Asset Handling and public/ Directory', () => {
     fs.mkdirSync(publicDir, { recursive: true });
     fs.writeFileSync(path.join(publicDir, 'about.html'), 'about page');
 
-    const routes: any[] = [
-      { pathnameTemplate: '/about' },
-    ];
+    const routes: any[] = [{ pathnameTemplate: '/about' }];
 
     const result = copyPublicDirectory(tempDir, staticOutDir, routes);
 
     expect(result.success).toBe(false);
-    expect(result.diagnostics.some(d => d.code === 'RANU_BUILD_PUBLIC_ROUTE_COLLISION')).toBe(true);
+    expect(result.diagnostics.some((d) => d.code === 'RANU_BUILD_PUBLIC_ROUTE_COLLISION')).toBe(
+      true,
+    );
   });
 });

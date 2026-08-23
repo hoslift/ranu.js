@@ -4,6 +4,7 @@ import type { Plugin } from 'esbuild';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { transformCssModule } from '../assets/css-modules.js';
 import {
+  ALL_STATIC_ASSET_EXTENSIONS,
   isStaticAssetFile,
   emitStaticAsset,
   rewriteCssUrls,
@@ -18,7 +19,10 @@ export interface RanuPluginOptions {
   onDiagnostic?: (diagnostic: RanuDiagnostic) => void;
 }
 
-const STATIC_ASSET_FILTER = /\.(png|jpe?g|svg|webp|gif|avif|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|wav|ogg)$/i;
+const STATIC_ASSET_FILTER = new RegExp(
+  `(?:${Array.from(ALL_STATIC_ASSET_EXTENSIONS, (extension) => extension.replace('.', '\\.')).join('|')})$`,
+  'i',
+);
 
 /**
  * esbuild plugin for Ranu.js framework conventions, security boundaries, CSS, and static assets.
@@ -30,7 +34,7 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
     name: 'ranu-framework-plugin',
     setup(build) {
       // 1. Virtual module for ranu/server-only
-      build.onResolve({ filter: /^ranu\/server-only$/ }, args => {
+      build.onResolve({ filter: /^ranu\/server-only$/ }, (args) => {
         if (platform === 'browser') {
           return {
             errors: [
@@ -63,8 +67,18 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
         };
       });
 
+      // Hashed public asset URLs in emitted CSS are runtime URLs, not build-time imports.
+      build.onResolve({ filter: /^\/_ranu\/assets\// }, (args) => ({
+        path: args.path,
+        external: true,
+      }));
+
       // 2. Static Asset Imports (.png, .svg, .woff2, etc.)
-      build.onLoad({ filter: STATIC_ASSET_FILTER }, args => {
+      build.onLoad({ filter: STATIC_ASSET_FILTER }, (args) => {
+        if (!isStaticAssetFile(args.path)) {
+          return null;
+        }
+
         try {
           const emitted = emitStaticAsset(args.path, staticOutDir, projectRoot);
           return {
@@ -91,7 +105,7 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
       });
 
       // 3. CSS Modules (*.module.css)
-      build.onLoad({ filter: /\.module\.css$/ }, args => {
+      build.onLoad({ filter: /\.module\.css$/ }, (args) => {
         try {
           const rawContent = fs.readFileSync(args.path, 'utf8');
           const transformed = transformCssModule(args.path, rawContent, projectRoot);
@@ -106,12 +120,15 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
           }
 
           // Browser graph: Emit transformed scoped CSS file and export class mapping
-          const relPath = path.relative(projectRoot, args.path).replace(/\\/g, '/').replace(/[^a-zA-Z0-9_-]/g, '_');
-          const tempCssDir = path.join(tempOutDir, 'css_modules');
-          if (!fs.existsSync(tempCssDir)) {
-            fs.mkdirSync(tempCssDir, { recursive: true });
+          const tempCssModulesDir = path.join(tempOutDir, 'css_modules');
+          const relPath = path
+            .relative(projectRoot, args.path)
+            .replace(/\\/g, '/')
+            .replace(/[^a-zA-Z0-9_-]/g, '_');
+          if (!fs.existsSync(tempCssModulesDir)) {
+            fs.mkdirSync(tempCssModulesDir, { recursive: true });
           }
-          const tempCssFile = path.join(tempCssDir, `${relPath}.css`);
+          const tempCssFile = path.join(tempCssModulesDir, `${relPath}.css`);
           fs.writeFileSync(tempCssFile, rewritten.code, 'utf8');
 
           const normalizedImport = tempCssFile.replace(/\\/g, '/');
@@ -140,7 +157,7 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
       });
 
       // 4. Global CSS (*.css excluding *.module.css)
-      build.onLoad({ filter: /\.css$/ }, args => {
+      build.onLoad({ filter: /\.css$/ }, (args) => {
         if (args.path.endsWith('.module.css')) {
           return null;
         }
@@ -156,7 +173,13 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
 
           const rawContent = fs.readFileSync(args.path, 'utf8');
           // If it's already a generated scoped temp CSS file, load directly
-          if (args.path.includes('css_modules')) {
+          const tempCssModulesDir = path.join(tempOutDir, 'css_modules');
+          const generatedCssRelativePath = path.relative(tempCssModulesDir, args.path);
+          if (
+            generatedCssRelativePath !== '..' &&
+            !generatedCssRelativePath.startsWith(`..${path.sep}`) &&
+            !path.isAbsolute(generatedCssRelativePath)
+          ) {
             return {
               contents: rawContent,
               loader: 'css',

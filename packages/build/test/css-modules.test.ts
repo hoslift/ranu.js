@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  transformCssModule,
-  generateScopedClassName,
-} from '../src/assets/css-modules.js';
+import { transformCssModule, generateScopedClassName } from '../src/assets/css-modules.js';
 
 describe('CSS Modules Scoping and Transformation', () => {
   const projectRoot = '/test/project';
@@ -57,6 +54,24 @@ describe('CSS Modules Scoping and Transformation', () => {
     expect(result.code).toContain(`.${result.mapping['btn-large']}`);
   });
 
+  it('keeps hyphenated selectors and fractional declaration values intact', () => {
+    const filePath = '/test/project/app/Card.module.css';
+    const content = `
+      .btn { animation: .5s linear; }
+      .btn-large { animation-duration: .75s; }
+    `;
+
+    const result = transformCssModule(filePath, content, projectRoot);
+
+    expect(result.mapping.btn).toBeDefined();
+    expect(result.mapping['btn-large']).toBeDefined();
+    expect(result.mapping['5s']).toBeUndefined();
+    expect(result.mapping['75s']).toBeUndefined();
+    expect(result.code).toContain(`.${result.mapping.btn} { animation: .5s linear; }`);
+    expect(result.code).toContain(`.${result.mapping['btn-large']} { animation-duration: .75s; }`);
+    expect(result.code).not.toContain(`.${result.mapping.btn}-large`);
+  });
+
   it('preserves :global(...) selectors un-scoped', () => {
     const filePath = '/test/project/app/Card.module.css';
     const content = `
@@ -76,6 +91,16 @@ describe('CSS Modules Scoping and Transformation', () => {
 
     expect(result.code).toContain(`.${result.mapping.card} .title`);
     expect(result.code).toContain('.global-btn');
+  });
+
+  it('does not scope a global selector that shares a local class name', () => {
+    const filePath = '/test/project/app/Card.module.css';
+    const content = `.title { color: red; } :global(.title) { color: blue; }`;
+
+    const result = transformCssModule(filePath, content, projectRoot);
+
+    expect(result.code).toContain(`.${result.mapping.title} { color: red; }`);
+    expect(result.code).toContain('.title { color: blue; }');
   });
 
   it('scopes @keyframes and updates animation properties', () => {

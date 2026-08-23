@@ -6,6 +6,10 @@ export interface CssModuleTransformResult {
   readonly mapping: Record<string, string>;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Generates a deterministic scoped class name for a CSS Module.
  * Canonical Phase 17 Contract: [name]_[local]__[hash:base64:5]
@@ -18,10 +22,13 @@ export function generateScopedClassName(
   filePath: string,
   localName: string,
   content: string,
-  projectRoot: string
+  projectRoot: string,
 ): string {
   const relativePath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
-  const baseName = path.basename(filePath).replace(/\.module\.css$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const baseName = path
+    .basename(filePath)
+    .replace(/\.module\.css$/i, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
   const hashInput = `${relativePath}:${localName}:${content}`;
   const hash = crypto.createHash('sha256').update(hashInput).digest('base64url').slice(0, 5);
   return `${baseName}_${localName}__${hash}`;
@@ -38,25 +45,25 @@ export function generateScopedClassName(
 export function transformCssModule(
   filePath: string,
   content: string,
-  projectRoot: string
+  projectRoot: string,
 ): CssModuleTransformResult {
   const mapping: Record<string, string> = {};
   const keyframeMapping: Record<string, string> = {};
 
-  const baseName = path.basename(filePath).replace(/\.module\.css$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const baseName = path
+    .basename(filePath)
+    .replace(/\.module\.css$/i, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
   const relativePath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
 
   // 1. Identify and transform @keyframes
-  let processed = content.replace(
-    /@keyframes\s+([a-zA-Z0-9_-]+)/g,
-    (_match, keyframeName) => {
-      const hashInput = `${relativePath}:keyframes:${keyframeName}:${content}`;
-      const hash = crypto.createHash('sha256').update(hashInput).digest('base64url').slice(0, 5);
-      const scopedKeyframe = `${baseName}_${keyframeName}__${hash}`;
-      keyframeMapping[keyframeName] = scopedKeyframe;
-      return `@keyframes ${scopedKeyframe}`;
-    }
-  );
+  let processed = content.replace(/@keyframes\s+([a-zA-Z0-9_-]+)/g, (_match, keyframeName) => {
+    const hashInput = `${relativePath}:keyframes:${keyframeName}:${content}`;
+    const hash = crypto.createHash('sha256').update(hashInput).digest('base64url').slice(0, 5);
+    const scopedKeyframe = `${baseName}_${keyframeName}__${hash}`;
+    keyframeMapping[keyframeName] = scopedKeyframe;
+    return `@keyframes ${scopedKeyframe}`;
+  });
 
   // 2. Rewrite animation and animation-name properties for scoped keyframes
   for (const [origKeyframe, scopedKeyframe] of Object.entries(keyframeMapping)) {
@@ -64,36 +71,55 @@ export function transformCssModule(
     processed = processed.replace(animRegex, `$1${scopedKeyframe}$2`);
   }
 
-  // 3. Match and transform class selectors
-  const classSelectorRegex = /\.([a-zA-Z0-9_-]+)(?=[^}]*\{)/g;
-  const matches = [...content.matchAll(classSelectorRegex)];
+  // 3. Collect class names only from rule selector preludes, not declaration values.
+  const classSelectorRegex = /\.([_a-zA-Z][a-zA-Z0-9_-]*)/g;
+  for (
+    let braceIndex = content.indexOf('{');
+    braceIndex !== -1;
+    braceIndex = content.indexOf('{', braceIndex + 1)
+  ) {
+    const selectorStart = Math.max(
+      content.lastIndexOf('{', braceIndex - 1),
+      content.lastIndexOf('}', braceIndex - 1),
+      content.lastIndexOf(';', braceIndex - 1),
+    );
+    const selectorText = content
+      .slice(selectorStart + 1, braceIndex)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/:global\s*\(\s*([^)]+)\s*\)/g, '');
 
-  for (const match of matches) {
-    const localClass = match[1];
-    if (!localClass || mapping[localClass]) {
+    if (selectorText.trimStart().startsWith('@')) {
       continue;
     }
 
-    // Check if within :global(...)
-    const matchIndex = match.index ?? 0;
-    const preText = content.slice(Math.max(0, matchIndex - 30), matchIndex);
-    if (/:global\s*\(\s*$/.test(preText)) {
-      continue;
-    }
+    for (const match of selectorText.matchAll(classSelectorRegex)) {
+      const localClass = match[1];
+      if (!localClass || mapping[localClass]) {
+        continue;
+      }
 
-    const scopedName = generateScopedClassName(filePath, localClass, content, projectRoot);
-    mapping[localClass] = scopedName;
+      mapping[localClass] = generateScopedClassName(filePath, localClass, content, projectRoot);
+    }
   }
 
-  // 4. Rewrite class names in CSS rules
+  // 4. Protect :global(...) selectors while rewriting local class names.
+  const globalSelectors: string[] = [];
+  processed = processed.replace(/:global\s*\(\s*([^)]+)\s*\)/g, (_match, selector: string) => {
+    const token = `__RANU_GLOBAL_SELECTOR_${globalSelectors.length}__`;
+    globalSelectors.push(selector.trim());
+    return token;
+  });
+
   for (const [localClass, scopedClass] of Object.entries(mapping)) {
-    // Replace .localClass with .scopedClass, avoiding matching sub-words or inside :global
-    const regex = new RegExp(`\\.${localClass}\\b`, 'g');
+    // Reject identifier continuations, including hyphens such as .btn-large.
+    const regex = new RegExp(`\\.${escapeRegExp(localClass)}(?![\\w-])`, 'g');
     processed = processed.replace(regex, `.${scopedClass}`);
   }
 
-  // 5. Unwrap :global(...) wrappers
-  processed = processed.replace(/:global\s*\(\s*([^)]+)\s*\)/g, '$1');
+  // 5. Restore global selectors without their :global(...) wrappers.
+  processed = processed.replace(/__RANU_GLOBAL_SELECTOR_(\d+)__/g, (match, index: string) => {
+    return globalSelectors[Number(index)] ?? match;
+  });
 
   return {
     code: processed,

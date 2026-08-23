@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isPathContained } from '../output/artifact-writer.js';
 
 export const STATIC_IMAGE_EXTENSIONS = new Set([
   '.png',
@@ -13,18 +14,9 @@ export const STATIC_IMAGE_EXTENSIONS = new Set([
   '.ico',
 ]);
 
-export const STATIC_FONT_EXTENSIONS = new Set([
-  '.woff2',
-  '.woff',
-  '.ttf',
-  '.otf',
-]);
+export const STATIC_FONT_EXTENSIONS = new Set(['.woff2', '.woff', '.ttf', '.otf']);
 
-export const STATIC_MEDIA_EXTENSIONS = new Set([
-  '.mp4',
-  '.webm',
-  '.mp3',
-]);
+export const STATIC_MEDIA_EXTENSIONS = new Set(['.mp4', '.webm', '.mp3']);
 
 export const ALL_STATIC_ASSET_EXTENSIONS = new Set([
   ...STATIC_IMAGE_EXTENSIONS,
@@ -51,13 +43,13 @@ export interface EmittedAssetResult {
 export function emitStaticAsset(
   filePath: string,
   staticOutDir: string,
-  projectRoot: string
+  projectRoot: string,
 ): EmittedAssetResult {
   const normalizedFile = path.resolve(filePath);
   const normalizedRoot = path.resolve(projectRoot);
 
   // Security guard: Ensure file is inside project root
-  if (!normalizedFile.startsWith(normalizedRoot)) {
+  if (!isPathContained(normalizedFile, normalizedRoot)) {
     throw new Error(`Asset path "${filePath}" escapes project root "${projectRoot}".`);
   }
 
@@ -96,7 +88,7 @@ export function rewriteCssUrls(
   cssContent: string,
   cssFilePath: string,
   staticOutDir: string,
-  projectRoot: string
+  projectRoot: string,
 ): RewriteCssUrlsResult {
   const referencedAssets: string[] = [];
   const cssDir = path.dirname(cssFilePath);
@@ -119,14 +111,17 @@ export function rewriteCssUrls(
       return match;
     }
 
-    // 2. Resolve relative path against CSS file directory
-    const resolvedPath = path.resolve(cssDir, trimmed);
+    // 2. Resolve the filesystem path without URL query/fragment suffixes.
+    const suffixMatch = /[?#].*$/.exec(trimmed);
+    const suffix = suffixMatch?.[0] ?? '';
+    const pathOnly = suffix ? trimmed.slice(0, -suffix.length) : trimmed;
+    const resolvedPath = path.resolve(cssDir, pathOnly);
 
     // Guard: Prevent path traversal escaping project root
     const normalizedRoot = path.resolve(projectRoot);
-    if (!resolvedPath.startsWith(normalizedRoot)) {
+    if (!isPathContained(resolvedPath, normalizedRoot)) {
       throw new Error(
-        `Path traversal detected in CSS url("${trimmed}") in file "${cssFilePath}". Traversal outside project root is prohibited.`
+        `Path traversal detected in CSS url("${trimmed}") in file "${cssFilePath}". Traversal outside project root is prohibited.`,
       );
     }
 
@@ -140,7 +135,7 @@ export function rewriteCssUrls(
     referencedAssets.push(emitted.publicUrl);
 
     const safeQuote = quote || '"';
-    return `url(${safeQuote}${emitted.publicUrl}${safeQuote})`;
+    return `url(${safeQuote}${emitted.publicUrl}${suffix}${safeQuote})`;
   });
 
   return {

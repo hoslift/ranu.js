@@ -8,10 +8,7 @@ import { createRanuEsbuildPlugin } from '../bundler/esbuild-plugin-ranu.js';
 import { buildPublicEnvDefines } from '../env/env-validator.js';
 import type { BuildContext } from '../build-config.js';
 import type { ModuleGraph } from '../graph/graph-types.js';
-import {
-  resolveRouteComponentPath,
-  type RouteEntryInfo,
-} from './stage-routes.js';
+import { resolveRouteComponentPath, type RouteEntryInfo } from './stage-routes.js';
 
 export interface ClientGraphResult {
   success: boolean;
@@ -56,10 +53,12 @@ export async function runClientGraphStage(
   if (graph) {
     for (const [id, node] of graph.nodes.entries()) {
       if (id.endsWith('.css') && node.filePath && fs.existsSync(node.filePath)) {
-        const entryKey = 'css-' + id
-          .replace(/^app[/\\]/, '')
-          .replace(/\.[^.]+$/, '')
-          .replace(/[^a-zA-Z0-9_-]/g, '-');
+        const entryKey =
+          'css-' +
+          id
+            .replace(/^app[/\\]/, '')
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9_-]/g, '-');
         entryPoints[entryKey] = node.filePath;
       }
     }
@@ -182,7 +181,11 @@ if (typeof document !== 'undefined') {
         .filter((f) => f.startsWith(`c_${cleanKey}`) && f.endsWith('.js'))
         .map((f) => `/_ranu/assets/${f}`);
       const css = files
-        .filter((f) => (f.startsWith(`c_${cleanKey}`) || f.startsWith(`c_css-${cleanKey}`)) && f.endsWith('.css'))
+        .filter(
+          (f) =>
+            (f.startsWith(`c_${cleanKey}`) || f.startsWith(`c_css-${cleanKey}`)) &&
+            f.endsWith('.css'),
+        )
         .map((f) => `/_ranu/assets/${f}`);
       return { js, css };
     };
@@ -198,10 +201,21 @@ if (typeof document !== 'undefined') {
       const directCss = findMatched(cleanKey).css;
       const cssNodeMatch: string[] = [];
 
-      // Check imports of this source in module graph
+      // Traverse imports so CSS from components used by a route is associated transitively.
       if (graph) {
-        const node = graph.nodes.get(rel);
-        if (node) {
+        const visited = new Set<string>();
+
+        const collectImportedCss = (nodeId: string): void => {
+          if (visited.has(nodeId)) {
+            return;
+          }
+          visited.add(nodeId);
+
+          const node = graph.nodes.get(nodeId);
+          if (!node) {
+            return;
+          }
+
           for (const imp of node.imports) {
             if (imp.resolvedPath && imp.resolvedPath.endsWith('.css')) {
               const impRel = path.relative(ctx.projectRoot, imp.resolvedPath).replace(/\\/g, '/');
@@ -210,9 +224,16 @@ if (typeof document !== 'undefined') {
                 .replace(/\.[^.]+$/, '')
                 .replace(/[^a-zA-Z0-9_-]/g, '-');
               cssNodeMatch.push(...findMatched(impKey).css);
+            } else if (imp.resolvedPath) {
+              const importedNodeId = path
+                .relative(ctx.projectRoot, imp.resolvedPath)
+                .replace(/\\/g, '/');
+              collectImportedCss(importedNodeId);
             }
           }
-        }
+        };
+
+        collectImportedCss(rel);
       }
 
       return [...new Set([...directCss, ...cssNodeMatch])];
@@ -220,7 +241,12 @@ if (typeof document !== 'undefined') {
 
     // Bootstrap assets
     const bootstrapMatched = findMatched('bootstrap');
-    const rootLayoutCandidates = ['app/layout.tsx', 'app/layout.ts', 'app/layout.jsx', 'app/layout.js'];
+    const rootLayoutCandidates = [
+      'app/layout.tsx',
+      'app/layout.ts',
+      'app/layout.jsx',
+      'app/layout.js',
+    ];
     const rootCss: string[] = [];
     for (const cand of rootLayoutCandidates) {
       const full = path.join(ctx.projectRoot, cand);

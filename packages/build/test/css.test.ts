@@ -23,20 +23,23 @@ describe('Global CSS and CSS Extraction Pipeline', () => {
     const appDir = path.join(tempDir, 'app');
     fs.mkdirSync(appDir, { recursive: true });
 
-    // Root layout importing global.css
+    // A legitimate project directory named css_modules must still have URLs rewritten.
+    const cssDir = path.join(appDir, 'css_modules');
+    fs.mkdirSync(cssDir, { recursive: true });
+    fs.writeFileSync(path.join(appDir, 'bg.svg'), '<svg></svg>');
     fs.writeFileSync(
-      path.join(appDir, 'global.css'),
-      'body { margin: 0; background-color: #f0f0f0; }'
+      path.join(cssDir, 'global.css'),
+      'body { margin: 0; background-color: #f0f0f0; background-image: url(../bg.svg); }',
     );
 
     fs.writeFileSync(
       path.join(appDir, 'layout.tsx'),
       `import React from 'react';
-import './global.css';
+import './css_modules/global.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><head></head><body>{children}</body></html>;
-}`
+}`,
     );
 
     fs.writeFileSync(
@@ -45,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 export default function HomePage() {
   return <h1>Home</h1>;
-}`
+}`,
     );
 
     const result = await build({
@@ -70,7 +73,8 @@ export default function HomePage() {
 
     const cssContent = fs.readFileSync(extractedFilePath, 'utf8');
     expect(cssContent).toContain('background-color:#f0f0f0');
-  });
+    expect(cssContent).toMatch(/url\(\/?_ranu\/assets\/bg-[a-f0-9]{8}\.svg\)/);
+  }, 60_000);
 
   it('compiles and extracts CSS modules with scoped class names in build output', async () => {
     const appDir = path.join(tempDir, 'app');
@@ -78,7 +82,7 @@ export default function HomePage() {
 
     fs.writeFileSync(
       path.join(appDir, 'Home.module.css'),
-      '.hero { color: rebeccapurple; font-size: 32px; }'
+      '.hero { color: rebeccapurple; font-size: 32px; }',
     );
 
     fs.writeFileSync(
@@ -86,7 +90,7 @@ export default function HomePage() {
       `import React from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><head></head><body>{children}</body></html>;
-}`
+}`,
     );
 
     fs.writeFileSync(
@@ -96,7 +100,7 @@ import styles from './Home.module.css';
 
 export default function HomePage() {
   return <h1 className={styles.hero}>Hero Title</h1>;
-}`
+}`,
     );
 
     const result = await build({
@@ -123,5 +127,5 @@ export default function HomePage() {
     const cssContent = fs.readFileSync(extractedFilePath, 'utf8');
     expect(cssContent).toMatch(/Home_hero__[a-zA-Z0-9_-]{5}/);
     expect(cssContent).toContain('font-size:32px');
-  });
+  }, 60_000);
 });

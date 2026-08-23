@@ -32,13 +32,16 @@ describe('Stage 11 & Stage 13B: Client Graph & Bootstrap Asset Bundling', () => 
     const compDir = path.join(appDir, 'components');
     fs.mkdirSync(compDir, { recursive: true });
 
+    fs.writeFileSync(path.join(compDir, 'Counter.module.css'), `.button { color: rebeccapurple; }`);
+
     const counterFile = path.join(compDir, 'Counter.tsx');
     fs.writeFileSync(
       counterFile,
       `import React, { useState } from 'react';
+import styles from './Counter.module.css';
 export function Counter() {
   const [c, setC] = useState(0);
-  return <button onClick={() => setC(c + 1)}>{c}</button>;
+  return <button className={styles.button} onClick={() => setC(c + 1)}>{c}</button>;
 }`,
     );
 
@@ -104,6 +107,8 @@ export default function Page() {
     // Verify the client-rendered route asset and route alias are recorded
     expect(result.assets['app/page.tsx']).toBeDefined();
     expect(result.assets['app/page.tsx']?.js[0]).toMatch(/^\/_ranu\/assets\/c_page-/);
+    expect(result.assets['app/page.tsx']?.css.length).toBeGreaterThan(0);
+    expect(result.assets['app/page.tsx']?.css[0]).toMatch(/^\/_ranu\/assets\/.*\.css$/);
     expect(result.assets['page:/']).toEqual(result.assets['app/page.tsx']);
 
     // Verify physical file was emitted into static/assets

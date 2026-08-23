@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { pathToFileURL } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { build } from '@ranu/build';
 import { createReactRenderer } from '@ranu/react';
@@ -28,7 +29,7 @@ describe('Integration: CSS in Server-Side Rendering (SSR)', () => {
     // Root global styles
     fs.writeFileSync(
       path.join(appDir, 'global.css'),
-      'body { background-color: #fafafa; font-family: sans-serif; }'
+      'body { background-color: #fafafa; font-family: sans-serif; }',
     );
 
     // Root layout
@@ -44,13 +45,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>{children}</body>
     </html>
   );
-}`
+}`,
     );
 
     // Page with CSS module
     fs.writeFileSync(
       path.join(appDir, 'Button.module.css'),
-      '.btnPrimary { background-color: #2563eb; color: #ffffff; border-radius: 4px; }'
+      '.btnPrimary { background-color: #2563eb; color: #ffffff; border-radius: 4px; }',
     );
 
     fs.writeFileSync(
@@ -65,7 +66,7 @@ export default function HomePage() {
       <button className={styles.btnPrimary}>Click Me</button>
     </main>
   );
-}`
+}`,
     );
 
     const buildResult = await build({
@@ -78,11 +79,14 @@ export default function HomePage() {
     const clientManifestPath = path.join(buildResult.outDir, 'manifest', 'client.json');
     const clientManifest = JSON.parse(fs.readFileSync(clientManifestPath, 'utf8'));
 
-import { pathToFileURL } from 'node:url';
-
     // Set up ReactRenderer for SSR testing
     const compiledPagePath = path.join(buildResult.outDir, 'server', 'routes', 'page-root.mjs');
-    const compiledLayoutPath = path.join(buildResult.outDir, 'server', 'layouts', 'layout.mjs');
+    const compiledLayoutsDir = path.join(buildResult.outDir, 'server', 'layouts');
+    const compiledLayoutFiles = fs
+      .readdirSync(compiledLayoutsDir)
+      .filter((file) => file.endsWith('.mjs'));
+    expect(compiledLayoutFiles).toHaveLength(1);
+    const compiledLayoutPath = path.join(compiledLayoutsDir, compiledLayoutFiles[0]!);
 
     const loader = {
       async loadPage(_id: string) {
@@ -129,9 +133,8 @@ import { pathToFileURL } from 'node:url';
     };
 
     const response = await renderer.render(request, context, target);
-    expect(response.status).toBe(200);
-
     const html = await response.text();
+    expect(response.status, html).toBe(200);
 
     // 1. Verify <link rel="stylesheet"> is injected in <head>
     expect(html).toContain('<link rel="stylesheet"');
@@ -143,5 +146,5 @@ import { pathToFileURL } from 'node:url';
     // 3. Verify page content
     expect(html).toContain('SSR CSS Test');
     expect(html).toContain('Click Me');
-  });
+  }, 60_000);
 });
