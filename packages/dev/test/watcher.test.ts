@@ -1,12 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  categorizeChangedFile,
-  shouldIgnoreFile,
-  ProjectWatcher,
-} from '../src/watcher.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { categorizeChangedFile, shouldIgnoreFile, ProjectWatcher } from '../src/watcher.js';
 import type { DevFileEvent } from '../src/types.js';
 
 describe('ProjectWatcher Categorization and Filtering', () => {
@@ -94,6 +90,8 @@ describe('ProjectWatcher live file watching', () => {
 
   afterEach(() => {
     watcher?.close();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {
@@ -217,4 +215,89 @@ describe('ProjectWatcher live file watching', () => {
     expect(allEvents.some((e) => e.relativePath.includes('node_modules'))).toBe(false);
     expect(allEvents.some((e) => e.relativePath.endsWith('page.tsx'))).toBe(true);
   }, 8000);
+
+  it('handles absolute paths, watcher errors, and ignored/null events', () => {
+    vi.useFakeTimers();
+    const callbacks: Array<(eventType: string, filename: string | null) => void> = [];
+    const errorHandlers: Array<(error: Error) => void> = [];
+    const fakeWatcher = {
+      on: vi.fn((event: string, handler: (error: Error) => void) => {
+        if (event === 'error') errorHandlers.push(handler);
+        return fakeWatcher;
+      }),
+      close: vi.fn(),
+    };
+    vi.spyOn(fs, 'watch').mockImplementation(((_target, _options, listener) => {
+      callbacks.push(listener as (eventType: string, filename: string | null) => void);
+      return fakeWatcher;
+    }) as typeof fs.watch);
+    const onChange = vi.fn();
+    const onError = vi.fn();
+    const pagePath = path.join(appDir, 'page.tsx');
+    fs.writeFileSync(pagePath, 'v0');
+    watcher = new ProjectWatcher({ projectRoot: tempDir, debounceMs: 10, onChange, onError });
+
+    callbacks[0]('change', null);
+    callbacks[0]('change', path.join(tempDir, '.git', 'HEAD'));
+    callbacks[0]('change', pagePath);
+    errorHandlers[0](new Error('watch failed'));
+    vi.advanceTimersByTime(10);
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({ relativePath: 'app/page.tsx', type: 'change' }),
+    ]);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'watch failed' }));
+
+    watcher.close();
+    errorHandlers[0](new Error('late failure'));
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports synchronous watch failures and suppresses empty flushes', () => {
+    const failure = new Error('watch unavailable');
+    vi.spyOn(fs, 'watch').mockImplementation(() => {
+      throw failure;
+    });
+    const onError = vi.fn();
+
+    watcher = new ProjectWatcher({ projectRoot: tempDir, onChange: () => {}, onError });
+
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(() => (watcher as unknown as { flushEvents(): void }).flushEvents()).not.toThrow();
+  });
+
+  it('reports onChange failures and tolerates watcher close failures with a pending debounce', () => {
+    vi.useFakeTimers();
+    let callback: ((eventType: string, filename: string | null) => void) | undefined;
+    const fakeWatcher = {
+      on: vi.fn(() => fakeWatcher),
+      close: vi.fn(() => {
+        throw new Error('already closed');
+      }),
+    };
+    vi.spyOn(fs, 'watch').mockImplementation(((_target, _options, listener) => {
+      callback = listener as (eventType: string, filename: string | null) => void;
+      return fakeWatcher;
+    }) as typeof fs.watch);
+    const onError = vi.fn();
+    const pagePath = path.join(appDir, 'page.tsx');
+    fs.writeFileSync(pagePath, 'v0');
+    watcher = new ProjectWatcher({
+      projectRoot: tempDir,
+      debounceMs: 10,
+      onChange: () => {
+        throw new Error('consumer failed');
+      },
+      onError,
+    });
+
+    callback?.('change', 'page.tsx');
+    vi.advanceTimersByTime(10);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'consumer failed' }));
+
+    callback?.('change', 'page.tsx');
+    expect(() => watcher?.close()).not.toThrow();
+    vi.advanceTimersByTime(20);
+    expect(fakeWatcher.close).toHaveBeenCalled();
+  });
 });
