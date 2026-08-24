@@ -177,11 +177,10 @@ if (typeof document !== 'undefined') {
     // The development output directory intentionally keeps last-good assets.
     // Build the manifest from this invocation's metafile so stale content-hash
     // siblings from earlier rebuilds cannot be selected for HMR.
-    const currentOutputs = bundleResult.metafile?.outputs
-      ? Object.keys(bundleResult.metafile.outputs).map((output) => path.basename(output))
-      : [];
-    const files =
-      currentOutputs.length > 0 ? [...new Set(currentOutputs)] : fs.readdirSync(staticAssetsDir);
+    const currentOutputs = Object.keys(bundleResult.metafile?.outputs ?? {}).map((output) =>
+      path.basename(output),
+    );
+    const files = [...new Set(currentOutputs)];
 
     const findMatched = (cleanKey: string) => {
       const js = files

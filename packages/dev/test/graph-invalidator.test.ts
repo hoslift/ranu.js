@@ -55,6 +55,40 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
     });
     expect(result.canHotUpdate).toBe(false);
     expect(result.requiresReload).toBe(true);
+
+    const unlinkResult = analyzeHmrUpdates({
+      changedEvents: [{ ...routeAddEvent, type: 'unlink' }],
+      generation: 2,
+    });
+    expect(unlinkResult.requiresReload).toBe(true);
+  });
+
+  it('triggers full reload for public and unsupported file changes', () => {
+    const publicResult = analyzeHmrUpdates({
+      changedEvents: [
+        {
+          type: 'change',
+          relativePath: 'public/logo.svg',
+          fullPath: '/test/public/logo.svg',
+          category: 'public',
+        },
+      ],
+      generation: 1,
+    });
+    const unsupportedResult = analyzeHmrUpdates({
+      changedEvents: [
+        {
+          type: 'change',
+          relativePath: 'README.md',
+          fullPath: '/test/README.md',
+          category: 'other',
+        },
+      ],
+      generation: 1,
+    });
+
+    expect(publicResult.reason).toContain('Public asset changed');
+    expect(unsupportedResult.reason).toContain('Unsupported file change');
   });
 
   it('creates CSS HMR update for CSS and CSS module edits', () => {
@@ -161,5 +195,56 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
     expect(result.canHotUpdate).toBe(false);
     expect(result.requiresReload).toBe(true);
     expect(result.updates).toEqual([]);
+  });
+
+  it('falls back when CSS asset resolution is missing or ambiguous', () => {
+    const cssEvent: DevFileEvent = {
+      type: 'change',
+      relativePath: 'app/theme.css',
+      fullPath: '/test/app/theme.css',
+      category: 'css',
+    };
+    const missing = analyzeHmrUpdates({
+      changedEvents: [cssEvent],
+      generation: 5,
+    });
+    const ambiguous = analyzeHmrUpdates({
+      changedEvents: [cssEvent],
+      generation: 5,
+      clientManifest: {
+        schemaVersion: 1,
+        buildId: 'test',
+        assets: {
+          first: { js: [], css: ['/_ranu/assets/c_css-theme-AAAA.css'] },
+          second: { js: [], css: ['/_ranu/assets/c_css-theme-BBBB.css'] },
+        },
+      },
+    });
+
+    expect(missing.requiresReload).toBe(true);
+    expect(ambiguous.requiresReload).toBe(true);
+  });
+
+  it.each(['jsx', 'ts', 'js'])('recognizes .%s JavaScript-family updates', (extension) => {
+    const relativePath = `app/Widget.${extension}`;
+    const asset = `/_ranu/assets/c_Widget-${extension}.js`;
+    const result = analyzeHmrUpdates({
+      changedEvents: [
+        {
+          type: 'change',
+          relativePath,
+          fullPath: `/test/${relativePath}`,
+          category: 'other',
+        },
+      ],
+      generation: 6,
+      clientManifest: {
+        schemaVersion: 1,
+        buildId: 'test',
+        assets: { [relativePath]: { js: [asset], css: [] } },
+      },
+    });
+
+    expect(result.updates[0]?.url).toBe(`${asset}?v=6`);
   });
 });
