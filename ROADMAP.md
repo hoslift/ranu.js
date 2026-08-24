@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 17–19 — CSS/Assets and Dev Server (Next)
+> **Current Phase:** Phase 20–23 — Middleware, Plugins, CLI (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -111,9 +111,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 17–19 — CSS/Assets and Dev Server ⏳
-
-**Next phase (Upcoming)**
+## Phase 17–19 — CSS/Assets and Dev Server ✅
 
 * CSS, CSS Modules
 * HMR and React Fast Refresh
@@ -121,6 +119,8 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 ---
 
 ## Phase 20–23 — Middleware, Plugins, CLI ⏳
+
+**Next phase (Upcoming)**
 
 * Middleware
 * Plugin API v1
@@ -160,8 +160,8 @@ Phase 8      Server Helpers              ✅ Completed
 Phase 9–10   React Renderer              ✅ Completed
 Phase 11–12  Build System                ✅ Completed
 Phase 13–16  Client                      ✅ Completed
-Phase 17–19  CSS / Assets / Dev Server   ⏳ Next / Upcoming
-Phase 20–23  Middleware / Plugins / CLI  ⏳ Planned
+Phase 17–19  CSS / Assets / Dev Server   ✅ Completed
+Phase 20–23  Middleware / Plugins / CLI  ⏳ Next / Upcoming
 Phase 24–26  Deployment                  ⏳ Planned
 Phase 27–32  Quality / Security / Docs   ⏳ Planned
 ```
@@ -189,4 +189,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 17–19 — CSS/Assets and Dev Server**
+**Next development focus: Phase 20–23 — Middleware, Plugins, CLI**
