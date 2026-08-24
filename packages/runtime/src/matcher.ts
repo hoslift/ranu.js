@@ -24,7 +24,9 @@ export function compileMatcherPattern(pattern: string): RegExp {
     if (!p.endsWith('$')) p = p + '$';
     try {
       return new RegExp(p);
-    } catch {}
+    } catch {
+      void 0;
+    }
   }
   let regexStr = pattern
     .replace(/\/?:([a-zA-Z0-9_]+)\*/g, '__OPTIONAL_CATCH_ALL__')
