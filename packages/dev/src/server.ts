@@ -17,6 +17,7 @@ import {
   type ErrorModule,
   type NotFoundModule,
 } from '@ranu/react';
+import { PluginManager } from '@ranu/plugin';
 import type { DevServerOptions, DevServerAddress, DevBuildState } from './types.js';
 import { ProjectWatcher } from './watcher.js';
 import { RebuildCoordinator } from './coordinator.js';
@@ -51,6 +52,7 @@ export class DevServer {
   private watcher: ProjectWatcher | null = null;
   readonly coordinator: RebuildCoordinator;
   readonly reloadChannel: DevReloadChannel;
+  readonly pluginManager: PluginManager;
   private runtime: RanuServerRuntime | null = null;
   private readonly connections = new Set<Socket>();
   private readonly versionedModuleCopies = new Set<string>();
@@ -65,6 +67,11 @@ export class DevServer {
     this.serverOutDir = path.join(this.outDir, 'server');
 
     this.reloadChannel = new DevReloadChannel();
+    this.pluginManager = new PluginManager(options.plugins ?? [], {
+      mode: 'development',
+      command: 'dev',
+      projectRoot: this.projectRoot,
+    });
     this.coordinator = new RebuildCoordinator({
       options,
       onBuildComplete: (state) => this.handleBuildComplete(state),
@@ -415,7 +422,7 @@ export class DevServer {
     const targetPort = port ?? this.options.port ?? 3000;
     const targetHost = host ?? this.options.host ?? 'localhost';
 
-    return new Promise<DevServerAddress>((resolve, reject) => {
+    const address = await new Promise<DevServerAddress>((resolve, reject) => {
       const onError = (err: Error) => {
         this.httpServer.off('listening', onListening);
         if (this.watcher) {
@@ -450,6 +457,19 @@ export class DevServer {
 
       this.httpServer.listen(targetPort, targetHost);
     });
+
+    // Plugin Hook: devStart
+    await this.pluginManager.runDevStart({
+      pluginName: '',
+      mode: 'development',
+      command: 'dev',
+      projectRoot: this.projectRoot,
+      logger: (this.pluginManager as any).setupContext.logger,
+      port: address.port,
+      host: address.host,
+    });
+
+    return address;
   }
 
   /** Triggers an explicit development rebuild. */
@@ -463,6 +483,19 @@ export class DevServer {
   async close(): Promise<void> {
     if (this.isShuttingDown) return;
     this.isShuttingDown = true;
+
+    // Plugin Hook: devEnd
+    try {
+      await this.pluginManager.runDevEnd({
+        pluginName: '',
+        mode: 'development',
+        command: 'dev',
+        projectRoot: this.projectRoot,
+        logger: (this.pluginManager as any).setupContext.logger,
+      });
+    } catch {
+      // Tolerate error during shutdown
+    }
 
     if (this.watcher) {
       this.watcher.close();

@@ -15,6 +15,7 @@
     { "path": "../runtime-node" },
     { "path": "../router" },
     { "path": "../manifests" },
+    { "path": "../plugin" },
     { "path": "../react" }
   ],
   "include": ["src/**/*"],

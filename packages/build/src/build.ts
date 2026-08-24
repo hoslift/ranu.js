@@ -8,6 +8,11 @@ import {
   loadEnv,
   type ResolvedRanuConfig,
 } from '@ranu/config';
+import {
+  PluginManager,
+  type PluginBuildExtensionApi,
+  type PluginRouteInfo,
+} from '@ranu/plugin';
 import { generateBuildId } from './build-id.js';
 import type { BuildConfig, BuildContext } from './build-config.js';
 import type { BuildResult } from './build-result.js';
@@ -111,9 +116,10 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     };
   }
 
+  let userConfig: any = {};
   if (configDiscovery.configPath) {
     try {
-      const userConfig = await loadConfig(configDiscovery.configPath);
+      userConfig = await loadConfig(configDiscovery.configPath);
       const val = validateUserConfig(userConfig);
       diagnostics.push(...val.diagnostics);
       if (!val.success) {
@@ -125,22 +131,6 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
           duration: Date.now() - startTime,
         };
       }
-      // Merge user config
-      resolvedConfig = {
-        ...resolvedConfig,
-        build: {
-          ...resolvedConfig.build,
-          ...(userConfig?.build ?? {}),
-        },
-        rendering: {
-          ...resolvedConfig.rendering,
-          ...(userConfig?.rendering ?? {}),
-        },
-        server: {
-          ...resolvedConfig.server,
-          ...(userConfig?.server ?? {}),
-        },
-      };
     } catch (err: any) {
       diagnostics.push({
         code: err.code ?? 'RANU_CONFIG_LOAD_FAILED',
@@ -156,6 +146,49 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       };
     }
   }
+
+  // Initialize plugins
+  let pluginManager: PluginManager;
+  try {
+    pluginManager = new PluginManager(userConfig?.plugins ?? [], {
+      mode: resolvedConfig.mode,
+      command: 'build',
+      projectRoot,
+    });
+    userConfig = await pluginManager.runConfig(userConfig);
+    await pluginManager.runConfigResolved(resolvedConfig);
+  } catch (err: any) {
+    diagnostics.push({
+      code: 'RANU_PLUGIN_INVALID',
+      severity: 'error',
+      message: err.message ?? String(err),
+    });
+    return {
+      success: false,
+      buildId: '',
+      outDir,
+      diagnostics,
+      duration: Date.now() - startTime,
+    };
+  }
+
+  // Merge user config into resolvedConfig
+  resolvedConfig = {
+    ...resolvedConfig,
+    plugins: userConfig?.plugins ?? [],
+    build: {
+      ...resolvedConfig.build,
+      ...(userConfig?.build ?? {}),
+    },
+    rendering: {
+      ...resolvedConfig.rendering,
+      ...(userConfig?.rendering ?? {}),
+    },
+    server: {
+      ...resolvedConfig.server,
+      ...(userConfig?.server ?? {}),
+    },
+  };
 
   // 4. Load environment variables (.env, .env.production)
   try {
@@ -191,6 +224,17 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
   };
 
   try {
+    // Plugin Hook: buildStart
+    await pluginManager.runBuildStart({
+      pluginName: '',
+      mode: resolvedConfig.mode,
+      command: 'build',
+      projectRoot,
+      logger: (pluginManager as any).setupContext.logger,
+      buildId,
+      routes: [],
+    });
+
     // Stage 5-6: Discover & analyze routes
     const routeResult = await runRouteStage(ctx);
     diagnostics.push(...routeResult.diagnostics);
@@ -204,6 +248,36 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         duration: Date.now() - startTime,
       };
     }
+
+    // Plugin Hooks: routes, route, extendBuild
+    const pluginRoutes: PluginRouteInfo[] = routeResult.routes.map((r) => ({
+      routeId: r.routeId,
+      kind: r.kind,
+      pathnameTemplate: r.pathnamePattern,
+      params: r.params,
+      renderMode: r.renderMode,
+      methods: r.methods,
+    }));
+    await pluginManager.runRoutes(pluginRoutes);
+    for (const pr of pluginRoutes) {
+      await pluginManager.runRoute(pr);
+    }
+
+    const buildExtApi: PluginBuildExtensionApi = {
+      platform: 'node',
+      projectRoot,
+      addAlias(_find, _replacement) {},
+      addDefine(_definitions) {},
+    };
+    await pluginManager.runExtendBuild(buildExtApi, {
+      pluginName: '',
+      mode: resolvedConfig.mode,
+      command: 'build',
+      projectRoot,
+      logger: (pluginManager as any).setupContext.logger,
+      buildId,
+      routes: pluginRoutes,
+    });
 
     // Stage 7: Build & Classify Module Graph
     const serverRootFiles = routeResult.routes
@@ -348,13 +422,34 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Promote temp directory to final destination
     promoteBuildArtifacts(tempOutDir, outDir);
 
-    return {
+    const result: BuildResult = {
       success: true,
       buildId,
       outDir,
       diagnostics,
       duration: Date.now() - startTime,
     };
+
+    // Plugin Hook: buildEnd
+    await pluginManager.runBuildEnd(
+      {
+        success: true,
+        buildId,
+        durationMs: result.duration,
+        diagnostics,
+      },
+      {
+        pluginName: '',
+        mode: resolvedConfig.mode,
+        command: 'build',
+        projectRoot,
+        logger: (pluginManager as any).setupContext.logger,
+        buildId,
+        routes: pluginRoutes,
+      }
+    );
+
+    return result;
   } catch (err: any) {
     cleanupTempArtifacts(tempOutDir);
     diagnostics.push({

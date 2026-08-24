@@ -10,6 +10,7 @@ export interface DevServerOptions {
   readonly watch?: boolean | undefined;
   readonly debounceMs?: number | undefined;
   readonly publicEnv?: Record<string, string> | undefined;
+  readonly plugins?: readonly any[] | undefined;
 }
 
 export interface DevServerAddress {
