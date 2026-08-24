@@ -6,10 +6,7 @@ import type { Socket } from 'node:net';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ClientManifest } from '@ranu/manifests';
 import type { ApiDispatchTarget } from '@ranu/runtime';
-import {
-  RanuServerRuntime,
-  type RanuRequestContext,
-} from '@ranu/runtime';
+import { RanuServerRuntime, type RanuRequestContext } from '@ranu/runtime';
 import { toWebRequest, writeWebResponse } from '@ranu/runtime-node';
 import {
   ReactRenderer,
@@ -52,12 +49,13 @@ export class DevServer {
   private readonly serverOutDir: string;
 
   private watcher: ProjectWatcher | null = null;
-  private readonly coordinator: RebuildCoordinator;
-  private readonly reloadChannel: DevReloadChannel;
+  readonly coordinator: RebuildCoordinator;
+  readonly reloadChannel: DevReloadChannel;
   private runtime: RanuServerRuntime | null = null;
   private readonly connections = new Set<Socket>();
   private readonly versionedModuleCopies = new Set<string>();
   private isShuttingDown = false;
+  private previousBuildSuccess = true;
 
   constructor(options: DevServerOptions) {
     this.options = options;
@@ -90,14 +88,11 @@ export class DevServer {
     });
   }
 
-  private importCompiledModule<T>(
-    fullPath: string,
-    generation: number
-  ): Promise<T> {
+  private importCompiledModule<T>(fullPath: string, generation: number): Promise<T> {
     const parsed = path.parse(fullPath);
     const versionedPath = path.join(
       parsed.dir,
-      `${parsed.name}.ranu-dev-${process.pid}-${generation}${parsed.ext}`
+      `${parsed.name}.ranu-dev-${process.pid}-${generation}${parsed.ext}`,
     );
     if (!fs.existsSync(versionedPath)) {
       fs.copyFileSync(fullPath, versionedPath);
@@ -107,18 +102,51 @@ export class DevServer {
   }
 
   private handleBuildComplete(state: DevBuildState): void {
-    if (state.success) {
-      try {
-        this.reloadRuntime(state);
-        this.reloadChannel.broadcastReload({
-          buildId: state.buildId,
-          reason: 'rebuild',
-        });
-      } catch {
-        // Keep previous runtime on runtime reload failure
-      }
-    } else {
+    if (!state.success) {
+      this.previousBuildSuccess = false;
       this.reloadChannel.broadcastError(state.diagnostics);
+      return;
+    }
+
+    try {
+      this.reloadRuntime(state);
+    } catch (error: unknown) {
+      this.previousBuildSuccess = false;
+      this.reloadChannel.broadcastError([
+        {
+          code: 'RANU_DEV_RUNTIME_RELOAD_FAILED',
+          severity: 'error',
+          message: `Failed to activate rebuilt runtime: ${(error as Error).message ?? String(error)}`,
+        },
+      ]);
+      return;
+    }
+
+    if (!this.previousBuildSuccess) {
+      this.reloadChannel.broadcastRecovered({
+        buildId: state.buildId,
+        generation: state.generation,
+      });
+    }
+    this.previousBuildSuccess = true;
+
+    if (
+      state.hmrAnalysis?.canHotUpdate &&
+      !state.hmrAnalysis.requiresReload &&
+      state.hmrAnalysis.updates.length > 0
+    ) {
+      this.reloadChannel.broadcastUpdate({
+        buildId: state.buildId,
+        generation: state.generation,
+        updates: state.hmrAnalysis.updates,
+        affectedRoutes: state.hmrAnalysis.affectedRoutes,
+      });
+    } else {
+      this.reloadChannel.broadcastReload({
+        buildId: state.buildId,
+        generation: state.generation,
+        reason: state.hmrAnalysis?.reason ?? 'rebuild',
+      });
     }
   }
 
@@ -136,22 +164,27 @@ export class DevServer {
 
     const loader: ComponentModuleLoader = {
       loadPage: async (routeId: string) => {
-        const route = state.routes.find(r => r.routeId === routeId);
+        const route = state.routes.find((r) => r.routeId === routeId);
         if (!route?.sourceFile) {
           throw new Error(`Page source for route "${routeId}" not found.`);
         }
         const compiledRel = route.outputRelativePath.replace(/^server[/\\]/, '');
         const fullPath = path.join(this.serverOutDir, compiledRel);
-        // Use query string to invalidate Node ESM module cache on each generation
         return this.importCompiledModule<PageModule>(fullPath, state.generation);
       },
       loadLayout: async (layoutPath: string) => {
-        const compiledRel = path.join('layouts', `${getCompiledComponentEntryName(layoutPath)}.mjs`);
+        const compiledRel = path.join(
+          'layouts',
+          `${getCompiledComponentEntryName(layoutPath)}.mjs`,
+        );
         const fullPath = path.join(this.serverOutDir, compiledRel);
         return this.importCompiledModule<LayoutModule>(fullPath, state.generation);
       },
       loadLoading: async (loadingPath: string) => {
-        const compiledRel = path.join('layouts', `${getCompiledComponentEntryName(loadingPath)}.mjs`);
+        const compiledRel = path.join(
+          'layouts',
+          `${getCompiledComponentEntryName(loadingPath)}.mjs`,
+        );
         const fullPath = path.join(this.serverOutDir, compiledRel);
         if (!fs.existsSync(fullPath)) return undefined;
         return this.importCompiledModule<LoadingModule>(fullPath, state.generation);
@@ -163,7 +196,10 @@ export class DevServer {
         return this.importCompiledModule<ErrorModule>(fullPath, state.generation);
       },
       loadNotFound: async (notFoundPath: string) => {
-        const compiledRel = path.join('not-found', `${getCompiledComponentEntryName(notFoundPath)}.mjs`);
+        const compiledRel = path.join(
+          'not-found',
+          `${getCompiledComponentEntryName(notFoundPath)}.mjs`,
+        );
         const fullPath = path.join(this.serverOutDir, compiledRel);
         if (!fs.existsSync(fullPath)) return undefined;
         return this.importCompiledModule<NotFoundModule>(fullPath, state.generation);
@@ -180,7 +216,7 @@ export class DevServer {
 
     const apiDispatcher = {
       dispatch: async (_req: Request, _ctx: RanuRequestContext, target: ApiDispatchTarget) => {
-        const route = state.routes.find(r => r.routeId === target.routeId);
+        const route = state.routes.find((r) => r.routeId === target.routeId);
         if (!route?.sourceFile) {
           return new Response('Not Found', { status: 404 });
         }
@@ -188,7 +224,7 @@ export class DevServer {
         const fullPath = path.join(this.serverOutDir, compiledRel);
         const mod = await this.importCompiledModule<Record<string, unknown>>(
           fullPath,
-          state.generation
+          state.generation,
         );
 
         const method = _req.method.toUpperCase();
@@ -201,8 +237,11 @@ export class DevServer {
     };
 
     const staticDispatcher = {
-      dispatch: (_req: Request, _ctx: RanuRequestContext, _target: { routeId: string; pathname: string }) =>
-        Promise.resolve(new Response('Not Found', { status: 404 })),
+      dispatch: (
+        _req: Request,
+        _ctx: RanuRequestContext,
+        _target: { routeId: string; pathname: string },
+      ) => Promise.resolve(new Response('Not Found', { status: 404 })),
     };
 
     const replacementRuntime = new RanuServerRuntime({
@@ -221,7 +260,7 @@ export class DevServer {
 
   private async handleHttpRequest(
     req: http.IncomingMessage,
-    res: http.ServerResponse
+    res: http.ServerResponse,
   ): Promise<void> {
     const rawUrl = req.url ?? '/';
     const parsedUrl = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
@@ -230,7 +269,8 @@ export class DevServer {
     // 1. Browser Reload Channel (SSE)
     if (pathname === '/_ranu/dev-reload' || pathname === '/_ranu/hmr') {
       const buildId = this.coordinator.currentState?.buildId ?? 'dev-init';
-      this.reloadChannel.handleConnection(req, res, buildId);
+      const generation = this.coordinator.currentState?.generation ?? 0;
+      this.reloadChannel.handleConnection(req, res, buildId, generation);
       return;
     }
 
@@ -248,12 +288,7 @@ export class DevServer {
     if (pathname.startsWith('/_ranu/assets/')) {
       const relPath = pathname.slice('/_ranu/assets/'.length);
       const targetFile = path.join(this.staticOutDir, 'assets', relPath);
-      const served = serveStaticFile(
-        targetFile,
-        path.join(this.staticOutDir, 'assets'),
-        req,
-        res
-      );
+      const served = serveStaticFile(targetFile, path.join(this.staticOutDir, 'assets'), req, res);
       if (served) return;
     }
 
@@ -286,7 +321,7 @@ export class DevServer {
 </head>
 <body>
   <h1>Development Build Error</h1>
-  ${currentState.diagnostics.map(d => `<div class="diag"><strong>[${d.code}]</strong> ${d.message}</div>`).join('')}
+  ${currentState.diagnostics.map((d) => `<div class="diag"><strong>[${d.code}]</strong> ${d.message}</div>`).join('')}
   <script src="/_ranu/dev-client.js"></script>
 </body>
 </html>`;
@@ -358,7 +393,7 @@ export class DevServer {
   async start(port?: number, host?: string): Promise<DevServerAddress> {
     // 1. Execute initial dev build
     const initialState = await this.coordinator.triggerRebuild('initial');
-    if (initialState.success) {
+    if (initialState.success && !this.runtime) {
       this.reloadRuntime(initialState);
     }
 
@@ -368,7 +403,10 @@ export class DevServer {
         projectRoot: this.projectRoot,
         debounceMs: this.options.debounceMs,
         onChange: (events) => {
-          void this.coordinator.triggerRebuild(events.map(e => e.relativePath).join(', '));
+          void this.coordinator.triggerRebuild(
+            events.map((e) => e.relativePath).join(', '),
+            events,
+          );
         },
       });
     }
@@ -414,9 +452,7 @@ export class DevServer {
     });
   }
 
-  /**
-   * Triggers an explicit development rebuild.
-   */
+  /** Triggers an explicit development rebuild. */
   rebuild(reason: string): Promise<DevBuildState> {
     return this.coordinator.triggerRebuild(reason);
   }
@@ -467,7 +503,9 @@ export function createDevServer(options: DevServerOptions): DevServer {
   return new DevServer(options);
 }
 
-export async function startDevServer(options: DevServerOptions): Promise<{ server: DevServer; address: DevServerAddress }> {
+export async function startDevServer(
+  options: DevServerOptions,
+): Promise<{ server: DevServer; address: DevServerAddress }> {
   const server = createDevServer(options);
   const address = await server.start(options.port, options.host);
   return { server, address };

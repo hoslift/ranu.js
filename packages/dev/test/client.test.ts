@@ -13,7 +13,7 @@ describe('DEV_CLIENT_SCRIPT browser injection payload', () => {
   });
 
   it('connects to the canonical dev-reload SSE endpoint', () => {
-    expect(DEV_CLIENT_SCRIPT).toContain("/_ranu/dev-reload");
+    expect(DEV_CLIENT_SCRIPT).toContain('/_ranu/dev-reload');
     expect(DEV_CLIENT_SCRIPT).toContain('new EventSource(reloadEndpoint)');
   });
 
@@ -26,6 +26,11 @@ describe('DEV_CLIENT_SCRIPT browser injection payload', () => {
 
   it('triggers a full page reload when a reload event is received', () => {
     expect(DEV_CLIENT_SCRIPT).toContain('window.location.reload()');
+  });
+
+  it('recognizes memo and forwardRef component markers in browser boundaries', () => {
+    expect(DEV_CLIENT_SCRIPT).toContain("description.indexOf('react.memo')");
+    expect(DEV_CLIENT_SCRIPT).toContain("description.indexOf('react.forward_ref')");
   });
 
   it('schedules a reconnect attempt on connection error', () => {

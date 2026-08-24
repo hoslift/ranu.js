@@ -45,7 +45,7 @@ describe('DevReloadChannel SSE Transport', () => {
     expect(written[0]).toContain('event: connected');
     expect(written[0]).toContain('dev-build-1');
 
-    channel.broadcastReload({ buildId: 'dev-build-2', reason: 'rebuild' });
+    channel.broadcastReload({ buildId: 'dev-build-2', generation: 2, reason: 'rebuild' });
     expect(written.length).toBe(2);
     expect(written[1]).toContain('event: reload');
     expect(written[1]).toContain('dev-build-2');
@@ -86,7 +86,7 @@ describe('DevReloadChannel SSE Transport', () => {
     writtenA.length = 0;
     writtenB.length = 0;
 
-    channel.broadcastReload({ buildId: 'dev-build-2' });
+    channel.broadcastReload({ buildId: 'dev-build-2', generation: 2, reason: 'rebuild' });
 
     expect(writtenA.length).toBe(1);
     expect(writtenB.length).toBe(1);
@@ -125,7 +125,9 @@ describe('DevReloadChannel SSE Transport', () => {
     badClientOptions.failWrite = true;
     writtenGood.length = 0;
 
-    expect(() => channel.broadcastReload({ buildId: 'dev-build-2' })).not.toThrow();
+    expect(() =>
+      channel.broadcastReload({ buildId: 'dev-build-2', generation: 2, reason: 'rebuild' }),
+    ).not.toThrow();
 
     // The failing client is pruned; the healthy client still gets the event.
     expect(channel.clientCount).toBe(1);
@@ -157,7 +159,9 @@ describe('DevReloadChannel SSE Transport', () => {
 
   it('is a no-op to broadcast when there are no connected clients', () => {
     const channel = new DevReloadChannel();
-    expect(() => channel.broadcastReload({ buildId: 'x' })).not.toThrow();
+    expect(() =>
+      channel.broadcastReload({ buildId: 'x', generation: 1, reason: 'test' }),
+    ).not.toThrow();
     expect(() => channel.broadcastError([])).not.toThrow();
     channel.close();
   });
