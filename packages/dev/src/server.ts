@@ -4,22 +4,15 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import type { Socket } from 'node:net';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { ClientManifest } from '@ranu/manifests';
-import type { ApiDispatchTarget } from '@ranu/runtime';
+import type { RouteManifest, ClientManifest } from '@ranu/manifests';
+import type { PageRenderTarget, ApiDispatchTarget } from '@ranu/runtime';
 import {
   RanuServerRuntime,
+  registerRequestContextStore,
   type RanuRequestContext,
 } from '@ranu/runtime';
-import { toWebRequest, writeWebResponse } from '@ranu/runtime-node';
-import {
-  ReactRenderer,
-  type ComponentModuleLoader,
-  type PageModule,
-  type LayoutModule,
-  type LoadingModule,
-  type ErrorModule,
-  type NotFoundModule,
-} from '@ranu/react';
+import { createNodeRequest, sendNodeResponse } from '@ranu/runtime-node';
+import { ReactRenderer, type ComponentModuleLoader } from '@ranu/react';
 import type { DevServerOptions, DevServerAddress, DevBuildState } from './types.js';
 import { ProjectWatcher } from './watcher.js';
 import { RebuildCoordinator } from './coordinator.js';
@@ -39,10 +32,6 @@ class DevRequestContextStore {
   }
 }
 
-function getCompiledComponentEntryName(componentPath: string): string {
-  return Buffer.from(componentPath.replace(/\\/g, '/'), 'utf8').toString('base64url');
-}
-
 export class DevServer {
   readonly httpServer: http.Server;
   private readonly options: DevServerOptions;
@@ -52,12 +41,13 @@ export class DevServer {
   private readonly serverOutDir: string;
 
   private watcher: ProjectWatcher | null = null;
-  private readonly coordinator: RebuildCoordinator;
-  private readonly reloadChannel: DevReloadChannel;
+  readonly coordinator: RebuildCoordinator;
+  readonly reloadChannel: DevReloadChannel;
   private runtime: RanuServerRuntime | null = null;
+  private readonly contextStore = new DevRequestContextStore();
   private readonly connections = new Set<Socket>();
-  private readonly versionedModuleCopies = new Set<string>();
   private isShuttingDown = false;
+  private previousBuildSuccess = true;
 
   constructor(options: DevServerOptions) {
     this.options = options;
@@ -90,34 +80,39 @@ export class DevServer {
     });
   }
 
-  private importCompiledModule<T>(
-    fullPath: string,
-    generation: number
-  ): Promise<T> {
-    const parsed = path.parse(fullPath);
-    const versionedPath = path.join(
-      parsed.dir,
-      `${parsed.name}.ranu-dev-${process.pid}-${generation}${parsed.ext}`
-    );
-    if (!fs.existsSync(versionedPath)) {
-      fs.copyFileSync(fullPath, versionedPath);
-      this.versionedModuleCopies.add(versionedPath);
-    }
-    return import(/* @vite-ignore */ pathToFileURL(versionedPath).href) as Promise<T>;
-  }
-
   private handleBuildComplete(state: DevBuildState): void {
     if (state.success) {
       try {
         this.reloadRuntime(state);
-        this.reloadChannel.broadcastReload({
-          buildId: state.buildId,
-          reason: 'rebuild',
-        });
+
+        if (!this.previousBuildSuccess) {
+          this.reloadChannel.broadcastRecovered({
+            buildId: state.buildId,
+            generation: state.generation,
+          });
+        }
+
+        this.previousBuildSuccess = true;
+
+        if (state.hmrAnalysis?.canHotUpdate && !state.hmrAnalysis.requiresReload) {
+          this.reloadChannel.broadcastUpdate({
+            buildId: state.buildId,
+            generation: state.generation,
+            updates: state.hmrAnalysis.updates,
+            affectedRoutes: state.hmrAnalysis.affectedRoutes,
+          });
+        } else {
+          this.reloadChannel.broadcastReload({
+            buildId: state.buildId,
+            generation: state.generation,
+            reason: state.hmrAnalysis?.reason ?? 'rebuild',
+          });
+        }
       } catch {
-        // Keep previous runtime on runtime reload failure
+        // Keep previous runtime on reload failure
       }
     } else {
+      this.previousBuildSuccess = false;
       this.reloadChannel.broadcastError(state.diagnostics);
     }
   }
@@ -130,9 +125,16 @@ export class DevServer {
       return;
     }
 
+    const routeManifest: RouteManifest = JSON.parse(fs.readFileSync(routeManifestPath, 'utf8'));
     const clientManifest: ClientManifest | undefined = fs.existsSync(clientManifestPath)
       ? JSON.parse(fs.readFileSync(clientManifestPath, 'utf8'))
       : undefined;
+
+    // Dispose previous runtime store registration if active
+    if (this.runtime) {
+      this.runtime.dispose();
+      this.runtime = null;
+    }
 
     const loader: ComponentModuleLoader = {
       loadPage: async (routeId: string) => {
@@ -140,33 +142,49 @@ export class DevServer {
         if (!route?.sourceFile) {
           throw new Error(`Page source for route "${routeId}" not found.`);
         }
-        const compiledRel = route.outputRelativePath.replace(/^server[/\\]/, '');
+        const rel = path.relative(this.projectRoot, route.sourceFile);
+        const compiledRel = rel
+          .replace(/^app[/\\]/, 'routes/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
         // Use query string to invalidate Node ESM module cache on each generation
-        return this.importCompiledModule<PageModule>(fullPath, state.generation);
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        return import(moduleUrl);
       },
       loadLayout: async (layoutPath: string) => {
-        const compiledRel = path.join('layouts', `${getCompiledComponentEntryName(layoutPath)}.mjs`);
+        const compiledRel = layoutPath
+          .replace(/^app[/\\]/, 'layouts/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
-        return this.importCompiledModule<LayoutModule>(fullPath, state.generation);
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        return import(moduleUrl);
       },
       loadLoading: async (loadingPath: string) => {
-        const compiledRel = path.join('layouts', `${getCompiledComponentEntryName(loadingPath)}.mjs`);
+        const compiledRel = loadingPath
+          .replace(/^app[/\\]/, 'layouts/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
         if (!fs.existsSync(fullPath)) return undefined;
-        return this.importCompiledModule<LoadingModule>(fullPath, state.generation);
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        return import(moduleUrl);
       },
       loadError: async (errorPath: string) => {
-        const compiledRel = path.join('layouts', `${getCompiledComponentEntryName(errorPath)}.mjs`);
+        const compiledRel = errorPath
+          .replace(/^app[/\\]/, 'layouts/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
         if (!fs.existsSync(fullPath)) return undefined;
-        return this.importCompiledModule<ErrorModule>(fullPath, state.generation);
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        return import(moduleUrl);
       },
       loadNotFound: async (notFoundPath: string) => {
-        const compiledRel = path.join('not-found', `${getCompiledComponentEntryName(notFoundPath)}.mjs`);
+        const compiledRel = notFoundPath
+          .replace(/^app[/\\]/, 'layouts/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
         if (!fs.existsSync(fullPath)) return undefined;
-        return this.importCompiledModule<NotFoundModule>(fullPath, state.generation);
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        return import(moduleUrl);
       },
     };
 
@@ -184,12 +202,13 @@ export class DevServer {
         if (!route?.sourceFile) {
           return new Response('Not Found', { status: 404 });
         }
-        const compiledRel = route.outputRelativePath.replace(/^server[/\\]/, '');
+        const rel = path.relative(this.projectRoot, route.sourceFile);
+        const compiledRel = rel
+          .replace(/^app[/\\]/, 'routes/')
+          .replace(/\.[^.]+$/, '.mjs');
         const fullPath = path.join(this.serverOutDir, compiledRel);
-        const mod = await this.importCompiledModule<Record<string, unknown>>(
-          fullPath,
-          state.generation
-        );
+        const moduleUrl = `${pathToFileURL(fullPath).href}?v=${state.generation}`;
+        const mod = await import(moduleUrl);
 
         const method = _req.method.toUpperCase();
         const handler = mod[method] ?? mod.default;
@@ -201,22 +220,21 @@ export class DevServer {
     };
 
     const staticDispatcher = {
-      dispatch: (_req: Request, _ctx: RanuRequestContext, _target: { routeId: string; pathname: string }) =>
-        Promise.resolve(new Response('Not Found', { status: 404 })),
+      dispatch: async (_req: Request, _ctx: RanuRequestContext, _target: { routeId: string; pathname: string }) => {
+        return new Response('Not Found', { status: 404 });
+      },
     };
 
-    const replacementRuntime = new RanuServerRuntime({
-      routeRecords: [...(state.routeRecords ?? [])],
-      contextStore: new DevRequestContextStore(),
+    const routeRecords = state.routeRecords ?? routeManifest.routes;
+
+    this.runtime = new RanuServerRuntime({
+      routeRecords,
+      contextStore: this.contextStore,
       apiDispatcher,
       staticDispatcher,
       renderer,
       config: { mode: 'development' },
     });
-
-    const previousRuntime = this.runtime;
-    this.runtime = replacementRuntime;
-    previousRuntime?.dispose();
   }
 
   private async handleHttpRequest(
@@ -230,7 +248,8 @@ export class DevServer {
     // 1. Browser Reload Channel (SSE)
     if (pathname === '/_ranu/dev-reload' || pathname === '/_ranu/hmr') {
       const buildId = this.coordinator.currentState?.buildId ?? 'dev-init';
-      this.reloadChannel.handleConnection(req, res, buildId);
+      const generation = this.coordinator.currentState?.generation ?? 0;
+      this.reloadChannel.handleConnection(req, res, buildId, generation);
       return;
     }
 
@@ -302,54 +321,38 @@ export class DevServer {
       return;
     }
 
-    const abortController = new AbortController();
-    const abortRequest = () => abortController.abort();
-    req.once('aborted', abortRequest);
-    res.once('close', abortRequest);
+    const request = createNodeRequest(req, {
+      defaultHost: this.options.host ?? 'localhost',
+    });
 
-    try {
-      const request = toWebRequest(req, abortController.signal, {
-        defaultHost: this.options.host ?? 'localhost',
-      });
+    const response = await this.runtime.handle(request);
 
-      const response = await this.runtime.handle(request);
-
-      // In dev mode, inject dev client script into HTML responses
-      const contentType = response.headers.get('content-type') ?? '';
-      if (contentType.includes('text/html')) {
-        let html = await response.text();
-        const devScriptTag = '\n<script src="/_ranu/dev-client.js"></script>\n';
-        if (html.includes('</body>')) {
-          html = html.replace('</body>', `${devScriptTag}</body>`);
-        } else {
-          html += devScriptTag;
-        }
-
-        const headers = new Headers(response.headers);
-        headers.set('Content-Length', String(Buffer.byteLength(html, 'utf8')));
-        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-
-        const injectedResponse = new Response(html, {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-
-        await writeWebResponse(injectedResponse, res, {
-          signal: abortController.signal,
-          suppressBody: req.method?.toUpperCase() === 'HEAD',
-        });
-        return;
+    // In dev mode, inject dev client script into HTML responses
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('text/html')) {
+      let html = await response.text();
+      const devScriptTag = '\n<script src="/_ranu/dev-client.js"></script>\n';
+      if (html.includes('</body>')) {
+        html = html.replace('</body>', `${devScriptTag}</body>`);
+      } else {
+        html += devScriptTag;
       }
 
-      await writeWebResponse(response, res, {
-        signal: abortController.signal,
-        suppressBody: req.method?.toUpperCase() === 'HEAD',
+      const headers = new Headers(response.headers);
+      headers.set('Content-Length', String(Buffer.byteLength(html, 'utf8')));
+      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+      const injectedResponse = new Response(html, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
       });
-    } finally {
-      req.off('aborted', abortRequest);
-      res.off('close', abortRequest);
+
+      await sendNodeResponse(injectedResponse, res);
+      return;
     }
+
+    await sendNodeResponse(response, res);
   }
 
   /**
@@ -368,7 +371,7 @@ export class DevServer {
         projectRoot: this.projectRoot,
         debounceMs: this.options.debounceMs,
         onChange: (events) => {
-          void this.coordinator.triggerRebuild(events.map(e => e.relativePath).join(', '));
+          this.coordinator.triggerRebuild(events.map(e => e.relativePath).join(', '), events);
         },
       });
     }
@@ -380,11 +383,6 @@ export class DevServer {
     return new Promise<DevServerAddress>((resolve, reject) => {
       const onError = (err: Error) => {
         this.httpServer.off('listening', onListening);
-        if (this.watcher) {
-          this.watcher.close();
-          this.watcher = null;
-        }
-        this.reloadChannel.close();
         reject(err);
       };
 
@@ -415,13 +413,6 @@ export class DevServer {
   }
 
   /**
-   * Triggers an explicit development rebuild.
-   */
-  rebuild(reason: string): Promise<DevBuildState> {
-    return this.coordinator.triggerRebuild(reason);
-  }
-
-  /**
    * Gracefully shuts down the development server, watcher, reload channel, and sockets.
    */
   async close(): Promise<void> {
@@ -439,15 +430,6 @@ export class DevServer {
       this.runtime.dispose();
       this.runtime = null;
     }
-
-    for (const moduleCopy of this.versionedModuleCopies) {
-      try {
-        fs.rmSync(moduleCopy, { force: true });
-      } catch {
-        // Ignore cleanup errors for development-only module copies.
-      }
-    }
-    this.versionedModuleCopies.clear();
 
     for (const socket of this.connections) {
       socket.destroy();

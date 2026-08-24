@@ -17,9 +17,12 @@ import {
   copyPublicDirectory,
   type RouteEntryInfo,
   type BuildContext,
+  type ModuleGraph,
 } from '@ranu/build';
 import type { CompiledRouteRecord } from '@ranu/router';
-import type { DevBuildState, DevServerOptions } from './types.js';
+import type { DevBuildState, DevServerOptions, DevFileEvent } from './types.js';
+import { analyzeHmrUpdates } from './hmr/graph-invalidator.js';
+import type { HmrAnalysisResult } from './hmr/types.js';
 
 export interface CoordinatorOptions {
   readonly options: DevServerOptions;
@@ -38,6 +41,7 @@ export class RebuildCoordinator {
   private generation = 0;
   private isBuilding = false;
   private pendingRebuild = false;
+  private pendingEvents: DevFileEvent[] = [];
   private lastState: DevBuildState | null = null;
   private lastGoodState: DevBuildState | null = null;
 
@@ -65,18 +69,27 @@ export class RebuildCoordinator {
   /**
    * Executes a development build or queues a pending rebuild if already in progress.
    */
-  async triggerRebuild(_reason?: string): Promise<DevBuildState> {
+  async triggerRebuild(_reason?: string, changedEvents?: DevFileEvent[]): Promise<DevBuildState> {
+    if (changedEvents && changedEvents.length > 0) {
+      this.pendingEvents.push(...changedEvents);
+    }
+
     if (this.isBuilding) {
       this.pendingRebuild = true;
       return this.lastState!;
     }
 
     this.isBuilding = true;
+    const currentEvents = [...this.pendingEvents];
+    this.pendingEvents = [];
+
     this.generation++;
     const buildId = `dev-${this.generation}-${Date.now().toString(36)}`;
     const diagnostics: RanuDiagnostic[] = [];
     let discoveredRoutes: RouteEntryInfo[] = [];
     let discoveredRecords: CompiledRouteRecord[] = [];
+    let hmrAnalysis: HmrAnalysisResult | undefined;
+    let builtModuleGraph: ModuleGraph | undefined;
 
     try {
       // 1. Ensure output directories exist
@@ -85,14 +98,11 @@ export class RebuildCoordinator {
       fs.mkdirSync(this.serverOutDir, { recursive: true });
 
       // 2. Discover and load configuration
-      const { configPath, diagnostic: configDiagnostic } = discoverConfig(this.projectRoot);
-      if (configDiagnostic) {
-        diagnostics.push(configDiagnostic);
-      }
+      const configPath = discoverConfig(this.projectRoot);
       const rawUserConfig = configPath ? await loadConfig(configPath) : {};
       const { config: resolvedConfig, diagnostics: configDiags } = resolveConfig(
-        rawUserConfig,
         this.projectRoot,
+        rawUserConfig,
         'development'
       );
       diagnostics.push(...configDiags);
@@ -112,6 +122,7 @@ export class RebuildCoordinator {
           projectRoot: this.projectRoot,
           mode: 'development',
           outDir: this.outDir,
+          clean: false,
           minify: false,
           sourceMaps: 'inline',
         },
@@ -120,30 +131,20 @@ export class RebuildCoordinator {
       };
 
       // 3. Stage 1: Route discovery
-      const routeResult = runRouteStage(ctx);
+      const routeResult = await runRouteStage(ctx);
       diagnostics.push(...routeResult.diagnostics);
       discoveredRoutes = routeResult.routes;
-      discoveredRecords = routeResult.records;
+      discoveredRecords = routeResult.routeRecords;
 
       if (!diagnostics.some(d => d.severity === 'error')) {
         // 4. Stage 2: Module graph classification & boundary validation
-        const serverRootFiles = routeResult.routes
-          .map(route => route.sourceFile)
-          .filter(file => Boolean(file) && fs.existsSync(file));
-        const rootLayoutCandidates = ['layout.tsx', 'layout.ts', 'layout.jsx', 'layout.js'];
-        for (const candidate of rootLayoutCandidates) {
-          const layoutPath = path.join(this.projectRoot, 'app', candidate);
-          if (fs.existsSync(layoutPath) && !serverRootFiles.includes(layoutPath)) {
-            serverRootFiles.push(layoutPath);
-          }
-        }
+        const moduleGraph = await buildModuleGraph(this.projectRoot, routeResult.routes);
+        builtModuleGraph = moduleGraph;
+        const boundaryDiags = validateGraphBoundaries(moduleGraph, this.projectRoot);
+        diagnostics.push(...boundaryDiags);
 
-        const moduleGraph = buildModuleGraph(serverRootFiles, this.projectRoot);
-        const boundaryResult = validateGraphBoundaries(moduleGraph);
-        diagnostics.push(...boundaryResult.diagnostics);
-
-        const envResultValidation = validateGraphEnvAccess(moduleGraph);
-        diagnostics.push(...envResultValidation.diagnostics);
+        const envDiags = validateGraphEnvAccess(moduleGraph, this.projectRoot, resolvedConfig.env.public);
+        diagnostics.push(...envDiags);
 
         if (!diagnostics.some(d => d.severity === 'error')) {
           // 5. Stage 3: Server graph compilation
@@ -166,6 +167,17 @@ export class RebuildCoordinator {
             []
           );
           diagnostics.push(...manifestResult.diagnostics);
+
+          if (!diagnostics.some(d => d.severity === 'error')) {
+            hmrAnalysis = analyzeHmrUpdates({
+              changedEvents: currentEvents,
+              projectRoot: this.projectRoot,
+              generation: this.generation,
+              moduleGraph,
+              routeManifest: manifestResult.routeManifest,
+              clientManifest: manifestResult.clientManifest,
+            });
+          }
         }
       }
     } catch (err: unknown) {
@@ -187,6 +199,7 @@ export class RebuildCoordinator {
       outDir: this.outDir,
       routes: discoveredRoutes,
       routeRecords: discoveredRecords,
+      hmrAnalysis,
       timestamp: Date.now(),
     };
 

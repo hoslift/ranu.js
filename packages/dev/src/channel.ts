@@ -1,10 +1,10 @@
 import type http from 'node:http';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
-
-export interface ReloadMessage {
-  readonly buildId: string;
-  readonly reason?: string | undefined;
-}
+import type {
+  HmrUpdateMessage,
+  HmrReloadMessage,
+  HmrRecoveredMessage,
+} from './hmr/types.js';
 
 export class DevReloadChannel {
   private readonly clients = new Set<http.ServerResponse>();
@@ -30,12 +30,13 @@ export class DevReloadChannel {
   }
 
   /**
-   * Handles an incoming SSE connection request at /_ranu/dev-reload.
+   * Handles an incoming SSE connection request at /_ranu/dev-reload (and /_ranu/hmr).
    */
   handleConnection(
     _req: http.IncomingMessage,
     res: http.ServerResponse,
-    currentBuildId: string
+    currentBuildId: string,
+    currentGeneration = 0
   ): void {
     if (this.isClosed) {
       res.writeHead(503, { 'Content-Type': 'text/plain' });
@@ -57,8 +58,11 @@ export class DevReloadChannel {
       this.clients.delete(res);
     });
 
-    // Send initial connected event
-    this.sendTo(res, 'connected', { buildId: currentBuildId });
+    // Send initial connected event with generation
+    this.sendTo(res, 'connected', {
+      buildId: currentBuildId,
+      generation: currentGeneration,
+    });
   }
 
   private sendTo(res: http.ServerResponse, event: string, data: unknown): void {
@@ -82,9 +86,19 @@ export class DevReloadChannel {
   }
 
   /**
+   * Broadcasts a hot module replacement (HMR) update event to connected clients.
+   */
+  broadcastUpdate(message: HmrUpdateMessage): void {
+    if (this.isClosed || this.clients.size === 0) return;
+    for (const client of this.clients) {
+      this.sendTo(client, 'update', message);
+    }
+  }
+
+  /**
    * Broadcasts a full page reload signal to all connected browser clients.
    */
-  broadcastReload(message: ReloadMessage): void {
+  broadcastReload(message: HmrReloadMessage): void {
     if (this.isClosed || this.clients.size === 0) return;
     for (const client of this.clients) {
       this.sendTo(client, 'reload', message);
@@ -97,7 +111,17 @@ export class DevReloadChannel {
   broadcastError(diagnostics: readonly RanuDiagnostic[]): void {
     if (this.isClosed || this.clients.size === 0) return;
     for (const client of this.clients) {
-      this.sendTo(client, 'build-error', { diagnostics });
+      this.sendTo(client, 'error', { diagnostics });
+    }
+  }
+
+  /**
+   * Broadcasts recovery event after fixing a build error.
+   */
+  broadcastRecovered(message: HmrRecoveredMessage): void {
+    if (this.isClosed || this.clients.size === 0) return;
+    for (const client of this.clients) {
+      this.sendTo(client, 'recovered', message);
     }
   }
 

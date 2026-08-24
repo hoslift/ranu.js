@@ -34,6 +34,8 @@ export interface DevFileEvent {
   readonly category: DevFileChangeCategory;
 }
 
+import type { HmrAnalysisResult } from './hmr/types.js';
+
 export interface DevBuildState {
   readonly generation: number;
   readonly buildId: string;
@@ -42,5 +44,6 @@ export interface DevBuildState {
   readonly outDir: string;
   readonly routes: readonly RouteEntryInfo[];
   readonly routeRecords?: readonly CompiledRouteRecord[];
+  readonly hmrAnalysis?: HmrAnalysisResult | undefined;
   readonly timestamp: number;
 }
