@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -88,6 +88,7 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     const result = await build({
       projectRoot: tempDir,
       mode: 'production',
+      sourceMaps: false,
     });
 
     expect(result.success).toBe(true);
@@ -139,6 +140,37 @@ describe('Integration: Phase 21 Plugin API v1', () => {
       result.diagnostics.some((diagnostic) => diagnostic.message.includes('terminal hook failed')),
     ).toBe(true);
     expect(fs.existsSync(path.join(tempDir, '.ranu', 'build', 'BUILD_ID'))).toBe(false);
+  });
+
+  it('returns deterministic diagnostics when configResolved fails', async () => {
+    const failingPlugin = definePlugin({
+      name: 'failing-config-resolved',
+      apiVersion: 1,
+      setup() {
+        return {
+          configResolved() {
+            throw new Error('resolved config rejected');
+          },
+        };
+      },
+    });
+
+    (globalThis as any).__failingConfigResolvedPlugin = failingPlugin;
+    fs.writeFileSync(
+      path.join(tempDir, 'ranu.config.js'),
+      'export default { plugins: [globalThis.__failingConfigResolvedPlugin] };',
+      'utf8',
+    );
+
+    const result = await build({ projectRoot: tempDir });
+
+    expect(result.success).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'RANU_PLUGIN_INVALID',
+        message: expect.stringContaining('resolved config rejected'),
+      }),
+    );
   });
 
   it('executes devStart and devEnd hooks during dev server lifecycle', async () => {
@@ -195,6 +227,56 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     expect(devServer.httpServer.listening).toBe(false);
     expect((devServer as any).watcher).toBe(null);
     expect((devServer.reloadChannel as any).isClosed).toBe(true);
+  });
+
+  it('preserves a devStart failure when best-effort cleanup also fails', async () => {
+    const failingDevPlugin = definePlugin({
+      name: 'failing-start-and-cleanup',
+      apiVersion: 1,
+      setup() {
+        return {
+          devStart() {
+            throw new Error('primary devStart failure');
+          },
+        };
+      },
+    });
+    const devServer = createDevServer({
+      projectRoot: tempDir,
+      plugins: [failingDevPlugin],
+      watch: false,
+    });
+    const close = devServer.close.bind(devServer);
+    vi.spyOn(devServer, 'close').mockImplementation(async () => {
+      await close();
+      throw new Error('secondary cleanup failure');
+    });
+
+    await expect(devServer.start(0, '127.0.0.1')).rejects.toThrow('primary devStart failure');
+    expect(devServer.httpServer.listening).toBe(false);
+  });
+
+  it('completes shutdown when a devEnd hook fails', async () => {
+    const failingDevPlugin = definePlugin({
+      name: 'failing-dev-end',
+      apiVersion: 1,
+      setup() {
+        return {
+          devEnd() {
+            throw new Error('devEnd failure');
+          },
+        };
+      },
+    });
+    const devServer = createDevServer({
+      projectRoot: tempDir,
+      plugins: [failingDevPlugin],
+      watch: false,
+    });
+
+    await devServer.start(0, '127.0.0.1');
+    await expect(devServer.close()).resolves.toBeUndefined();
+    expect(devServer.httpServer.listening).toBe(false);
   });
 
   it('rejects invalid plugins and produces deterministic build diagnostics', async () => {

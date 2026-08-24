@@ -12,6 +12,7 @@ describe('PluginManager', () => {
 
     const manager = new PluginManager([pNormal1, pPost1, pPre1, pNormal2, pPre2]);
     expect(manager.getPluginNames()).toEqual(['pre-1', 'pre-2', 'normal-1', 'normal-2', 'post-1']);
+    expect(manager.count).toBe(5);
   });
 
   it('rejects duplicate plugin names', () => {
@@ -298,5 +299,71 @@ describe('PluginManager', () => {
     await expect(manager.runBuildStart(buildCtx)).rejects.toThrow(
       'RANU_PLUGIN_HOOK_ERROR: Plugin "failing-hook" failed in "buildStart" hook: Failed to generate artifact',
     );
+  });
+
+  it('wraps errors from every plugin hook family', async () => {
+    const route = {
+      routeId: 'route-1',
+      kind: 'page' as const,
+      pathnameTemplate: '/',
+      params: [],
+    };
+    const buildContext = {
+      pluginName: '',
+      mode: 'production' as const,
+      command: 'build' as const,
+      projectRoot: '/test',
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+      buildId: 'build-1',
+      routes: [route],
+    };
+    const devContext = {
+      pluginName: '',
+      mode: 'development' as const,
+      command: 'dev' as const,
+      projectRoot: '/test',
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+      port: 3000,
+      host: 'localhost',
+    };
+    const extensionApi = {
+      platform: 'node' as const,
+      projectRoot: '/test',
+      addAlias() {},
+      addDefine() {},
+    };
+    const cases = [
+      { hook: 'config', invoke: (manager: PluginManager) => manager.runConfig({}) },
+      {
+        hook: 'configResolved',
+        invoke: (manager: PluginManager) => manager.runConfigResolved({}),
+      },
+      { hook: 'routes', invoke: (manager: PluginManager) => manager.runRoutes([route]) },
+      { hook: 'route', invoke: (manager: PluginManager) => manager.runRoute(route) },
+      {
+        hook: 'extendBuild',
+        invoke: (manager: PluginManager) => manager.runExtendBuild(extensionApi, buildContext),
+      },
+      { hook: 'devEnd', invoke: (manager: PluginManager) => manager.runDevEnd(devContext) },
+    ] as const;
+
+    for (const testCase of cases) {
+      const plugin = definePlugin({
+        name: `failing-${testCase.hook}`,
+        apiVersion: 1,
+        setup() {
+          return {
+            [testCase.hook]() {
+              throw new Error(`${testCase.hook} failed`);
+            },
+          } as any;
+        },
+      });
+      const manager = new PluginManager([plugin]);
+
+      await expect(testCase.invoke(manager)).rejects.toThrow(
+        `RANU_PLUGIN_HOOK_ERROR: Plugin "failing-${testCase.hook}" failed in "${testCase.hook}" hook: ${testCase.hook} failed`,
+      );
+    }
   });
 });
