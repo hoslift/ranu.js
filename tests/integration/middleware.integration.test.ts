@@ -84,7 +84,7 @@ export async function GET() {
     fs.writeFileSync(
       path.join(tempDir, 'middleware.ts'),
       `export const config = {
-  matcher: ['/((?!_ranu).*)'],
+  matcher: ['/*'],
 };
 
 export default async function middleware(req: Request, ctx: any) {
