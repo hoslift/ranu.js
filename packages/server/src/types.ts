@@ -1,3 +1,5 @@
+import type { MiddlewareHeadersInit } from '@ranu/runtime';
+
 export interface Cookie {
   readonly name: string;
   readonly value: string;
@@ -36,5 +38,5 @@ export interface MiddlewareContext {
 }
 
 export interface MiddlewareNextOptions {
-  headers?: HeadersInit;
+  headers?: MiddlewareHeadersInit;
 }

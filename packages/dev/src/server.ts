@@ -247,10 +247,14 @@ export class DevServer {
     let middleware: RuntimeMiddleware | undefined;
     const middlewarePath = path.join(this.serverOutDir, 'middleware.mjs');
     if (fs.existsSync(middlewarePath)) {
+      let runtimeMiddlewarePromise: Promise<RuntimeMiddleware> | undefined;
       middleware = {
         run: async (req, ctx) => {
-          const mod = await this.importCompiledModule<unknown>(middlewarePath, state.generation);
-          const runtimeMw = createRuntimeMiddleware(mod);
+          runtimeMiddlewarePromise ??= this.importCompiledModule<unknown>(
+            middlewarePath,
+            state.generation,
+          ).then((mod) => createRuntimeMiddleware(mod));
+          const runtimeMw = await runtimeMiddlewarePromise;
           return runtimeMw.run(req, ctx);
         },
       };
@@ -262,7 +266,7 @@ export class DevServer {
       apiDispatcher,
       staticDispatcher,
       renderer,
-      middleware,
+      ...(middleware ? { middleware } : {}),
       config: { mode: 'development' },
     });
 

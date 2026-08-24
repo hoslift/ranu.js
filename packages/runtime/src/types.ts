@@ -1,7 +1,12 @@
 import type { RouteKind, RanuMode } from '@ranu/core';
 import type { StaticManifest } from '@ranu/manifests';
 import type { CompiledRouteRecord } from '@ranu/router';
-import type { StaticDispatcher, ApiEndpointDispatcher, RanuRenderer, RuntimeMiddleware } from './dispatch.js';
+import type {
+  StaticDispatcher,
+  ApiEndpointDispatcher,
+  RanuRenderer,
+  RuntimeMiddleware,
+} from './dispatch.js';
 import type { RequestContextStore } from './context.js';
 
 export interface RanuRequestContext {
@@ -22,12 +27,7 @@ export interface MiddlewareContext {
   readonly signal: AbortSignal;
 }
 
-export type MiddlewareHeadersInit =
-  | Headers
-  | string[][]
-  | Record<string, string>
-  | Iterable<[string, string]>;
-
+export type MiddlewareHeadersInit = Headers | string[][] | Record<string, string>;
 
 export interface RuntimeConfig {
   readonly mode: RanuMode;

@@ -1,4 +1,4 @@
-import type { RanuRequestContext, MiddlewareContext } from './types.js';
+import type { MiddlewareContext, MiddlewareHeadersInit, RanuRequestContext } from './types.js';
 import type { RuntimeMiddleware, MiddlewareContinuation } from './dispatch.js';
 import {
   isControlSignal,
@@ -66,13 +66,72 @@ export function matchPathPattern(pattern: string, pathname: string): boolean {
   return re.test(pathname);
 }
 
+function continuationFromValue(value: unknown): MiddlewareContinuation | undefined {
+  if (value instanceof Response) {
+    return { type: 'response', response: value };
+  }
+  if (value instanceof RewriteSignal) {
+    return { type: 'rewrite', url: value.url };
+  }
+  if (value instanceof RedirectSignal) {
+    return {
+      type: 'response',
+      response: new Response(null, {
+        status: value.status,
+        headers: { Location: value.url },
+      }),
+    };
+  }
+  if (value instanceof NotFoundSignal) {
+    return {
+      type: 'response',
+      response: new Response('Not Found', { status: 404 }),
+    };
+  }
+  if (value instanceof MiddlewareNextSignal) {
+    return value.headers === undefined
+      ? { type: 'next' }
+      : { type: 'next', headers: value.headers };
+  }
+  if (!value || typeof value !== 'object' || !('type' in value)) {
+    return undefined;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  switch (candidate.type) {
+    case 'next': {
+      if (candidate.headers === undefined) {
+        return { type: 'next' };
+      }
+      try {
+        new Headers(candidate.headers as MiddlewareHeadersInit);
+      } catch {
+        throw new TypeError('Middleware continuation "next" must contain valid headers.');
+      }
+      return { type: 'next', headers: candidate.headers as MiddlewareHeadersInit };
+    }
+    case 'response':
+      if (!(candidate.response instanceof Response)) {
+        throw new TypeError('Middleware continuation "response" must contain a Web Response.');
+      }
+      return { type: 'response', response: candidate.response };
+    case 'rewrite':
+      if (typeof candidate.url !== 'string' || candidate.url.length === 0) {
+        throw new TypeError('Middleware continuation "rewrite" must contain a non-empty URL.');
+      }
+      return { type: 'rewrite', url: candidate.url };
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Wrap a user-defined middleware module or handler function into a standard RuntimeMiddleware.
  */
 export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
   if (!mod) {
     return {
-      run: async () => ({ type: 'next' }),
+      run: () => Promise.resolve({ type: 'next' }),
     };
   }
 
@@ -86,9 +145,9 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
           ? (moduleObj.middleware as (req: Request, ctx: MiddlewareContext) => unknown)
           : undefined;
 
-  const config = (typeof moduleObj.config === 'object' && moduleObj.config !== null
-    ? moduleObj.config
-    : {}) as { matcher?: string | string[] };
+  const config = (
+    typeof moduleObj.config === 'object' && moduleObj.config !== null ? moduleObj.config : {}
+  ) as { matcher?: string | string[] };
   const matcher = config.matcher;
   const compiledMatchers = matcher
     ? (Array.isArray(matcher) ? matcher : [matcher]).map(compileMatcherPattern)
@@ -124,59 +183,11 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
 
       try {
         const result = await handler(request, middlewareContext);
-
-        if (result instanceof Response) {
-          return { type: 'response', response: result };
-        }
-        if (result instanceof RewriteSignal) {
-          return { type: 'rewrite', url: result.url };
-        }
-        if (result instanceof RedirectSignal) {
-          return {
-            type: 'response',
-            response: new Response(null, {
-              status: result.status,
-              headers: { Location: result.url },
-            }),
-          };
-        }
-        if (result instanceof NotFoundSignal) {
-          return {
-            type: 'response',
-            response: new Response('Not Found', { status: 404 }),
-          };
-        }
-        if (result instanceof MiddlewareNextSignal) {
-          return { type: 'next', headers: result.headers };
-        }
-        if (result && typeof result === 'object' && 'type' in result) {
-          return result as MiddlewareContinuation;
-        }
-
-        return { type: 'next' };
+        return continuationFromValue(result) ?? { type: 'next' };
       } catch (err: unknown) {
         if (isControlSignal(err)) {
-          if (err instanceof RewriteSignal) {
-            return { type: 'rewrite', url: err.url };
-          }
-          if (err instanceof RedirectSignal) {
-            return {
-              type: 'response',
-              response: new Response(null, {
-                status: err.status,
-                headers: { Location: err.url },
-              }),
-            };
-          }
-          if (err instanceof NotFoundSignal) {
-            return {
-              type: 'response',
-              response: new Response('Not Found', { status: 404 }),
-            };
-          }
-          if (err instanceof MiddlewareNextSignal) {
-            return { type: 'next', headers: err.headers };
-          }
+          const continuation = continuationFromValue(err);
+          if (continuation) return continuation;
         }
         throw err;
       }

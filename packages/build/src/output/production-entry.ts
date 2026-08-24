@@ -56,6 +56,32 @@ export const moduleLoader = {
   }
 };
 
+/**
+ * Creates the production request runtime with the compiled middleware module.
+ * Runtime constructors are injected by the Node startup layer so this build
+ * artifact does not depend on private framework packages being hoisted into
+ * the application root.
+ */
+export async function createProductionRuntime({
+  createRuntime,
+  createMiddleware,
+  runtimeOptions,
+}) {
+  if (typeof createRuntime !== 'function' || typeof createMiddleware !== 'function') {
+    throw new TypeError('Production runtime factories must be functions.');
+  }
+
+  const middlewareModule = await moduleLoader.loadMiddleware();
+  const middleware = middlewareModule
+    ? createMiddleware(middlewareModule)
+    : runtimeOptions.middleware;
+
+  return createRuntime({
+    ...runtimeOptions,
+    ...(middleware ? { middleware } : {}),
+  });
+}
+
 /** Production entry info export */
 export default {
   buildId,
@@ -65,6 +91,7 @@ export default {
   clientManifest,
   staticManifest,
   moduleLoader,
+  createProductionRuntime,
 };
 `;
 }

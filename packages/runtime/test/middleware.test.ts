@@ -113,7 +113,12 @@ describe('Middleware Runtime Execution & Signals', () => {
     {
       routeId: 'api-users',
       kind: 'api',
-      pattern: { segments: [{ kind: 'static', value: 'api' }, { kind: 'static', value: 'users' }] },
+      pattern: {
+        segments: [
+          { kind: 'static', value: 'api' },
+          { kind: 'static', value: 'users' },
+        ],
+      },
       pathnameTemplate: '/api/users',
       params: [],
       methods: ['GET'],
@@ -153,6 +158,50 @@ describe('Middleware Runtime Execution & Signals', () => {
     const text = await res.text();
     expect(text).toContain('User: alice');
   });
+
+  it('merges middleware headers into a fetched Response with immutable headers', async () => {
+    const middleware = createRuntimeMiddleware({
+      default: async () => new MiddlewareNextSignal({ 'x-middleware-ran': 'true' }),
+    });
+    const runtime = new RanuServerRuntime({
+      routeRecords,
+      contextStore,
+      apiDispatcher: {
+        dispatch: async () => fetch('data:text/plain,ok'),
+      },
+      staticDispatcher: dummyStaticDispatcher,
+      renderer: dummyRenderer,
+      middleware,
+      config: { mode: 'production' },
+    });
+
+    const response = await runtime.handle(new Request('http://localhost:3000/api/users'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-middleware-ran')).toBe('true');
+    expect(await response.text()).toBe('ok');
+  });
+
+  it.each([{ type: 'response' }, { type: 'rewrite', url: '' }, { type: 'next', headers: 42 }])(
+    'rejects malformed middleware continuation %#',
+    async (continuation) => {
+      const middleware = createRuntimeMiddleware({
+        default: async () => continuation,
+      });
+      const runtime = new RanuServerRuntime({
+        routeRecords,
+        contextStore,
+        apiDispatcher: dummyApiDispatcher,
+        staticDispatcher: dummyStaticDispatcher,
+        renderer: dummyRenderer,
+        middleware,
+        config: { mode: 'production' },
+      });
+
+      const response = await runtime.handle(new Request('http://localhost:3000/dashboard'));
+      expect(response.status).toBe(500);
+    },
+  );
 
   it('middleware can return direct Response, terminating downstream route', async () => {
     const middleware = createRuntimeMiddleware({

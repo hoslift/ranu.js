@@ -1,4 +1,9 @@
-import type { RanuServerRuntimeOptions, RanuRequestContext, StaticDispatchTarget } from './types.js';
+import type {
+  MiddlewareHeadersInit,
+  RanuServerRuntimeOptions,
+  RanuRequestContext,
+  StaticDispatchTarget,
+} from './types.js';
 import type { PageRenderTarget, ApiDispatchTarget } from './dispatch.js';
 import type { CompiledRouteRecord } from '@ranu/router';
 import { matchRoute } from '@ranu/router';
@@ -10,12 +15,18 @@ import type { RouteKind } from '@ranu/core';
 let globalRequestSequence = 0;
 const MAX_REWRITE_DEPTH = 5;
 
-function validateHeaders(headersInit?: HeadersInit): void {
+function validateHeaders(headersInit?: MiddlewareHeadersInit): void {
   if (!headersInit) return;
-  if (typeof headersInit === 'object' && !(headersInit instanceof Headers) && !Array.isArray(headersInit)) {
+  if (
+    typeof headersInit === 'object' &&
+    !(headersInit instanceof Headers) &&
+    !Array.isArray(headersInit)
+  ) {
     for (const [key, value] of Object.entries(headersInit)) {
       if (/[\r\n]/.test(key) || (typeof value === 'string' && /[\r\n]/.test(value))) {
-        throw new Error(`Invalid header characters in middleware header "${key}" (CRLF injection prevention)`);
+        throw new Error(
+          `Invalid header characters in middleware header "${key}" (CRLF injection prevention)`,
+        );
       }
     }
   }
@@ -24,26 +35,36 @@ function validateHeaders(headersInit?: HeadersInit): void {
 function finalizeResponse(
   response: Response,
   context: RanuRequestContext,
-  middlewareHeaders?: HeadersInit,
+  middlewareHeaders?: MiddlewareHeadersInit,
 ): Response {
+  if (!middlewareHeaders && context.responseCookies.length === 0) {
+    return response;
+  }
+
+  const finalizedResponse = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  });
+
   if (middlewareHeaders) {
     validateHeaders(middlewareHeaders);
     const entries = new Headers(middlewareHeaders);
     entries.forEach((value, key) => {
       if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append('Set-Cookie', value);
-      } else if (!response.headers.has(key)) {
-        response.headers.set(key, value);
+        finalizedResponse.headers.append('Set-Cookie', value);
+      } else if (!finalizedResponse.headers.has(key)) {
+        finalizedResponse.headers.set(key, value);
       }
     });
   }
 
   if (context.responseCookies.length > 0) {
     for (const cookieHeader of context.responseCookies) {
-      response.headers.append('Set-Cookie', cookieHeader);
+      finalizedResponse.headers.append('Set-Cookie', cookieHeader);
     }
   }
-  return response;
+  return finalizedResponse;
 }
 
 export class RanuServerRuntime {
@@ -95,7 +116,12 @@ export class RanuServerRuntime {
     if (this.options.extractUpstreamId) {
       try {
         const extracted = this.options.extractUpstreamId(request);
-        if (extracted && extracted.length > 0 && extracted.length <= 64 && /^[A-Za-z0-9-_]+$/.test(extracted)) {
+        if (
+          extracted &&
+          extracted.length > 0 &&
+          extracted.length <= 64 &&
+          /^[A-Za-z0-9-_]+$/.test(extracted)
+        ) {
           requestId = extracted;
         }
       } catch {
@@ -103,9 +129,10 @@ export class RanuServerRuntime {
       }
     }
     if (!requestId) {
-      requestId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      requestId =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
 
     // 3. Request Context creation before matching
@@ -126,7 +153,7 @@ export class RanuServerRuntime {
 
     let matchedRouteId: string | undefined;
     let matchedRouteKind: RouteKind | undefined;
-    let middlewareHeaders: HeadersInit | undefined;
+    let middlewareHeaders: MiddlewareHeadersInit | undefined;
 
     return this.options.contextStore.run(context, async () => {
       try {
@@ -150,7 +177,7 @@ export class RanuServerRuntime {
               rewriteDepth++;
               if (rewriteDepth > MAX_REWRITE_DEPTH) {
                 const loopError = new Error(
-                  `Middleware rewrite loop detected: exceeded maximum rewrite depth of ${MAX_REWRITE_DEPTH}.`
+                  `Middleware rewrite loop detected: exceeded maximum rewrite depth of ${MAX_REWRITE_DEPTH}.`,
                 );
                 (loopError as any).code = 'RANU_REWRITE_LOOP';
                 throw loopError;
@@ -199,10 +226,10 @@ export class RanuServerRuntime {
             return finalizeResponse(
               new Response('Method Not Allowed', {
                 status: 405,
-                headers: { 'Allow': 'GET, HEAD' }
+                headers: { Allow: 'GET, HEAD' },
               }),
               context,
-              middlewareHeaders
+              middlewareHeaders,
             );
           }
 
@@ -216,9 +243,16 @@ export class RanuServerRuntime {
         }
 
         // 7. Match dynamic routes
-        const routeMatch = matchRoute(normalizedPathname, this.options.routeRecords as CompiledRouteRecord[]);
+        const routeMatch = matchRoute(
+          normalizedPathname,
+          this.options.routeRecords as CompiledRouteRecord[],
+        );
         if (!routeMatch) {
-          return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
+          return finalizeResponse(
+            new Response('Not Found', { status: 404 }),
+            context,
+            middlewareHeaders,
+          );
         }
 
         matchedRouteId = routeMatch.routeId;
@@ -229,7 +263,11 @@ export class RanuServerRuntime {
 
         const routeRecord = this.options.routeRecords.find((r) => r.routeId === routeMatch.routeId);
         if (!routeRecord) {
-          return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
+          return finalizeResponse(
+            new Response('Not Found', { status: 404 }),
+            context,
+            middlewareHeaders,
+          );
         }
 
         // Static-only dynamic path miss check (absent from StaticManifest)
@@ -243,10 +281,10 @@ export class RanuServerRuntime {
             return finalizeResponse(
               new Response('Method Not Allowed', {
                 status: 405,
-                headers: { 'Allow': 'GET, HEAD' }
+                headers: { Allow: 'GET, HEAD' },
               }),
               context,
-              middlewareHeaders
+              middlewareHeaders,
             );
           }
 
@@ -264,8 +302,12 @@ export class RanuServerRuntime {
         } else {
           // API Endpoint
           const hasExplicitMethod = routeRecord.methods.includes(method as any);
-          const isImplicitHead = method === 'HEAD' && !routeRecord.methods.includes('HEAD') && routeRecord.methods.includes('GET');
-          const isImplicitOptions = method === 'OPTIONS' && !routeRecord.methods.includes('OPTIONS');
+          const isImplicitHead =
+            method === 'HEAD' &&
+            !routeRecord.methods.includes('HEAD') &&
+            routeRecord.methods.includes('GET');
+          const isImplicitOptions =
+            method === 'OPTIONS' && !routeRecord.methods.includes('OPTIONS');
 
           if (hasExplicitMethod || isImplicitHead || isImplicitOptions) {
             const apiTarget: ApiDispatchTarget = {
@@ -273,7 +315,11 @@ export class RanuServerRuntime {
               params: context.params,
               methods: routeRecord.methods,
             };
-            const res = await this.options.apiDispatcher.dispatch(currentRequest, context, apiTarget);
+            const res = await this.options.apiDispatcher.dispatch(
+              currentRequest,
+              context,
+              apiTarget,
+            );
             return finalizeResponse(res, context, middlewareHeaders);
           } else {
             // Compute effective allowed methods
@@ -290,10 +336,10 @@ export class RanuServerRuntime {
             return finalizeResponse(
               new Response('Method Not Allowed', {
                 status: 405,
-                headers: { 'Allow': allowed.join(', ') }
+                headers: { Allow: allowed.join(', ') },
               }),
               context,
-              middlewareHeaders
+              middlewareHeaders,
             );
           }
         }
@@ -303,19 +349,28 @@ export class RanuServerRuntime {
             return finalizeResponse(
               new Response(null, {
                 status: err.status,
-                headers: { 'Location': err.url }
+                headers: { Location: err.url },
               }),
               context,
-              middlewareHeaders
+              middlewareHeaders,
             );
           }
           if (err instanceof NotFoundSignal) {
-            return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
+            return finalizeResponse(
+              new Response('Not Found', { status: 404 }),
+              context,
+              middlewareHeaders,
+            );
           }
         }
 
         // Unexpected/Execution errors: Sanitize
-        const errRes = sanitizeErrorResponse(err, context.requestId, this.options.config, matchedRouteKind);
+        const errRes = sanitizeErrorResponse(
+          err,
+          context.requestId,
+          this.options.config,
+          matchedRouteKind,
+        );
         return finalizeResponse(errRes, context, middlewareHeaders);
       }
     });
