@@ -1,10 +1,36 @@
 import { describe, expect, it, vi } from 'vitest';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   createProductionRuntimeWithLoader,
   generateProductionEntrySource,
+  loadCompiledMiddleware,
 } from '../src/output/production-entry.js';
 
 describe('production entry generation', () => {
+  it('loads a compiled middleware module when the artifact exists', async () => {
+    const buildDir = path.resolve('virtual-build');
+    const middlewarePath = path.resolve(buildDir, 'server/middleware.mjs');
+    const middlewareModule = { default: vi.fn() };
+    const fileExists = vi.fn(() => true);
+    const importModule = vi.fn(async () => middlewareModule);
+
+    await expect(loadCompiledMiddleware(buildDir, fileExists, importModule)).resolves.toBe(
+      middlewareModule,
+    );
+    expect(fileExists).toHaveBeenCalledWith(middlewarePath);
+    expect(importModule).toHaveBeenCalledWith(pathToFileURL(middlewarePath).href);
+  });
+
+  it('skips middleware import when no compiled artifact exists', async () => {
+    const importModule = vi.fn();
+
+    await expect(
+      loadCompiledMiddleware(path.resolve('missing-build'), () => false, importModule),
+    ).resolves.toBeUndefined();
+    expect(importModule).not.toHaveBeenCalled();
+  });
+
   it('creates middleware from the compiled module before constructing the runtime', async () => {
     const middlewareModule = { default: vi.fn() };
     const middleware = { run: vi.fn() };

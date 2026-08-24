@@ -24,28 +24,19 @@ export function compileMatcherPattern(pattern: string): RegExp {
     if (!p.endsWith('$')) p = p + '$';
     try {
       return new RegExp(p);
-    } catch {
-      // Fallback to standard path conversion if regex parsing fails
-    }
+    } catch {}
   }
-
-  // Tokenize parameter patterns first, then escape regex characters
   let regexStr = pattern
     .replace(/\/?:([a-zA-Z0-9_]+)\*/g, '__OPTIONAL_CATCH_ALL__')
     .replace(/\/?:([a-zA-Z0-9_]+)\+/g, '__REQUIRED_CATCH_ALL__')
     .replace(/:([a-zA-Z0-9_]+)/g, '__PARAM__')
     .replace(/\*/g, '__WILDCARD__');
-
-  // Escape special regex characters
   regexStr = regexStr.replace(/[-[\]{}()+?.,\\^$|#\s]/g, '\\$&');
-
-  // Replace tokens with corresponding regex subpatterns
   regexStr = regexStr
     .replace(/__OPTIONAL_CATCH_ALL__/g, '(?:/(.*))?')
     .replace(/__REQUIRED_CATCH_ALL__/g, '/(.+)')
     .replace(/__PARAM__/g, '([^/]+)')
     .replace(/__WILDCARD__/g, '.*');
-
   if (!regexStr.startsWith('^')) {
     regexStr = '^' + regexStr;
   }
@@ -96,7 +87,6 @@ function continuationFromValue(value: unknown): MiddlewareContinuation | undefin
   if (!value || typeof value !== 'object' || !('type' in value)) {
     return undefined;
   }
-
   const candidate = value as Record<string, unknown>;
   switch (candidate.type) {
     case 'next': {
@@ -144,21 +134,19 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
         : typeof moduleObj.middleware === 'function'
           ? (moduleObj.middleware as (req: Request, ctx: MiddlewareContext) => unknown)
           : undefined;
-
-  const config = (
-    typeof moduleObj.config === 'object' && moduleObj.config !== null ? moduleObj.config : {}
-  ) as { matcher?: string | string[] };
+  const config: { matcher?: string | string[] } =
+    typeof moduleObj.config === 'object' && moduleObj.config !== null
+      ? (moduleObj.config as { matcher?: string | string[] })
+      : {};
   const matcher = config.matcher;
   const compiledMatchers = matcher
     ? (Array.isArray(matcher) ? matcher : [matcher]).map(compileMatcherPattern)
     : undefined;
-
   return {
     async run(request: Request, context: RanuRequestContext): Promise<MiddlewareContinuation> {
       if (!handler || typeof handler !== 'function') {
         return { type: 'next' };
       }
-
       const pathname = context.url.pathname;
 
       // Internal framework assets ALWAYS bypass middleware
@@ -166,21 +154,18 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
         return { type: 'next' };
       }
 
-      // Check user matcher config if specified
       if (compiledMatchers && compiledMatchers.length > 0) {
         const matches = compiledMatchers.some((re) => re.test(pathname));
         if (!matches) {
           return { type: 'next' };
         }
       }
-
       const middlewareContext: MiddlewareContext = {
         requestId: context.requestId,
         params: context.params,
         locals: context.locals,
         signal: context.signal,
       };
-
       try {
         const result = await handler(request, middlewareContext);
         return continuationFromValue(result) ?? { type: 'next' };

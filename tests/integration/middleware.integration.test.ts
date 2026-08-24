@@ -220,7 +220,7 @@ export default async function middleware(req: Request, ctx: any) {
   it('production build compiles middleware.ts into .ranu/build/server/middleware.mjs', async () => {
     const buildResult = await build({
       projectRoot: tempDir,
-      sourceMaps: 'hidden',
+      sourceMaps: false,
     });
 
     expect(buildResult.success).toBe(true);

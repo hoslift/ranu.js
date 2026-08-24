@@ -40,13 +40,11 @@ function finalizeResponse(
   if (!middlewareHeaders && context.responseCookies.length === 0) {
     return response;
   }
-
   const finalizedResponse = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: new Headers(response.headers),
   });
-
   if (middlewareHeaders) {
     validateHeaders(middlewareHeaders);
     const entries = new Headers(middlewareHeaders);
@@ -168,11 +166,9 @@ export class RanuServerRuntime {
           // Framework internal assets bypass middleware
           if (!currentPathname.startsWith('/_ranu/') && this.options.middleware) {
             const continuation = await this.options.middleware.run(currentRequest, context);
-
             if (continuation.type === 'response') {
               return finalizeResponse(continuation.response, context, middlewareHeaders);
             }
-
             if (continuation.type === 'rewrite') {
               rewriteDepth++;
               if (rewriteDepth > MAX_REWRITE_DEPTH) {
@@ -182,7 +178,6 @@ export class RanuServerRuntime {
                 (loopError as any).code = 'RANU_REWRITE_LOOP';
                 throw loopError;
               }
-
               const targetUrl = new URL(continuation.url, currentUrl);
               const mergedParams = new URLSearchParams(currentUrl.searchParams);
               targetUrl.searchParams.forEach((val, key) => {
