@@ -32,7 +32,7 @@ function getFrameworkNodePaths(): string[] {
  */
 export async function runServerGraphStage(
   ctx: BuildContext,
-  routes: RouteEntryInfo[]
+  routes: RouteEntryInfo[],
 ): Promise<ServerGraphResult> {
   const diagnostics: RanuDiagnostic[] = [];
 
@@ -45,9 +45,7 @@ export async function runServerGraphStage(
   for (const route of routes) {
     if (route.sourceFile && fs.existsSync(route.sourceFile)) {
       // e.g. 'routes/page-root' -> source file
-      const entryKey = route.outputRelativePath
-        .replace(/^server\//, '')
-        .replace(/\.mjs$/, '');
+      const entryKey = route.outputRelativePath.replace(/^server\//, '').replace(/\.mjs$/, '');
       entryPoints[entryKey] = route.sourceFile;
     }
 
@@ -81,25 +79,29 @@ export async function runServerGraphStage(
     projectRoot: ctx.projectRoot,
     staticOutDir: ctx.staticOutDir,
     tempOutDir: ctx.tempOutDir,
-    onDiagnostic: d => diagnostics.push(d),
+    onDiagnostic: (d) => diagnostics.push(d),
   });
 
   const sourcemapMode = ctx.config.sourceMaps ?? 'hidden';
-  const sourcemap = sourcemapMode === 'hidden'
-    ? 'external' // esbuild 'external' writes .map file without linking comment in output
-    : sourcemapMode === false
-      ? false
-      : sourcemapMode;
+  const sourcemap =
+    sourcemapMode === 'hidden'
+      ? 'external' // esbuild 'external' writes .map file without linking comment in output
+      : sourcemapMode === false
+        ? false
+        : sourcemapMode;
 
   const bundleResult = await adapter.bundle({
     entryPoints,
     outdir: ctx.serverOutDir,
+    absWorkingDir: ctx.projectRoot,
     platform: 'node',
     format: 'esm',
     target: 'node22',
     splitting: false, // Per-route self-contained bundles for predictable loading
     sourcemap,
     minify: ctx.config.minify ?? false,
+    define: { ...(ctx.pluginDefines ?? {}) },
+    pluginAliases: ctx.pluginAliases,
     plugins: [ranuPlugin],
     jsx: 'automatic',
     jsxImportSource: 'react',

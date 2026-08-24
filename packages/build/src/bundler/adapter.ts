@@ -1,4 +1,5 @@
 import type { Plugin as EsbuildPlugin } from 'esbuild';
+import type { BuildPluginAlias } from '../build-config.js';
 
 /** Options passed to the bundler abstraction */
 export interface BundleOptions {
@@ -24,6 +25,8 @@ export interface BundleOptions {
   outExtension?: Record<string, string> | undefined;
   alias?: Record<string, string> | undefined;
   nodePaths?: string[] | undefined;
+  absWorkingDir?: string | undefined;
+  pluginAliases?: readonly BuildPluginAlias[] | undefined;
 }
 
 /** Output result from bundler execution */

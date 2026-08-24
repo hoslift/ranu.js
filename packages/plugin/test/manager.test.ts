@@ -52,17 +52,36 @@ describe('PluginManager', () => {
     expect(order).toEqual(['p1', 'p2']);
   });
 
+  it('serializes concurrent setup calls and caches successful initialization', async () => {
+    const setup = vi.fn(async () => {
+      await Promise.resolve();
+      return {};
+    });
+    const manager = new PluginManager([definePlugin({ name: 'concurrent', apiVersion: 1, setup })]);
+
+    await Promise.all([manager.setup(), manager.setup(), manager.runConfig({})]);
+
+    expect(setup).toHaveBeenCalledTimes(1);
+  });
+
   it('isolates and wraps setup() failures in RANU_PLUGIN_SETUP_ERROR', async () => {
+    const setup = vi.fn(() => {
+      throw new Error('Boom in setup');
+    });
     const badPlugin = definePlugin({
       name: 'broken',
       apiVersion: 1,
-      setup() {
-        throw new Error('Boom in setup');
-      },
+      setup,
     });
 
     const manager = new PluginManager([badPlugin]);
-    await expect(manager.setup()).rejects.toThrow('RANU_PLUGIN_SETUP_ERROR: Plugin "broken" failed during setup()');
+    await expect(manager.setup()).rejects.toThrow(
+      'RANU_PLUGIN_SETUP_ERROR: Plugin "broken" failed during setup()',
+    );
+    await expect(manager.setup()).rejects.toThrow(
+      'RANU_PLUGIN_SETUP_ERROR: Plugin "broken" failed during setup()',
+    );
+    expect(setup).toHaveBeenCalledTimes(1);
   });
 
   it('runs config hook sequentially and merges configuration contributions', async () => {
@@ -202,7 +221,7 @@ describe('PluginManager', () => {
         addAlias() {},
         addDefine() {},
       },
-      buildCtx
+      buildCtx,
     );
     await manager.runBuildEnd(
       {
@@ -211,7 +230,7 @@ describe('PluginManager', () => {
         durationMs: 100,
         diagnostics: [],
       },
-      buildCtx
+      buildCtx,
     );
 
     expect(events).toEqual(['buildStart', 'extendBuild', 'buildEnd']);
@@ -277,7 +296,7 @@ describe('PluginManager', () => {
     };
 
     await expect(manager.runBuildStart(buildCtx)).rejects.toThrow(
-      'RANU_PLUGIN_HOOK_ERROR: Plugin "failing-hook" failed in "buildStart" hook: Failed to generate artifact'
+      'RANU_PLUGIN_HOOK_ERROR: Plugin "failing-hook" failed in "buildStart" hook: Failed to generate artifact',
     );
   });
 });

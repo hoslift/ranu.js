@@ -1,5 +1,4 @@
 import type { RanuMode, RanuCommand } from '@ranu/core';
-import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type {
   RanuPlugin,
   RanuPluginDefinition,
@@ -32,12 +31,9 @@ interface ResolvedPluginInstance {
 export class PluginManager {
   private readonly plugins: ResolvedPluginInstance[] = [];
   private readonly setupContext: PluginSetupContext;
-  private isInitialized = false;
+  private setupPromise: Promise<void> | undefined;
 
-  constructor(
-    rawPlugins: readonly RanuPlugin[] = [],
-    options: PluginManagerOptions = {}
-  ) {
+  constructor(rawPlugins: readonly RanuPlugin[] = [], options: PluginManagerOptions = {}) {
     const mode = options.mode ?? 'production';
     const command = options.command ?? 'build';
     const projectRoot = options.projectRoot ?? process.cwd();
@@ -64,7 +60,7 @@ export class PluginManager {
 
       if (seenNames.has(validated.name)) {
         throw new Error(
-          `RANU_PLUGIN_DUPLICATE: Duplicate plugin name "${validated.name}" registered. Each plugin name must be unique.`
+          `RANU_PLUGIN_DUPLICATE: Duplicate plugin name "${validated.name}" registered. Each plugin name must be unique.`,
         );
       }
       seenNames.add(validated.name);
@@ -105,9 +101,12 @@ export class PluginManager {
   /**
    * Execute setup() for all registered plugins sequentially.
    */
-  async setup(): Promise<void> {
-    if (this.isInitialized) return;
+  setup(): Promise<void> {
+    this.setupPromise ??= this.initializePlugins();
+    return this.setupPromise;
+  }
 
+  private async initializePlugins(): Promise<void> {
     for (const plugin of this.plugins) {
       try {
         const setupContext: PluginSetupContext = {
@@ -121,12 +120,10 @@ export class PluginManager {
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         throw new Error(
-          `RANU_PLUGIN_SETUP_ERROR: Plugin "${plugin.definition.name}" failed during setup(): ${message}`
+          `RANU_PLUGIN_SETUP_ERROR: Plugin "${plugin.definition.name}" failed during setup(): ${message}`,
         );
       }
     }
-
-    this.isInitialized = true;
   }
 
   private createHookContext(plugin: ResolvedPluginInstance): PluginHookContext {
@@ -160,7 +157,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "config" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "config" hook: ${message}`,
           );
         }
       }
@@ -183,7 +180,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "configResolved" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "configResolved" hook: ${message}`,
           );
         }
       }
@@ -194,7 +191,7 @@ export class PluginManager {
    * Executes the `routes` hook across plugins, collecting namespaced route metadata.
    */
   async runRoutes(
-    routes: readonly PluginRouteInfo[]
+    routes: readonly PluginRouteInfo[],
   ): Promise<Record<string, Record<string, Record<string, unknown>>>> {
     await this.setup();
     const result: Record<string, Record<string, Record<string, unknown>>> = {};
@@ -218,7 +215,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "routes" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "routes" hook: ${message}`,
           );
         }
       }
@@ -230,9 +227,7 @@ export class PluginManager {
   /**
    * Executes the `route` hook across plugins for a single route.
    */
-  async runRoute(
-    route: PluginRouteInfo
-  ): Promise<Record<string, Record<string, unknown>>> {
+  async runRoute(route: PluginRouteInfo): Promise<Record<string, Record<string, unknown>>> {
     await this.setup();
     const result: Record<string, Record<string, unknown>> = {};
 
@@ -250,7 +245,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "route" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "route" hook: ${message}`,
           );
         }
       }
@@ -277,7 +272,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildStart" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildStart" hook: ${message}`,
           );
         }
       }
@@ -287,10 +282,7 @@ export class PluginManager {
   /**
    * Executes the `extendBuild` hook across plugins sequentially.
    */
-  async runExtendBuild(
-    api: PluginBuildExtensionApi,
-    context: PluginBuildContext
-  ): Promise<void> {
+  async runExtendBuild(api: PluginBuildExtensionApi, context: PluginBuildContext): Promise<void> {
     await this.setup();
 
     for (const plugin of this.plugins) {
@@ -305,7 +297,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "extendBuild" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "extendBuild" hook: ${message}`,
           );
         }
       }
@@ -315,10 +307,7 @@ export class PluginManager {
   /**
    * Executes the `buildEnd` hook across plugins sequentially.
    */
-  async runBuildEnd(
-    result: PluginBuildResult,
-    context: PluginBuildContext
-  ): Promise<void> {
+  async runBuildEnd(result: PluginBuildResult, context: PluginBuildContext): Promise<void> {
     await this.setup();
 
     for (const plugin of this.plugins) {
@@ -333,7 +322,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildEnd" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildEnd" hook: ${message}`,
           );
         }
       }
@@ -358,7 +347,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devStart" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devStart" hook: ${message}`,
           );
         }
       }
@@ -383,7 +372,7 @@ export class PluginManager {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(
-            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devEnd" hook: ${message}`
+            `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devEnd" hook: ${message}`,
           );
         }
       }

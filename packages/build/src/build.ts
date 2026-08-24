@@ -8,11 +8,7 @@ import {
   loadEnv,
   type ResolvedRanuConfig,
 } from '@ranu/config';
-import {
-  PluginManager,
-  type PluginBuildExtensionApi,
-  type PluginRouteInfo,
-} from '@ranu/plugin';
+import { PluginManager, type PluginBuildExtensionApi, type PluginRouteInfo } from '@ranu/plugin';
 import { generateBuildId } from './build-id.js';
 import type { BuildConfig, BuildContext } from './build-config.js';
 import type { BuildResult } from './build-result.js';
@@ -156,7 +152,6 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       projectRoot,
     });
     userConfig = await pluginManager.runConfig(userConfig);
-    await pluginManager.runConfigResolved(resolvedConfig);
   } catch (err: any) {
     diagnostics.push({
       code: 'RANU_PLUGIN_INVALID',
@@ -190,6 +185,26 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     },
   };
 
+  // configResolved observes defaults merged with user and plugin config contributions.
+  try {
+    await pluginManager.runConfigResolved(
+      resolvedConfig as unknown as Readonly<Record<string, unknown>>,
+    );
+  } catch (err: any) {
+    diagnostics.push({
+      code: 'RANU_PLUGIN_INVALID',
+      severity: 'error',
+      message: err.message ?? String(err),
+    });
+    return {
+      success: false,
+      buildId: '',
+      outDir,
+      diagnostics,
+      duration: Date.now() - startTime,
+    };
+  }
+
   // 4. Load environment variables (.env, .env.production)
   try {
     loadEnv('production', projectRoot);
@@ -210,6 +225,9 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
   fs.mkdirSync(staticOutDir, { recursive: true });
   fs.mkdirSync(manifestOutDir, { recursive: true });
 
+  const pluginAliases: Array<{ find: string | RegExp; replacement: string }> = [];
+  const pluginDefines: Record<string, string> = {};
+
   const ctx: BuildContext = {
     config,
     resolvedConfig,
@@ -221,6 +239,8 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     staticOutDir,
     manifestOutDir,
     diagnostics,
+    pluginAliases,
+    pluginDefines,
   };
 
   try {
@@ -238,7 +258,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 5-6: Discover & analyze routes
     const routeResult = await runRouteStage(ctx);
     diagnostics.push(...routeResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -253,7 +273,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     const pluginRoutes: PluginRouteInfo[] = routeResult.routes.map((r) => ({
       routeId: r.routeId,
       kind: r.kind,
-      pathnameTemplate: r.pathnamePattern,
+      pathnameTemplate: r.pathnameTemplate,
       params: r.params,
       renderMode: r.renderMode,
       methods: r.methods,
@@ -266,8 +286,12 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     const buildExtApi: PluginBuildExtensionApi = {
       platform: 'node',
       projectRoot,
-      addAlias(_find, _replacement) {},
-      addDefine(_definitions) {},
+      addAlias(find, replacement) {
+        pluginAliases.push({ find, replacement });
+      },
+      addDefine(definitions) {
+        Object.assign(pluginDefines, definitions);
+      },
     };
     await pluginManager.runExtendBuild(buildExtApi, {
       pluginName: '',
@@ -281,8 +305,8 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
 
     // Stage 7: Build & Classify Module Graph
     const serverRootFiles = routeResult.routes
-      .map(r => r.sourceFile)
-      .filter(f => Boolean(f) && fs.existsSync(f));
+      .map((r) => r.sourceFile)
+      .filter((f) => Boolean(f) && fs.existsSync(f));
 
     // Also include root layout if present
     const rootLayoutCandidates = ['layout.tsx', 'layout.ts', 'layout.jsx', 'layout.js'];
@@ -298,7 +322,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 8: Validate Graph Boundaries (server-only & node built-in rejection in client graph)
     const boundaryCheck = validateGraphBoundaries(moduleGraph);
     diagnostics.push(...boundaryCheck.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -312,7 +336,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 8b: Validate Environment Security (reject private env access in client-reachable code)
     const envCheck = validateGraphEnvAccess(moduleGraph);
     diagnostics.push(...envCheck.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -326,7 +350,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 10: Server graph compilation
     const serverResult = await runServerGraphStage(ctx, routeResult.routes);
     diagnostics.push(...serverResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -344,7 +368,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 11: Client graph compilation & browser bundling & CSS extraction
     const clientResult = await runClientGraphStage(ctx, moduleGraph, routeResult.routes);
     diagnostics.push(...clientResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -358,7 +382,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 12: Copy public directory assets
     const publicResult = copyPublicDirectory(projectRoot, staticOutDir, routeResult.routes);
     diagnostics.push(...publicResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -370,9 +394,14 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     }
 
     // Stage 15: Static Site Generation (SSG)
-    const staticResult = await runStaticGenerationStage(ctx, routeResult.routes, undefined, clientResult.assets);
+    const staticResult = await runStaticGenerationStage(
+      ctx,
+      routeResult.routes,
+      undefined,
+      clientResult.assets,
+    );
     diagnostics.push(...staticResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -388,10 +417,10 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       ctx,
       routeResult.routes,
       clientResult.assets,
-      staticResult.staticRoutes
+      staticResult.staticRoutes,
     );
     diagnostics.push(...manifestResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -408,7 +437,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 17: Artifact integrity validation
     const valResult = await runValidationStage(ctx, manifestResult);
     diagnostics.push(...valResult.diagnostics);
-    if (diagnostics.some(d => d.severity === 'error')) {
+    if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
         success: false,
@@ -418,9 +447,6 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         duration: Date.now() - startTime,
       };
     }
-
-    // Promote temp directory to final destination
-    promoteBuildArtifacts(tempOutDir, outDir);
 
     const result: BuildResult = {
       success: true,
@@ -446,8 +472,12 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         logger: (pluginManager as any).setupContext.logger,
         buildId,
         routes: pluginRoutes,
-      }
+      },
     );
+
+    // Commit artifacts only after terminal hooks have completed successfully.
+    promoteBuildArtifacts(tempOutDir, outDir);
+    result.duration = Date.now() - startTime;
 
     return result;
   } catch (err: any) {

@@ -133,6 +133,9 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../manifests
+      '@ranu/plugin':
+        specifier: workspace:*
+        version: link:../plugin
       '@ranu/react':
         specifier: workspace:*
         version: link:../react
@@ -259,6 +262,9 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../manifests
+      '@ranu/plugin':
+        specifier: workspace:*
+        version: link:../plugin
       '@ranu/react':
         specifier: workspace:*
         version: link:../react
@@ -355,6 +361,9 @@ importers:
       '@ranu/core':
         specifier: workspace:*
         version: link:../core
+      '@ranu/plugin':
+        specifier: workspace:*
+        version: link:../plugin
       '@ranu/react':
         specifier: workspace:*
         version: link:../react

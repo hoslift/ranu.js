@@ -18,8 +18,12 @@ describe('definePlugin helper', () => {
   });
 
   it('rejects missing or empty plugin name', () => {
-    expect(() => definePlugin({ name: '', apiVersion: 1, setup() {} })).toThrow('RANU_PLUGIN_INVALID');
-    expect(() => definePlugin({ name: '   ', apiVersion: 1, setup() {} })).toThrow('RANU_PLUGIN_INVALID');
+    expect(() => definePlugin({ name: '', apiVersion: 1, setup() {} })).toThrow(
+      'RANU_PLUGIN_INVALID',
+    );
+    expect(() => definePlugin({ name: '   ', apiVersion: 1, setup() {} })).toThrow(
+      'RANU_PLUGIN_INVALID',
+    );
     expect(() => definePlugin({ apiVersion: 1, setup() {} } as any)).toThrow('RANU_PLUGIN_INVALID');
   });
 
@@ -29,8 +33,27 @@ describe('definePlugin helper', () => {
         name: 'test-plugin',
         apiVersion: 2 as any,
         setup() {},
-      })
+      }),
     ).toThrow('RANU_PLUGIN_INCOMPATIBLE');
+  });
+
+  it('reports Symbol metadata values through the intended diagnostics', () => {
+    expect(() =>
+      definePlugin({
+        name: 'symbol-api',
+        apiVersion: Symbol('api') as any,
+        setup() {},
+      }),
+    ).toThrow('Unsupported plugin apiVersion "Symbol(api)"');
+
+    expect(() =>
+      definePlugin({
+        name: 'symbol-enforce',
+        apiVersion: 1,
+        enforce: Symbol('tier') as any,
+        setup() {},
+      }),
+    ).toThrow('Invalid enforce tier "Symbol(tier)"');
   });
 
   it('validates enforce tiers', () => {
@@ -40,7 +63,7 @@ describe('definePlugin helper', () => {
         apiVersion: 1,
         enforce: 'pre',
         setup() {},
-      }).enforce
+      }).enforce,
     ).toBe('pre');
 
     expect(
@@ -49,7 +72,7 @@ describe('definePlugin helper', () => {
         apiVersion: 1,
         enforce: 'post',
         setup() {},
-      }).enforce
+      }).enforce,
     ).toBe('post');
 
     expect(() =>
@@ -58,7 +81,7 @@ describe('definePlugin helper', () => {
         apiVersion: 1,
         enforce: 'invalid' as any,
         setup() {},
-      })
+      }),
     ).toThrow('RANU_PLUGIN_INVALID');
   });
 
@@ -67,7 +90,7 @@ describe('definePlugin helper', () => {
       definePlugin({
         name: 'test-plugin',
         apiVersion: 1,
-      } as any)
+      } as any),
     ).toThrow('RANU_PLUGIN_INVALID');
   });
 });

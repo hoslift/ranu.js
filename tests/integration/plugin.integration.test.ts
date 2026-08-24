@@ -16,11 +16,11 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     // Minimal valid layout and page
     fs.writeFileSync(
       path.join(tempDir, 'app', 'layout.tsx'),
-      'export default function RootLayout({ children }: any) { return <html><body>{children}</body></html>; }\n'
+      'export default function RootLayout({ children }: any) { return <html><body>{children}</body></html>; }\n',
     );
     fs.writeFileSync(
       path.join(tempDir, 'app', 'page.tsx'),
-      'export default function HomePage() { return <h1>Plugin Test</h1>; }\n'
+      'export default function HomePage() { return <h1>Plugin Test</h1>; }\n',
     );
   });
 
@@ -32,6 +32,16 @@ describe('Integration: Phase 21 Plugin API v1', () => {
 
   it('runs build lifecycle hooks and applies plugin config in production build', async () => {
     const hookEvents: string[] = [];
+    let resolvedPluginConfig: any;
+
+    fs.writeFileSync(
+      path.join(tempDir, 'plugin-value.ts'),
+      "export const pluginValue = 'aliased-value';\n",
+    );
+    fs.writeFileSync(
+      path.join(tempDir, 'app', 'page.tsx'),
+      "import { pluginValue } from '@plugin-value';\nexport default function HomePage() { return <h1>{PLUGIN_VALUE}:{pluginValue}</h1>; }\n",
+    );
 
     const testPlugin = definePlugin({
       name: 'integration-plugin',
@@ -41,10 +51,11 @@ describe('Integration: Phase 21 Plugin API v1', () => {
           config(current) {
             hookEvents.push('config');
             return {
-              build: { minify: false },
+              build: { minify: true },
             };
           },
-          configResolved() {
+          configResolved(resolved) {
+            resolvedPluginConfig = resolved;
             hookEvents.push('configResolved');
           },
           buildStart() {
@@ -53,7 +64,9 @@ describe('Integration: Phase 21 Plugin API v1', () => {
           routes(routes) {
             hookEvents.push(`routes:${routes.length}`);
           },
-          extendBuild() {
+          extendBuild(api) {
+            api.addAlias('@plugin-value', path.join(tempDir, 'plugin-value.ts'));
+            api.addDefine({ PLUGIN_VALUE: JSON.stringify('defined-value') });
             hookEvents.push('extendBuild');
           },
           buildEnd(result) {
@@ -78,6 +91,17 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(resolvedPluginConfig.build.minify).toBe(true);
+
+    const serverDir = path.join(tempDir, '.ranu', 'build', 'server');
+    const emittedServerCode = fs
+      .readdirSync(serverDir, { recursive: true })
+      .filter((entry) => typeof entry === 'string' && entry.endsWith('.mjs'))
+      .map((entry) => fs.readFileSync(path.join(serverDir, entry), 'utf8'))
+      .join('\n');
+    expect(emittedServerCode).toContain('aliased-value');
+    expect(emittedServerCode).toContain('defined-value');
+
     expect(hookEvents).toEqual([
       'config',
       'configResolved',
@@ -86,6 +110,35 @@ describe('Integration: Phase 21 Plugin API v1', () => {
       'extendBuild',
       'buildEnd:true',
     ]);
+  }, 15_000);
+
+  it('does not promote build artifacts when buildEnd fails', async () => {
+    const failingPlugin = definePlugin({
+      name: 'failing-build-end',
+      apiVersion: 1,
+      setup() {
+        return {
+          buildEnd() {
+            throw new Error('terminal hook failed');
+          },
+        };
+      },
+    });
+
+    (globalThis as any).__failingBuildEndPlugin = failingPlugin;
+    fs.writeFileSync(
+      path.join(tempDir, 'ranu.config.js'),
+      'export default { plugins: [globalThis.__failingBuildEndPlugin] };',
+      'utf8',
+    );
+
+    const result = await build({ projectRoot: tempDir });
+
+    expect(result.success).toBe(false);
+    expect(
+      result.diagnostics.some((diagnostic) => diagnostic.message.includes('terminal hook failed')),
+    ).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.ranu', 'build', 'BUILD_ID'))).toBe(false);
   });
 
   it('executes devStart and devEnd hooks during dev server lifecycle', async () => {
@@ -119,6 +172,31 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     expect(devEvents).toEqual([`devStart:${addr.port}`, 'devEnd']);
   });
 
+  it('cleans up startup resources when devStart fails', async () => {
+    const failingDevPlugin = definePlugin({
+      name: 'failing-dev-start',
+      apiVersion: 1,
+      setup() {
+        return {
+          devStart() {
+            throw new Error('devStart failed');
+          },
+        };
+      },
+    });
+
+    const devServer = createDevServer({
+      projectRoot: tempDir,
+      plugins: [failingDevPlugin],
+    });
+
+    await expect(devServer.start(0, '127.0.0.1')).rejects.toThrow('devStart failed');
+
+    expect(devServer.httpServer.listening).toBe(false);
+    expect((devServer as any).watcher).toBe(null);
+    expect((devServer.reloadChannel as any).isClosed).toBe(true);
+  });
+
   it('rejects invalid plugins and produces deterministic build diagnostics', async () => {
     const invalidPlugin = {
       name: 'invalid-version-plugin',
@@ -130,7 +208,7 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     fs.writeFileSync(
       path.join(tempDir, 'ranu.config.js'),
       'export default { plugins: [globalThis.__invalidPlugin] };',
-      'utf8'
+      'utf8',
     );
 
     const result = await build({

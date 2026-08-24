@@ -62,8 +62,14 @@ export interface PluginDevContext extends PluginHookContext {
 }
 
 export interface PluginHooks {
-  config?: (config: any, context: PluginHookContext) => any | Promise<any> | void | Promise<void>;
-  configResolved?: (config: any, context: PluginHookContext) => void | Promise<void>;
+  config?: (
+    config: Record<string, unknown>,
+    context: PluginHookContext,
+  ) => Record<string, unknown> | void | Promise<Record<string, unknown> | void>;
+  configResolved?: (
+    config: Readonly<Record<string, unknown>>,
+    context: PluginHookContext,
+  ) => void | Promise<void>;
   routes?: (
     routes: readonly PluginRouteInfo[],
     context: PluginHookContext,

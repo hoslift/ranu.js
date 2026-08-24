@@ -19,6 +19,7 @@ const sharedAliases = {
   '@ranu/dev': path.resolve(__dirname, 'packages/dev/src/index.ts'),
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
+  'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
 

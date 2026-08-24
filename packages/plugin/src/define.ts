@@ -10,12 +10,14 @@ export function definePlugin(definition: RanuPluginDefinition): RanuPluginDefini
   }
 
   if (!definition.name || typeof definition.name !== 'string' || definition.name.trim() === '') {
-    throw new Error('RANU_PLUGIN_INVALID: Plugin definition must specify a non-empty string "name"');
+    throw new Error(
+      'RANU_PLUGIN_INVALID: Plugin definition must specify a non-empty string "name"',
+    );
   }
 
   if (definition.apiVersion !== 1) {
     throw new Error(
-      `RANU_PLUGIN_INCOMPATIBLE: Unsupported plugin apiVersion "${(definition as any).apiVersion}". Ranu.js supports Plugin API v1 (apiVersion: 1).`
+      `RANU_PLUGIN_INCOMPATIBLE: Unsupported plugin apiVersion "${String((definition as any).apiVersion)}". Ranu.js supports Plugin API v1 (apiVersion: 1).`,
     );
   }
 
@@ -26,13 +28,13 @@ export function definePlugin(definition: RanuPluginDefinition): RanuPluginDefini
     definition.enforce !== 'post'
   ) {
     throw new Error(
-      `RANU_PLUGIN_INVALID: Invalid enforce tier "${definition.enforce}". Must be "pre", "normal", or "post".`
+      `RANU_PLUGIN_INVALID: Invalid enforce tier "${String(definition.enforce)}". Must be "pre", "normal", or "post".`,
     );
   }
 
   if (typeof definition.setup !== 'function') {
     throw new Error(
-      `RANU_PLUGIN_INVALID: Plugin "${definition.name}" must implement a setup(context) function.`
+      `RANU_PLUGIN_INVALID: Plugin "${definition.name}" must implement a setup(context) function.`,
     );
   }
 

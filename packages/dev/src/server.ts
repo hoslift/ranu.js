@@ -459,15 +459,24 @@ export class DevServer {
     });
 
     // Plugin Hook: devStart
-    await this.pluginManager.runDevStart({
-      pluginName: '',
-      mode: 'development',
-      command: 'dev',
-      projectRoot: this.projectRoot,
-      logger: (this.pluginManager as any).setupContext.logger,
-      port: address.port,
-      host: address.host,
-    });
+    try {
+      await this.pluginManager.runDevStart({
+        pluginName: '',
+        mode: 'development',
+        command: 'dev',
+        projectRoot: this.projectRoot,
+        logger: (this.pluginManager as any).setupContext.logger,
+        port: address.port,
+        host: address.host,
+      });
+    } catch (error: unknown) {
+      try {
+        await this.close();
+      } catch {
+        // Preserve the startup hook error after best-effort resource cleanup.
+      }
+      throw error;
+    }
 
     return address;
   }
