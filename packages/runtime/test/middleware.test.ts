@@ -6,6 +6,8 @@ import {
   compileMatcherPattern,
   matchPathPattern,
   RewriteSignal,
+  RedirectSignal,
+  NotFoundSignal,
   MiddlewareNextSignal,
   type RanuRequestContext,
 } from '../src/index.js';
@@ -126,6 +128,99 @@ describe('Middleware Runtime Execution & Signals', () => {
       errors: [],
     },
   ];
+
+  function createContext(url = 'http://localhost:3000/dashboard'): RanuRequestContext {
+    const request = new Request(url);
+    return {
+      requestId: 'middleware-unit-request',
+      request,
+      url: new URL(url),
+      params: {},
+      locals: new Map(),
+      signal: request.signal,
+      responseCookies: [],
+    };
+  }
+
+  it('normalizes every supported middleware export and continuation shape', async () => {
+    const request = new Request('http://localhost:3000/dashboard');
+    const context = createContext();
+
+    await expect(createRuntimeMiddleware(null).run(request, context)).resolves.toEqual({
+      type: 'next',
+    });
+    await expect(createRuntimeMiddleware({ value: true }).run(request, context)).resolves.toEqual({
+      type: 'next',
+    });
+    await expect(
+      createRuntimeMiddleware(async () => ({ type: 'next' })).run(request, context),
+    ).resolves.toEqual({ type: 'next' });
+    await expect(
+      createRuntimeMiddleware({ middleware: async () => ({ type: 'unknown' }) }).run(
+        request,
+        context,
+      ),
+    ).resolves.toEqual({ type: 'next' });
+    await expect(
+      createRuntimeMiddleware({ default: async () => new MiddlewareNextSignal() }).run(
+        request,
+        context,
+      ),
+    ).resolves.toEqual({ type: 'next' });
+
+    const directResponse = new Response('direct');
+    const responseContinuation = await createRuntimeMiddleware({
+      default: async () => ({ type: 'response', response: directResponse }),
+    }).run(request, context);
+    expect(responseContinuation).toEqual({ type: 'response', response: directResponse });
+
+    const redirectContinuation = await createRuntimeMiddleware({
+      default: async () => new RedirectSignal('/login', 307),
+    }).run(request, context);
+    expect(redirectContinuation.type).toBe('response');
+    if (redirectContinuation.type === 'response') {
+      expect(redirectContinuation.response.status).toBe(307);
+      expect(redirectContinuation.response.headers.get('location')).toBe('/login');
+    }
+
+    const notFoundContinuation = await createRuntimeMiddleware({
+      default: async () => new NotFoundSignal(),
+    }).run(request, context);
+    expect(notFoundContinuation.type).toBe('response');
+    if (notFoundContinuation.type === 'response') {
+      expect(notFoundContinuation.response.status).toBe(404);
+    }
+  });
+
+  it('normalizes thrown middleware control signals and bypasses internal assets', async () => {
+    const request = new Request('http://localhost:3000/dashboard');
+    const context = createContext();
+    const thrown = createRuntimeMiddleware({
+      default: async () => {
+        throw new RedirectSignal('/signin', 308);
+      },
+    });
+
+    const continuation = await thrown.run(request, context);
+    expect(continuation.type).toBe('response');
+    if (continuation.type === 'response') {
+      expect(continuation.response.status).toBe(308);
+      expect(continuation.response.headers.get('location')).toBe('/signin');
+    }
+
+    let handlerRan = false;
+    const internalOnly = createRuntimeMiddleware({
+      default: async () => {
+        handlerRan = true;
+        return new Response('blocked');
+      },
+    });
+    const internalContext = createContext('http://localhost:3000/_ranu/client.js');
+    await expect(internalOnly.run(internalContext.request, internalContext)).resolves.toEqual({
+      type: 'next',
+    });
+    expect(handlerRan).toBe(false);
+  });
 
   it('runs middleware with next() and allows request to proceed', async () => {
     let middlewareRan = false;
