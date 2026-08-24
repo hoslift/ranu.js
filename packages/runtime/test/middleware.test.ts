@@ -48,6 +48,13 @@ describe('Middleware Pattern Matcher', () => {
     expect(matchPathPattern('/api/*', '/api/v1/posts')).toBe(true);
     expect(matchPathPattern('/api/*', '/web/users')).toBe(false);
   });
+
+  it('falls back to path conversion when a regex-like pattern is malformed', () => {
+    const matcher = compileMatcherPattern('/broken(?');
+
+    expect(matcher.test('/broken(?')).toBe(true);
+    expect(matcher.test('/broken')).toBe(false);
+  });
 });
 
 describe('Middleware Runtime Execution & Signals', () => {
@@ -275,6 +282,35 @@ describe('Middleware Runtime Execution & Signals', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('x-middleware-ran')).toBe('true');
     expect(await response.text()).toBe('ok');
+  });
+
+  it('preserves downstream, middleware, and context response cookies', async () => {
+    const middleware = createRuntimeMiddleware({
+      default: async () => new MiddlewareNextSignal({ 'Set-Cookie': 'middleware=1; Path=/' }),
+    });
+    const runtime = new RanuServerRuntime({
+      routeRecords,
+      contextStore,
+      apiDispatcher: dummyApiDispatcher,
+      staticDispatcher: dummyStaticDispatcher,
+      renderer: {
+        render: async (_request: Request, context: RanuRequestContext) => {
+          context.responseCookies.push('context=1; Path=/');
+          return new Response('ok', {
+            headers: { 'Set-Cookie': 'downstream=1; Path=/' },
+          });
+        },
+      },
+      middleware,
+      config: { mode: 'production' },
+    });
+
+    const response = await runtime.handle(new Request('http://localhost:3000/dashboard'));
+    const cookies = response.headers.get('set-cookie');
+
+    expect(cookies).toContain('downstream=1');
+    expect(cookies).toContain('middleware=1');
+    expect(cookies).toContain('context=1');
   });
 
   it.each([{ type: 'response' }, { type: 'rewrite', url: '' }, { type: 'next', headers: 42 }])(
