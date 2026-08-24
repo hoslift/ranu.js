@@ -24,9 +24,7 @@ export function compileMatcherPattern(pattern: string): RegExp {
     if (!p.endsWith('$')) p = p + '$';
     try {
       return new RegExp(p);
-    } catch {
-      void 0;
-    }
+    } catch { /* Fall through to path-pattern compilation. */ }
   }
   let regexStr = pattern
     .replace(/\/?:([a-zA-Z0-9_]+)\*/g, '__OPTIONAL_CATCH_ALL__')
@@ -126,7 +124,6 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
       run: () => Promise.resolve({ type: 'next' }),
     };
   }
-
   const moduleObj = typeof mod === 'object' && mod !== null ? (mod as Record<string, unknown>) : {};
   const handler =
     typeof mod === 'function'
@@ -150,12 +147,9 @@ export function createRuntimeMiddleware(mod: unknown): RuntimeMiddleware {
         return { type: 'next' };
       }
       const pathname = context.url.pathname;
-
-      // Internal framework assets ALWAYS bypass middleware
       if (pathname.startsWith('/_ranu/')) {
         return { type: 'next' };
       }
-
       if (compiledMatchers && compiledMatchers.length > 0) {
         const matches = compiledMatchers.some((re) => re.test(pathname));
         if (!matches) {

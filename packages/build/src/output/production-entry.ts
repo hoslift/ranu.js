@@ -100,7 +100,7 @@ export default {
   serverManifest,
   clientManifest,
   staticManifest,
-  moduleLoader, createProductionRuntime,
+  moduleLoader,
 };
 `;
 }
