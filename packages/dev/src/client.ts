@@ -36,6 +36,13 @@ export const DEV_CLIENT_SCRIPT = `
         var name = type.name || type.displayName;
         return typeof name === 'string' && /^[A-Z]/.test(name);
       }
+      if (typeof type === 'object' && type !== null) {
+        var marker = type.$$typeof;
+        if (typeof marker === 'symbol') {
+          var description = marker.description || '';
+          return description.indexOf('react.memo') !== -1 || description.indexOf('react.forward_ref') !== -1;
+        }
+      }
       return false;
     },
 

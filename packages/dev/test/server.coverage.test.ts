@@ -378,6 +378,7 @@ describe('DevServer focused coverage', () => {
     privateServer.handleBuildComplete(success);
     expect(channel.broadcastReload).toHaveBeenCalledWith({
       buildId: success.buildId,
+      generation: success.generation,
       reason: 'rebuild',
     });
 
@@ -385,6 +386,9 @@ describe('DevServer focused coverage', () => {
       throw new Error('reload failed');
     });
     expect(() => privateServer.handleBuildComplete(success)).not.toThrow();
+    expect(channel.broadcastError).toHaveBeenCalledWith([
+      expect.objectContaining({ code: 'RANU_DEV_RUNTIME_RELOAD_FAILED' }),
+    ]);
 
     const failure = makeBuildState(tempDir, {
       success: false,
@@ -403,11 +407,12 @@ describe('DevServer focused coverage', () => {
     expect(address.url).toBe(`http://localhost:${address.port}`);
     expect(harness.watchers).toHaveLength(1);
 
-    harness.watchers[0].options.onChange([
+    const events = [
       { relativePath: 'app/page.tsx', fullPath: 'app/page.tsx', type: 'change', category: 'route' },
-    ]);
+    ];
+    harness.watchers[0].options.onChange(events);
     await Promise.resolve();
-    expect(harness.coordinators[0].triggerRebuild).toHaveBeenCalledWith('app/page.tsx');
+    expect(harness.coordinators[0].triggerRebuild).toHaveBeenCalledWith('app/page.tsx', events);
     await server.rebuild('manual');
     expect(harness.coordinators[0].triggerRebuild).toHaveBeenCalledWith('manual');
 

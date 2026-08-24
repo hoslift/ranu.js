@@ -34,14 +34,16 @@ export class ReactRefreshRuntime {
   /**
    * Hook signature generator helper ($RefreshSig$).
    */
-  static createSignatureFunctionForTransform(): (type: unknown, key: string, customHooks?: Array<() => unknown>) => unknown {
+  static createSignatureFunctionForTransform(): (
+    type: unknown,
+    key: string,
+    customHooks?: Array<() => unknown>,
+  ) => unknown {
     let savedType: unknown = null;
-    let hasCustomHooks = false;
 
     return function (type: unknown, key: string, customHooks: Array<() => unknown> = []) {
       if (typeof key === 'string') {
         savedType = type;
-        hasCustomHooks = customHooks.length > 0;
         ReactRefreshRuntime.setSignature(type, key, customHooks);
         return type;
       }
@@ -129,13 +131,6 @@ export class ReactRefreshRuntime {
    * Executes the React Fast Refresh cycle.
    */
   static performReactRefresh(): void {
-    if (typeof window !== 'undefined') {
-      const devtoolsHook = (window as unknown as { __REACT_DEVTOOLS_GLOBAL_HOOK__?: { onCommitFiberRoot?: unknown } }).__REACT_DEVTOOLS_GLOBAL_HOOK__;
-      if (devtoolsHook && typeof devtoolsHook.onCommitFiberRoot === 'function') {
-        // Trigger React DevTools fiber reconciler update if available
-      }
-    }
-
     for (const listener of this.refreshListeners) {
       try {
         listener();

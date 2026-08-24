@@ -17,21 +17,26 @@ describe('Integration: Phase 19 HMR & React Fast Refresh', () => {
       `import React from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html><head></head><body>{children}</body></html>;
-}`
+}`,
     );
 
     fs.writeFileSync(
       path.join(appDir, 'page.tsx'),
-      `import React, { useState } from 'react';
+      `import React from 'react';
+import Counter from './Counter';
 export default function CounterPage() {
-  const [count, setCount] = useState(0);
-  return (
-    <div>
-      <h1 id="title">Counter App</h1>
-      <button id="btn" onClick={() => setCount(count + 1)}>Count: {count}</button>
-    </div>
-  );
-}`
+  return <Counter />;
+}`,
+    );
+    fs.writeFileSync(path.join(appDir, 'Counter.module.css'), '.title { color: blue; }');
+    fs.writeFileSync(
+      path.join(appDir, 'Counter.tsx'),
+      `'use client';
+import React from 'react';
+import './Counter.module.css';
+export default function Counter() {
+  return <h1 id="title">Counter App</h1>;
+}`,
     );
   });
 
@@ -59,6 +64,10 @@ export default function CounterPage() {
     const html = await pageRes.text();
     expect(html).toContain('Counter App');
     expect(html).toContain('/_ranu/dev-client.js');
+    const initialClientManifest = JSON.parse(
+      fs.readFileSync(path.join(tempDir, '.ranu', 'dev', 'manifest', 'client.json'), 'utf8'),
+    );
+    expect(initialClientManifest.assets['app/Counter.tsx']?.js).toHaveLength(1);
 
     // 2. Mock SSE Client Connection
     const receivedEvents: Array<{ event: string; data: any }> = [];
@@ -94,24 +103,20 @@ export default function CounterPage() {
 
     // 3. Edit React component -> triggers JS HMR update
     fs.writeFileSync(
-      path.join(tempDir, 'app', 'page.tsx'),
-      `import React, { useState } from 'react';
-export default function CounterPage() {
-  const [count, setCount] = useState(0);
-  return (
-    <div>
-      <h1 id="title">Updated Counter App</h1>
-      <button id="btn" onClick={() => setCount(count + 1)}>Count: {count}</button>
-    </div>
-  );
-}`
+      path.join(tempDir, 'app', 'Counter.tsx'),
+      `'use client';
+import React from 'react';
+import './Counter.module.css';
+export default function Counter() {
+  return <h1 id="title">Updated Counter App</h1>;
+}`,
     );
 
     await devServer.coordinator.triggerRebuild('component edit', [
       {
         type: 'change',
-        relativePath: 'app/page.tsx',
-        fullPath: path.join(tempDir, 'app', 'page.tsx'),
+        relativePath: 'app/Counter.tsx',
+        fullPath: path.join(tempDir, 'app', 'Counter.tsx'),
         category: 'other',
       },
     ]);
@@ -121,11 +126,8 @@ export default function CounterPage() {
     expect(updateEvent?.data.updates[0].type).toBe('js');
     expect(updateEvent?.data.updates[0].isReactRefresh).toBe(true);
 
-    // 4. Add & edit CSS module -> triggers CSS HMR update
-    fs.writeFileSync(
-      path.join(tempDir, 'app', 'Counter.module.css'),
-      '.title { color: purple; }'
-    );
+    // 4. Edit imported CSS module -> triggers CSS HMR update
+    fs.writeFileSync(path.join(tempDir, 'app', 'Counter.module.css'), '.title { color: purple; }');
 
     await devServer.coordinator.triggerRebuild('css edit', [
       {
@@ -147,7 +149,7 @@ export default function CounterPage() {
       `import React from 'react';
 export default function CounterPage() {
   return <div>Unterminated tag;
-}`
+}`,
     );
 
     await devServer.coordinator.triggerRebuild('syntax error', [
@@ -159,16 +161,17 @@ export default function CounterPage() {
       },
     ]);
 
-    const errorEvent = receivedEvents.find((e) => e.event === 'error');
+    const errorEvent = receivedEvents.find((e) => e.event === 'build-error');
     expect(errorEvent).toBeDefined();
 
     // 6. Fix syntax error -> broadcasts recovered
     fs.writeFileSync(
       path.join(tempDir, 'app', 'page.tsx'),
       `import React from 'react';
+import Counter from './Counter';
 export default function CounterPage() {
-  return <div>Fixed App</div>;
-}`
+  return <div>Fixed App<Counter /></div>;
+}`,
     );
 
     await devServer.coordinator.triggerRebuild('fix error', [
@@ -191,7 +194,7 @@ export default function CounterPage() {
       `import React from 'react';
 export default function BlogPage() {
   return <h1>Blog</h1>;
-}`
+}`,
     );
 
     await devServer.coordinator.triggerRebuild('new route', [

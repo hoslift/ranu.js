@@ -6,7 +6,6 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
   it('returns no-op when changed events list is empty', () => {
     const result = analyzeHmrUpdates({
       changedEvents: [],
-      projectRoot: '/test',
       generation: 1,
     });
     expect(result.canHotUpdate).toBe(true);
@@ -30,7 +29,6 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
 
     const configResult = analyzeHmrUpdates({
       changedEvents: [configEvent],
-      projectRoot: '/test',
       generation: 1,
     });
     expect(configResult.canHotUpdate).toBe(false);
@@ -38,7 +36,6 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
 
     const envResult = analyzeHmrUpdates({
       changedEvents: [envEvent],
-      projectRoot: '/test',
       generation: 1,
     });
     expect(envResult.canHotUpdate).toBe(false);
@@ -54,7 +51,6 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
     };
     const result = analyzeHmrUpdates({
       changedEvents: [routeAddEvent],
-      projectRoot: '/test',
       generation: 1,
     });
     expect(result.canHotUpdate).toBe(false);
@@ -77,17 +73,35 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
 
     const result = analyzeHmrUpdates({
       changedEvents: [cssEvent, moduleCssEvent],
-      projectRoot: '/test',
       generation: 2,
+      routeManifest: {
+        schemaVersion: 2,
+        buildId: 'test',
+        routes: [{ id: 'page:index', kind: 'page', pattern: '/', params: [] }],
+      },
+      clientManifest: {
+        schemaVersion: 1,
+        buildId: 'test',
+        assets: {
+          'page:index': {
+            js: [],
+            css: [
+              '/_ranu/assets/c_css-global-AAAA.css',
+              '/_ranu/assets/c_css-Button-module-BBBB.css',
+            ],
+          },
+        },
+      },
     });
 
     expect(result.canHotUpdate).toBe(true);
     expect(result.requiresReload).toBe(false);
     expect(result.updates).toHaveLength(2);
     expect(result.updates[0].type).toBe('css');
-    expect(result.updates[0].url).toContain('c_global.css?v=2');
+    expect(result.updates[0].url).toBe('/_ranu/assets/c_css-global-AAAA.css?v=2');
     expect(result.updates[1].type).toBe('css');
-    expect(result.updates[1].url).toContain('c_Button.css?v=2');
+    expect(result.updates[1].url).toBe('/_ranu/assets/c_css-Button-module-BBBB.css?v=2');
+    expect(result.affectedRoutes).toEqual(['page:index']);
   });
 
   it('creates JS Fast Refresh update for React component edits', () => {
@@ -100,14 +114,52 @@ describe('HMR Graph Invalidator & Update Analyzer', () => {
 
     const result = analyzeHmrUpdates({
       changedEvents: [componentEvent],
-      projectRoot: '/test',
       generation: 3,
+      routeManifest: {
+        schemaVersion: 2,
+        buildId: 'test',
+        routes: [{ id: 'page:about', kind: 'page', pattern: '/about', params: [] }],
+      },
+      clientManifest: {
+        schemaVersion: 1,
+        buildId: 'test',
+        assets: {
+          'app/components/Header.tsx': {
+            js: ['/_ranu/assets/c_components-Header-ABCD.js'],
+            css: [],
+          },
+          'page:about': {
+            js: ['/_ranu/assets/c_components-Header-ABCD.js'],
+            css: [],
+          },
+        },
+      },
     });
 
     expect(result.canHotUpdate).toBe(true);
     expect(result.requiresReload).toBe(false);
     expect(result.updates).toHaveLength(1);
     expect(result.updates[0].type).toBe('js');
-    expect(result.updates[0].url).toContain('c_components-Header.js?v=3');
+    expect(result.updates[0].url).toBe('/_ranu/assets/c_components-Header-ABCD.js?v=3');
+    expect(result.affectedRoutes).toEqual(['page:about']);
+  });
+
+  it('falls back to reload instead of fabricating a missing bundle URL', () => {
+    const result = analyzeHmrUpdates({
+      changedEvents: [
+        {
+          type: 'change',
+          relativePath: 'app/server-only.tsx',
+          fullPath: '/test/app/server-only.tsx',
+          category: 'other',
+        },
+      ],
+      generation: 4,
+      clientManifest: { schemaVersion: 1, buildId: 'test', assets: {} },
+    });
+
+    expect(result.canHotUpdate).toBe(false);
+    expect(result.requiresReload).toBe(true);
+    expect(result.updates).toEqual([]);
   });
 });

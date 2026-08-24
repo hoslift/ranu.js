@@ -1,10 +1,6 @@
 import type http from 'node:http';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
-import type {
-  HmrUpdateMessage,
-  HmrReloadMessage,
-  HmrRecoveredMessage,
-} from './hmr/types.js';
+import type { HmrUpdateMessage, HmrReloadMessage, HmrRecoveredMessage } from './hmr/types.js';
 
 export class DevReloadChannel {
   private readonly clients = new Set<http.ServerResponse>();
@@ -36,7 +32,7 @@ export class DevReloadChannel {
     _req: http.IncomingMessage,
     res: http.ServerResponse,
     currentBuildId: string,
-    currentGeneration = 0
+    currentGeneration = 0,
   ): void {
     if (this.isClosed) {
       res.writeHead(503, { 'Content-Type': 'text/plain' });
@@ -47,7 +43,7 @@ export class DevReloadChannel {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'Access-Control-Allow-Origin': '*',
     });
     res.flushHeaders?.();
@@ -111,7 +107,7 @@ export class DevReloadChannel {
   broadcastError(diagnostics: readonly RanuDiagnostic[]): void {
     if (this.isClosed || this.clients.size === 0) return;
     for (const client of this.clients) {
-      this.sendTo(client, 'error', { diagnostics });
+      this.sendTo(client, 'build-error', { diagnostics });
     }
   }
 
