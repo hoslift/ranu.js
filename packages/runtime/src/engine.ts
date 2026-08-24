@@ -5,11 +5,39 @@ import { matchRoute } from '@ranu/router';
 import { isControlSignal, RedirectSignal, NotFoundSignal } from './signals.js';
 import { sanitizeErrorResponse } from './errors.js';
 import { registerRequestContextStore } from './context.js';
-import { HTTP_METHODS, type RouteKind } from '@ranu/core';
+import type { RouteKind } from '@ranu/core';
 
 let globalRequestSequence = 0;
+const MAX_REWRITE_DEPTH = 5;
 
-function finalizeResponse(response: Response, context: RanuRequestContext): Response {
+function validateHeaders(headersInit?: HeadersInit): void {
+  if (!headersInit) return;
+  if (typeof headersInit === 'object' && !(headersInit instanceof Headers) && !Array.isArray(headersInit)) {
+    for (const [key, value] of Object.entries(headersInit)) {
+      if (/[\r\n]/.test(key) || (typeof value === 'string' && /[\r\n]/.test(value))) {
+        throw new Error(`Invalid header characters in middleware header "${key}" (CRLF injection prevention)`);
+      }
+    }
+  }
+}
+
+function finalizeResponse(
+  response: Response,
+  context: RanuRequestContext,
+  middlewareHeaders?: HeadersInit,
+): Response {
+  if (middlewareHeaders) {
+    validateHeaders(middlewareHeaders);
+    const entries = new Headers(middlewareHeaders);
+    entries.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append('Set-Cookie', value);
+      } else if (!response.headers.has(key)) {
+        response.headers.set(key, value);
+      }
+    });
+  }
+
   if (context.responseCookies.length > 0) {
     for (const cookieHeader of context.responseCookies) {
       response.headers.append('Set-Cookie', cookieHeader);
@@ -98,19 +126,64 @@ export class RanuServerRuntime {
 
     let matchedRouteId: string | undefined;
     let matchedRouteKind: RouteKind | undefined;
+    let middlewareHeaders: HeadersInit | undefined;
 
     return this.options.contextStore.run(context, async () => {
       try {
-        // 4. Global Middleware Hooks
-        if (this.options.middleware) {
-          const continuation = await this.options.middleware.run(request, context);
-          if (continuation.type === 'response') {
-            return finalizeResponse(continuation.response, context);
+        let currentUrl = url;
+        let currentRequest = request;
+        let rewriteDepth = 0;
+
+        // 4. Middleware execution with rewrite loop protection
+        while (true) {
+          const currentPathname = currentUrl.pathname;
+
+          // Framework internal assets bypass middleware
+          if (!currentPathname.startsWith('/_ranu/') && this.options.middleware) {
+            const continuation = await this.options.middleware.run(currentRequest, context);
+
+            if (continuation.type === 'response') {
+              return finalizeResponse(continuation.response, context, middlewareHeaders);
+            }
+
+            if (continuation.type === 'rewrite') {
+              rewriteDepth++;
+              if (rewriteDepth > MAX_REWRITE_DEPTH) {
+                const loopError = new Error(
+                  `Middleware rewrite loop detected: exceeded maximum rewrite depth of ${MAX_REWRITE_DEPTH}.`
+                );
+                (loopError as any).code = 'RANU_REWRITE_LOOP';
+                throw loopError;
+              }
+
+              const targetUrl = new URL(continuation.url, currentUrl);
+              const mergedParams = new URLSearchParams(currentUrl.searchParams);
+              targetUrl.searchParams.forEach((val, key) => {
+                mergedParams.set(key, val);
+              });
+              targetUrl.search = mergedParams.toString() ? `?${mergedParams.toString()}` : '';
+              currentUrl = targetUrl;
+              currentRequest = new Request(currentUrl.href, currentRequest);
+              (context as any).url = currentUrl;
+              (context as any).request = currentRequest;
+              continue;
+            }
+
+            if (continuation.type === 'next') {
+              if (continuation.headers) {
+                validateHeaders(continuation.headers);
+                middlewareHeaders = continuation.headers;
+              }
+              break;
+            }
           }
+          break;
         }
 
+        const effectivePathname = currentUrl.pathname;
+
         // 5. Normalization of pathname trailing slash (pathname-first matching)
-        let normalizedPathname = pathname;
+        let normalizedPathname = effectivePathname;
         if (normalizedPathname !== '/' && normalizedPathname.endsWith('/')) {
           normalizedPathname = normalizedPathname.slice(0, -1);
         }
@@ -128,7 +201,8 @@ export class RanuServerRuntime {
                 status: 405,
                 headers: { 'Allow': 'GET, HEAD' }
               }),
-              context
+              context,
+              middlewareHeaders
             );
           }
 
@@ -137,14 +211,14 @@ export class RanuServerRuntime {
             pathname: normalizedPathname,
           };
 
-          const res = await this.options.staticDispatcher.dispatch(request, context, target);
-          return finalizeResponse(res, context);
+          const res = await this.options.staticDispatcher.dispatch(currentRequest, context, target);
+          return finalizeResponse(res, context, middlewareHeaders);
         }
 
         // 7. Match dynamic routes
-        const routeMatch = matchRoute(pathname, this.options.routeRecords as CompiledRouteRecord[]);
+        const routeMatch = matchRoute(normalizedPathname, this.options.routeRecords as CompiledRouteRecord[]);
         if (!routeMatch) {
-          return finalizeResponse(new Response('Not Found', { status: 404 }), context);
+          return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
         }
 
         matchedRouteId = routeMatch.routeId;
@@ -155,7 +229,7 @@ export class RanuServerRuntime {
 
         const routeRecord = this.options.routeRecords.find((r) => r.routeId === routeMatch.routeId);
         if (!routeRecord) {
-          return finalizeResponse(new Response('Not Found', { status: 404 }), context);
+          return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
         }
 
         // Static-only dynamic path miss check (absent from StaticManifest)
@@ -171,7 +245,8 @@ export class RanuServerRuntime {
                 status: 405,
                 headers: { 'Allow': 'GET, HEAD' }
               }),
-              context
+              context,
+              middlewareHeaders
             );
           }
 
@@ -184,8 +259,8 @@ export class RanuServerRuntime {
             ...(routeRecord.notFound !== undefined ? { notFound: routeRecord.notFound } : {}),
           };
 
-          const res = await this.options.renderer.render(request, context, pageTarget);
-          return finalizeResponse(res, context);
+          const res = await this.options.renderer.render(currentRequest, context, pageTarget);
+          return finalizeResponse(res, context, middlewareHeaders);
         } else {
           // API Endpoint
           const hasExplicitMethod = routeRecord.methods.includes(method as any);
@@ -198,8 +273,8 @@ export class RanuServerRuntime {
               params: context.params,
               methods: routeRecord.methods,
             };
-            const res = await this.options.apiDispatcher.dispatch(request, context, apiTarget);
-            return finalizeResponse(res, context);
+            const res = await this.options.apiDispatcher.dispatch(currentRequest, context, apiTarget);
+            return finalizeResponse(res, context, middlewareHeaders);
           } else {
             // Compute effective allowed methods
             const allowed = [...routeRecord.methods];
@@ -217,7 +292,8 @@ export class RanuServerRuntime {
                 status: 405,
                 headers: { 'Allow': allowed.join(', ') }
               }),
-              context
+              context,
+              middlewareHeaders
             );
           }
         }
@@ -229,17 +305,18 @@ export class RanuServerRuntime {
                 status: err.status,
                 headers: { 'Location': err.url }
               }),
-              context
+              context,
+              middlewareHeaders
             );
           }
           if (err instanceof NotFoundSignal) {
-            return finalizeResponse(new Response('Not Found', { status: 404 }), context);
+            return finalizeResponse(new Response('Not Found', { status: 404 }), context, middlewareHeaders);
           }
         }
 
         // Unexpected/Execution errors: Sanitize
         const errRes = sanitizeErrorResponse(err, context.requestId, this.options.config, matchedRouteKind);
-        return finalizeResponse(errRes, context);
+        return finalizeResponse(errRes, context, middlewareHeaders);
       }
     });
   }

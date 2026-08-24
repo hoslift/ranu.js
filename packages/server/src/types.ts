@@ -27,3 +27,14 @@ export interface CookieStore {
   set(name: string, value: string, options?: CookieSetOptions): this;
   delete(name: string, options?: CookieDeleteOptions): this;
 }
+
+export interface MiddlewareContext {
+  readonly requestId: string;
+  readonly params: Record<string, string | string[]>;
+  readonly locals: Map<string, unknown>;
+  readonly signal: AbortSignal;
+}
+
+export interface MiddlewareNextOptions {
+  headers?: HeadersInit;
+}

@@ -46,6 +46,13 @@ export const moduleLoader = {
     }
     const modulePath = path.resolve(buildDir, entry.serverEntry);
     return await import(pathToFileURL(modulePath).href);
+  },
+  async loadMiddleware() {
+    const middlewarePath = path.resolve(buildDir, 'server/middleware.mjs');
+    if (fs.existsSync(middlewarePath)) {
+      return await import(pathToFileURL(middlewarePath).href);
+    }
+    return undefined;
   }
 };
 

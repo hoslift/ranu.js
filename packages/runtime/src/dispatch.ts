@@ -41,8 +41,9 @@ export interface RanuRenderer {
 }
 
 export type MiddlewareContinuation =
-  | { readonly type: 'next' }
-  | { readonly type: 'response'; readonly response: Response };
+  | { readonly type: 'next'; readonly headers?: HeadersInit }
+  | { readonly type: 'response'; readonly response: Response }
+  | { readonly type: 'rewrite'; readonly url: string };
 
 export interface RuntimeMiddleware {
   run(request: Request, context: RanuRequestContext): Promise<MiddlewareContinuation>;

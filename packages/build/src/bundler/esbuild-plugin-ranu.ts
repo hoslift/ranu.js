@@ -33,6 +33,17 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
   return {
     name: 'ranu-framework-plugin',
     setup(build) {
+      // Externalize ranu/server and @ranu/server in node bundles
+      build.onResolve({ filter: /^@?ranu\/server$/ }, () => {
+        if (platform === 'node') {
+          return {
+            path: '@ranu/server',
+            external: true,
+          };
+        }
+        return null;
+      });
+
       // 1. Virtual module for ranu/server-only
       build.onResolve({ filter: /^ranu\/server-only$/ }, (args) => {
         if (platform === 'browser') {

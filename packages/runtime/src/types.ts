@@ -15,6 +15,20 @@ export interface RanuRequestContext {
   readonly depth?: number;
 }
 
+export interface MiddlewareContext {
+  readonly requestId: string;
+  readonly params: Record<string, string | string[]>;
+  readonly locals: Map<string, unknown>;
+  readonly signal: AbortSignal;
+}
+
+export type MiddlewareHeadersInit =
+  | Headers
+  | string[][]
+  | Record<string, string>
+  | Iterable<[string, string]>;
+
+
 export interface RuntimeConfig {
   readonly mode: RanuMode;
 }

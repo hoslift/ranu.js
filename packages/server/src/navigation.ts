@@ -1,4 +1,5 @@
-import { RedirectSignal, NotFoundSignal } from '@ranu/runtime';
+import { RedirectSignal, NotFoundSignal, RewriteSignal, MiddlewareNextSignal } from '@ranu/runtime';
+import type { MiddlewareNextOptions } from './types.js';
 
 /**
  * Halts execution and triggers framework redirect control flow.
@@ -17,4 +18,20 @@ export function redirect(url: string, statusOrType: number | 'push' | 'replace' 
  */
 export function notFound(): never {
   throw new NotFoundSignal();
+}
+
+/**
+ * Instructs framework middleware to continue request processing.
+ * Optionally attaches headers to be merged into the final response.
+ */
+export function next(options?: MiddlewareNextOptions): MiddlewareNextSignal {
+  return new MiddlewareNextSignal(options?.headers);
+}
+
+/**
+ * Halts normal route matching and internally rewrites request to target URL/path.
+ */
+export function rewrite(url: string | URL): never {
+  const target = typeof url === 'string' ? url : url.toString();
+  throw new RewriteSignal(target);
 }
