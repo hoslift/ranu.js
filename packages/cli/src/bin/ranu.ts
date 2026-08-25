@@ -1,8 +1,10 @@
-/**
- * ranu CLI entry point
- *
- * Phase 0 skeleton — full implementation in Phase 22.
- */
+import { runCli } from '../cli.js';
 
-console.error('ranu CLI not yet implemented (Phase 0 skeleton)');
-process.exit(1);
+runCli(process.argv.slice(2))
+  .then((code) => {
+    process.exit(code);
+  })
+  .catch((err) => {
+    console.error('Fatal CLI Error:', err);
+    process.exit(1);
+  });
