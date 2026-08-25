@@ -35,22 +35,44 @@ const KNOWN_FLAGS = new Set<string>([
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  const dp: number[][] = [];
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 0; i <= m; i++) {
+    const row: number[] = new Array(n + 1).fill(0) as number[];
+    row[0] = i;
+    dp.push(row);
+  }
+
+  const firstRow = dp[0];
+  if (firstRow) {
+    for (let j = 0; j <= n; j++) {
+      firstRow[j] = j;
+    }
+  }
 
   for (let i = 1; i <= m; i++) {
+    const currRow = dp[i];
+    const prevRow = dp[i - 1];
+    if (!currRow || !prevRow) continue;
+
     for (let j = 1; j <= n; j++) {
-      if (a[i - 1] === b[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
+      const charA = a.charAt(i - 1);
+      const charB = b.charAt(j - 1);
+
+      const pVal = prevRow[j - 1] ?? 0;
+      const topVal = prevRow[j] ?? 0;
+      const leftVal = currRow[j - 1] ?? 0;
+
+      if (charA === charB) {
+        currRow[j] = pVal;
       } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        currRow[j] = 1 + Math.min(topVal, leftVal, pVal);
       }
     }
   }
 
-  return dp[m][n];
+  const lastRow = dp[m];
+  return lastRow ? (lastRow[n] ?? 0) : 0;
 }
 
 /**
@@ -93,6 +115,10 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let i = 0;
   while (i < argv.length) {
     const arg = argv[i];
+    if (arg === undefined) {
+      i++;
+      continue;
+    }
 
     if (arg === '--help') {
       help = true;
@@ -108,22 +134,24 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--root' || arg === '-r') {
       i++;
-      if (i >= argv.length || argv[i].startsWith('-')) {
+      const val = argv[i];
+      if (val === undefined || val.startsWith('-')) {
         throw new Error('Flag "--root" requires a valid path argument.');
       }
-      root = argv[i];
+      root = val;
       i++;
       continue;
     }
 
     if (arg === '--port' || arg === '-p') {
       i++;
-      if (i >= argv.length || argv[i].startsWith('-')) {
+      const val = argv[i];
+      if (val === undefined || val.startsWith('-')) {
         throw new Error('Flag "--port" requires a valid integer argument.');
       }
-      const rawPort = parseInt(argv[i], 10);
-      if (isNaN(rawPort) || rawPort < 1 || rawPort > 65535 || String(rawPort) !== argv[i]) {
-        throw new Error(`Invalid port number "${argv[i]}". Port must be an integer between 1 and 65535.`);
+      const rawPort = parseInt(val, 10);
+      if (isNaN(rawPort) || rawPort < 1 || rawPort > 65535 || String(rawPort) !== val) {
+        throw new Error(`Invalid port number "${val}". Port must be an integer between 1 and 65535.`);
       }
       port = rawPort;
       i++;
@@ -132,10 +160,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--host' || arg === '-h') {
       i++;
-      if (i >= argv.length || argv[i].startsWith('-')) {
+      const val = argv[i];
+      if (val === undefined || val.startsWith('-')) {
         throw new Error('Flag "--host" requires a valid host argument.');
       }
-      host = argv[i];
+      host = val;
       i++;
       continue;
     }
@@ -202,13 +231,13 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     root,
     port,
     host,
-    clean: clean || undefined,
-    open: open || undefined,
-    verbose: verbose || undefined,
-    debug: debug || undefined,
-    quiet: quiet || undefined,
-    json: json || undefined,
-    help: help || undefined,
-    version: version || undefined,
+    clean: clean ? true : undefined,
+    open: open ? true : undefined,
+    verbose: verbose ? true : undefined,
+    debug: debug ? true : undefined,
+    quiet: quiet ? true : undefined,
+    json: json ? true : undefined,
+    help: help ? true : undefined,
+    version: version ? true : undefined,
   };
 }

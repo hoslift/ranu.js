@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { RanuMode } from '@ranu/core';
 import {
   discoverConfig,
   loadConfig,
   validateUserConfig,
   resolveConfig,
-  type ResolvedRanuConfig,
-  type RanuMode,
 } from '@ranu/config';
 import type { ParsedCliArgs, CliLogger, CliContext } from './types.js';
 
@@ -17,7 +16,7 @@ export const MIN_NODE_VERSION = 22;
  */
 export function validateNodeVersion(): void {
   const match = process.version.match(/^v?(\d+)/);
-  if (match) {
+  if (match && match[1] !== undefined) {
     const major = parseInt(match[1], 10);
     if (major < MIN_NODE_VERSION) {
       throw new Error(
@@ -121,14 +120,19 @@ export async function resolveProjectContext(
     }
   }
 
+  const cliOverrides: { port?: number; host?: string } = {};
+  if (args.port !== undefined) {
+    cliOverrides.port = args.port;
+  }
+  if (args.host !== undefined) {
+    cliOverrides.host = args.host;
+  }
+
   const { config: resolvedConfig } = resolveConfig(
     userConfig,
     projectRoot,
     defaultMode,
-    {
-      port: args.port,
-      host: args.host,
-    }
+    Object.keys(cliOverrides).length > 0 ? cliOverrides : undefined
   );
 
   const isCI = Boolean(process.env.CI && process.env.CI !== '0' && process.env.CI !== 'false');

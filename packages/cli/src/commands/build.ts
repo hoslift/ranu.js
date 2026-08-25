@@ -11,7 +11,7 @@ export async function runBuildCommand(args: ParsedCliArgs, logger: CliLogger): P
     projectRoot: ctx.projectRoot,
     mode: 'production',
     minify: ctx.config.build.minify,
-    sourceMaps: ctx.config.build.sourceMaps,
+    sourceMaps: ctx.config.build.sourceMaps ? 'inline' : false,
   });
 
   if (!result.success) {

@@ -1,4 +1,5 @@
-import type { ResolvedRanuConfig, RanuMode } from '@ranu/config';
+import type { RanuMode } from '@ranu/core';
+import type { ResolvedRanuConfig } from '@ranu/config';
 
 export type CliCommand =
   | 'dev'
@@ -10,19 +11,19 @@ export type CliCommand =
   | 'version';
 
 export interface ParsedCliArgs {
-  readonly command?: CliCommand;
+  readonly command?: CliCommand | undefined;
   readonly args: readonly string[];
-  readonly root?: string;
-  readonly port?: number;
-  readonly host?: string;
-  readonly clean?: boolean;
-  readonly open?: boolean;
-  readonly verbose?: boolean;
-  readonly debug?: boolean;
-  readonly quiet?: boolean;
-  readonly json?: boolean;
-  readonly help?: boolean;
-  readonly version?: boolean;
+  readonly root?: string | undefined;
+  readonly port?: number | undefined;
+  readonly host?: string | undefined;
+  readonly clean?: boolean | undefined;
+  readonly open?: boolean | undefined;
+  readonly verbose?: boolean | undefined;
+  readonly debug?: boolean | undefined;
+  readonly quiet?: boolean | undefined;
+  readonly json?: boolean | undefined;
+  readonly help?: boolean | undefined;
+  readonly version?: boolean | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -39,7 +40,7 @@ export interface CliLogger {
 export interface CliContext {
   readonly cwd: string;
   readonly projectRoot: string;
-  readonly configFile?: string;
+  readonly configFile?: string | undefined;
   readonly config: ResolvedRanuConfig;
   readonly mode: RanuMode;
   readonly logger: CliLogger;

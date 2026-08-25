@@ -1,10 +1,10 @@
 import type { CliLogger } from './types.js';
 
 export interface CliLoggerOptions {
-  quiet?: boolean;
-  verbose?: boolean;
-  debug?: boolean;
-  json?: boolean;
+  quiet?: boolean | undefined;
+  verbose?: boolean | undefined;
+  debug?: boolean | undefined;
+  json?: boolean | undefined;
 }
 
 export function createCliLogger(options: CliLoggerOptions = {}): CliLogger {

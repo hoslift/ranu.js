@@ -9,7 +9,6 @@ export async function runDevCommand(args: ParsedCliArgs, logger: CliLogger): Pro
     projectRoot: ctx.projectRoot,
     port: ctx.config.server.port,
     host: ctx.config.server.host,
-    plugins: ctx.config.plugins,
     watch: true,
   });
 
