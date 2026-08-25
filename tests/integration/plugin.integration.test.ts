@@ -136,10 +136,44 @@ describe('Integration: Phase 21 Plugin API v1', () => {
     const result = await build({ projectRoot: tempDir });
 
     expect(result.success).toBe(false);
-    expect(
-      result.diagnostics.some((diagnostic) => diagnostic.message.includes('terminal hook failed')),
-    ).toBe(true);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'RANU_PLUGIN_INVALID',
+        message: expect.stringContaining('terminal hook failed'),
+      }),
+    );
     expect(fs.existsSync(path.join(tempDir, '.ranu', 'build', 'BUILD_ID'))).toBe(false);
+  });
+
+  it('classifies build lifecycle hook failures as plugin diagnostics', async () => {
+    const failingPlugin = definePlugin({
+      name: 'failing-build-start',
+      apiVersion: 1,
+      setup() {
+        return {
+          buildStart() {
+            throw new Error('buildStart hook rejected');
+          },
+        };
+      },
+    });
+
+    (globalThis as any).__failingBuildStartPlugin = failingPlugin;
+    fs.writeFileSync(
+      path.join(tempDir, 'ranu.config.js'),
+      'export default { plugins: [globalThis.__failingBuildStartPlugin] };',
+      'utf8',
+    );
+
+    const result = await build({ projectRoot: tempDir });
+
+    expect(result.success).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'RANU_PLUGIN_INVALID',
+        message: expect.stringContaining('buildStart hook rejected'),
+      }),
+    );
   });
 
   it('returns deterministic diagnostics when configResolved fails', async () => {

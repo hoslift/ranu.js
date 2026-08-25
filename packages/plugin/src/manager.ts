@@ -28,6 +28,11 @@ interface ResolvedPluginInstance {
   hooks?: PluginHooks;
 }
 
+/** Error raised by plugin registration, setup, or lifecycle execution. */
+class PluginExecutionError extends Error {
+  readonly code = 'RANU_PLUGIN_INVALID' as const;
+}
+
 export class PluginManager {
   private readonly plugins: ResolvedPluginInstance[] = [];
   private readonly setupContext: PluginSetupContext;
@@ -59,7 +64,7 @@ export class PluginManager {
       const validated = definePlugin(def);
 
       if (seenNames.has(validated.name)) {
-        throw new Error(
+        throw new PluginExecutionError(
           `RANU_PLUGIN_DUPLICATE: Duplicate plugin name "${validated.name}" registered. Each plugin name must be unique.`,
         );
       }
@@ -119,7 +124,7 @@ export class PluginManager {
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        throw new Error(
+        throw new PluginExecutionError(
           `RANU_PLUGIN_SETUP_ERROR: Plugin "${plugin.definition.name}" failed during setup(): ${message}`,
         );
       }
@@ -156,7 +161,7 @@ export class PluginManager {
           }
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "config" hook: ${message}`,
           );
         }
@@ -179,7 +184,7 @@ export class PluginManager {
           await plugin.hooks.configResolved(resolvedConfig, ctx);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "configResolved" hook: ${message}`,
           );
         }
@@ -214,7 +219,7 @@ export class PluginManager {
           }
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "routes" hook: ${message}`,
           );
         }
@@ -244,7 +249,7 @@ export class PluginManager {
           }
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "route" hook: ${message}`,
           );
         }
@@ -271,7 +276,7 @@ export class PluginManager {
           await plugin.hooks.buildStart(pluginContext);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildStart" hook: ${message}`,
           );
         }
@@ -296,7 +301,7 @@ export class PluginManager {
           await plugin.hooks.extendBuild(api, pluginContext);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "extendBuild" hook: ${message}`,
           );
         }
@@ -321,7 +326,7 @@ export class PluginManager {
           await plugin.hooks.buildEnd(result, pluginContext);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "buildEnd" hook: ${message}`,
           );
         }
@@ -346,7 +351,7 @@ export class PluginManager {
           await plugin.hooks.devStart(pluginContext);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devStart" hook: ${message}`,
           );
         }
@@ -371,7 +376,7 @@ export class PluginManager {
           await plugin.hooks.devEnd(pluginContext);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          throw new Error(
+          throw new PluginExecutionError(
             `RANU_PLUGIN_HOOK_ERROR: Plugin "${plugin.definition.name}" failed in "devEnd" hook: ${message}`,
           );
         }

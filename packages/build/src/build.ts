@@ -483,7 +483,7 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
   } catch (err: any) {
     cleanupTempArtifacts(tempOutDir);
     diagnostics.push({
-      code: 'RANU_BUILD_CONFIG_INVALID',
+      code: err?.code === 'RANU_PLUGIN_INVALID' ? err.code : 'RANU_BUILD_CONFIG_INVALID',
       severity: 'error',
       message: `Unexpected build failure: ${err.message ?? String(err)}`,
     });
