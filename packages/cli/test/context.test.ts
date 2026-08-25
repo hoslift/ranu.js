@@ -61,4 +61,14 @@ describe('@ranu/cli context and discovery', () => {
     expect(ctx.mode).toBe('production');
     expect(ctx.config.server.port).toBe(3000);
   });
+
+  it('rejects regular files supplied to --root with a directory-specific error', async () => {
+    const filePath = path.join(tempDir, 'file.txt');
+    fs.writeFileSync(filePath, 'hello');
+
+    const logger = createCliLogger({ quiet: true });
+    await expect(
+      resolveProjectContext({ args: [], root: filePath }, logger, 'production')
+    ).rejects.toThrow('Project root path is not a directory');
+  });
 });

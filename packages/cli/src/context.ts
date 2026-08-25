@@ -85,6 +85,10 @@ export async function resolveProjectContext(
     throw new Error(`Project root directory does not exist: "${projectRoot}"`);
   }
 
+  if (!fs.statSync(projectRoot).isDirectory()) {
+    throw new Error(`Project root path is not a directory: "${projectRoot}"`);
+  }
+
   if (args.clean) {
     cleanProjectArtifacts(projectRoot);
     logger.debug(`Cleaned .ranu directory in ${projectRoot}`);

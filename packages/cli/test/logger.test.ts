@@ -43,4 +43,13 @@ describe('@ranu/cli logger', () => {
     expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ status: 'ok', count: 42 }, null, 2));
     logSpy.mockRestore();
   });
+
+  it('outputs debug messages when verbose is true', () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const logger = createCliLogger({ verbose: true });
+
+    logger.debug('Verbose debug information');
+    expect(debugSpy).toHaveBeenCalled();
+    debugSpy.mockRestore();
+  });
 });

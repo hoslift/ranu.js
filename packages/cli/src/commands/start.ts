@@ -38,12 +38,21 @@ export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): P
 
   const address = await server.listen(port, host);
 
-  logger.log('');
-  logger.success(`Ranu.js production server listening`);
-  logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${address.host}:${address.port}\x1b[0m`);
-  logger.log(`  \x1b[1mMode:\x1b[0m    production`);
-  logger.log(`  \x1b[1mRoot:\x1b[0m    ${ctx.projectRoot}`);
-  logger.log('');
+  if (args.json) {
+    logger.json({
+      status: 'ready',
+      url: `http://${address.host}:${address.port}`,
+      mode: 'production',
+      root: ctx.projectRoot,
+    });
+  } else {
+    logger.log('');
+    logger.success(`Ranu.js production server listening`);
+    logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${address.host}:${address.port}\x1b[0m`);
+    logger.log(`  \x1b[1mMode:\x1b[0m    production`);
+    logger.log(`  \x1b[1mRoot:\x1b[0m    ${ctx.projectRoot}`);
+    logger.log('');
+  }
 
   // Handle termination signals
   return new Promise<number>((resolve) => {
@@ -52,7 +61,9 @@ export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): P
     const cleanup = async () => {
       if (isExiting) return;
       isExiting = true;
-      logger.log('\nShutting down Ranu.js production server...');
+      if (!args.json) {
+        logger.log('\nShutting down Ranu.js production server...');
+      }
       await server.close();
       resolve(0);
     };

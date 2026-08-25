@@ -6,6 +6,13 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
 
   const adapter = ctx.config.deployment?.adapter;
   if (!adapter) {
+    if (args.json) {
+      logger.json({
+        success: false,
+        error: 'No deployment adapter configured in ranu.config.ts',
+      });
+      return 1;
+    }
     logger.warn('No deployment adapter configured in ranu.config.ts.');
     logger.log('To deploy to a cloud provider, configure an adapter (e.g. @ranu/adapter-vercel) in your ranu.config.ts:');
     logger.log(`
@@ -27,10 +34,24 @@ export default defineConfig({
       projectRoot: ctx.projectRoot,
       logger,
     });
-    logger.success('Deployment preparation complete.');
+    if (args.json) {
+      logger.json({
+        success: true,
+        adapter: adapter.name ?? 'custom',
+      });
+    } else {
+      logger.success('Deployment preparation complete.');
+    }
     return 0;
   }
 
-  logger.error('The configured deployment adapter does not implement a valid adapt() method.');
+  if (args.json) {
+    logger.json({
+      success: false,
+      error: 'The configured deployment adapter does not implement a valid adapt() method',
+    });
+  } else {
+    logger.error('The configured deployment adapter does not implement a valid adapt() method.');
+  }
   return 1;
 }

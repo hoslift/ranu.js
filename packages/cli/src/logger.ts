@@ -9,6 +9,7 @@ export interface CliLoggerOptions {
 
 export function createCliLogger(options: CliLoggerOptions = {}): CliLogger {
   const isQuiet = Boolean(options.quiet);
+  const isVerbose = Boolean(options.verbose);
   const isDebug = Boolean(options.debug || process.env.DEBUG || process.env.RANU_DEBUG);
   const isJson = Boolean(options.json);
 
@@ -46,7 +47,7 @@ export function createCliLogger(options: CliLoggerOptions = {}): CliLogger {
     },
     debug(message: string, ...args: unknown[]) {
       if (isJson) return;
-      if (isDebug) {
+      if (isDebug || isVerbose) {
         console.debug(`\x1b[90m[debug]\x1b[0m ${message}`, ...args);
       }
     },

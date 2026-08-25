@@ -1,6 +1,29 @@
 import type { CliLogger } from '../types.js';
 
-export function runHelpCommand(subcommand?: string, logger?: CliLogger): number {
+export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?: boolean): number {
+  if (isJson && logger) {
+    logger.json({
+      name: 'ranu',
+      command: subcommand ?? 'root',
+      usage: subcommand ? `ranu ${subcommand} [options]` : 'ranu <command> [options]',
+      commands: ['dev', 'build', 'start', 'create', 'deploy', 'help', 'version'],
+      options: [
+        { flag: '-r, --root <path>', description: 'Project root directory' },
+        { flag: '-p, --port <number>', description: 'Port number to listen on' },
+        { flag: '-h, --host <string>', description: 'Host address to bind to' },
+        { flag: '--clean', description: 'Clean caches and generated files before running' },
+        { flag: '--open', description: 'Open browser after server start' },
+        { flag: '--verbose', description: 'Display verbose output' },
+        { flag: '--debug', description: 'Enable debug diagnostics and stack traces' },
+        { flag: '-q, --quiet', description: 'Suppress non-essential console output' },
+        { flag: '--json', description: 'Output results in machine-readable JSON format' },
+        { flag: '--help', description: 'Show help for command' },
+        { flag: '-v, --version', description: 'Show CLI version' },
+      ],
+    });
+    return 0;
+  }
+
   const log = (msg: string) => (logger ? logger.log(msg) : console.log(msg));
 
   if (!subcommand) {

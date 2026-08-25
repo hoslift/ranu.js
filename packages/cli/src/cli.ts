@@ -28,7 +28,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
     });
 
     if (args.help) {
-      return runHelpCommand(args.command, logger);
+      return runHelpCommand(args.command, logger, args.json);
     }
 
     if (args.version) {
@@ -52,13 +52,13 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
         return await runCreateCommand(args, logger);
 
       case 'help':
-        return runHelpCommand(args.args[0], logger);
+        return runHelpCommand(args.args[0], logger, args.json);
 
       case 'version':
         return runVersionCommand(args, logger);
 
       default:
-        return runHelpCommand(undefined, logger);
+        return runHelpCommand(undefined, logger, args.json);
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

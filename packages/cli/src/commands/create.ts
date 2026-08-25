@@ -3,6 +3,20 @@ import type { ParsedCliArgs, CliLogger } from '../types.js';
 export async function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const targetDir = args.args[0] ?? 'my-ranu-app';
 
+  if (args.json) {
+    logger.json({
+      command: 'create',
+      targetDir,
+      commands: [
+        `npm create ranu@latest ${targetDir}`,
+        `pnpm create ranu ${targetDir}`,
+        `yarn create ranu ${targetDir}`,
+        `bun create ranu ${targetDir}`,
+      ],
+    });
+    return 0;
+  }
+
   logger.log('');
   logger.info(`To scaffold a new Ranu.js application, run:`);
   logger.log(`  \x1b[36mnpm create ranu@latest ${targetDir}\x1b[0m`);
