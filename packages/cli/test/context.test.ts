@@ -52,6 +52,12 @@ describe('@ranu/cli context and discovery', () => {
     fs.writeFileSync(path.join(configDir, 'ranu.config.js'), 'export default {};');
     const discovered2 = discoverProjectRoot(path.join(configDir, 'nested'));
     expect(discovered2).toBe(path.resolve(configDir));
+
+    // Fallback when traversing up to filesystem root
+    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'empty-non-project-'));
+    const discovered3 = discoverProjectRoot(emptyDir);
+    expect(discovered3).toBe(path.resolve(emptyDir));
+    fs.rmSync(emptyDir, { recursive: true, force: true });
   });
 
   it('cleans .ranu artifacts when cleanProjectArtifacts is called', () => {
