@@ -6,18 +6,36 @@ import { getRunCommand, detectPackageManager } from '../package-manager.js';
 import type { PackageManager } from '../types.js';
 import { SCAFFOLDER_VERSION } from '../index.js';
 
+/**
+ * Parsed command line arguments for the create-ranu CLI.
+ */
 export interface ParsedArgs {
+  /** Target directory path for project scaffolding. */
   targetPath?: string | undefined;
+  /** Package manager to configure in scripts and run commands. */
   packageManager?: PackageManager | undefined;
+  /** Whether to install dependencies after scaffolding. */
   install?: boolean | undefined;
+  /** Whether to initialize a Git repository. */
   git?: boolean | undefined;
+  /** Whether to force scaffolding into an existing non-empty directory. */
   force?: boolean | undefined;
+  /** Whether to suppress non-error console output. */
   quiet?: boolean | undefined;
+  /** Whether to format command output as JSON. */
   json?: boolean | undefined;
+  /** Whether help message was requested. */
   help?: boolean | undefined;
+  /** Whether version information was requested. */
   version?: boolean | undefined;
 }
 
+/**
+ * Parses raw command-line argument vector into structured CLI options.
+ *
+ * @param argv - Argument strings passed to CLI executable.
+ * @returns Parsed arguments structure.
+ */
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const result: ParsedArgs = {};
   let i = 0;
@@ -110,6 +128,9 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   return result;
 }
 
+/**
+ * Prints user-friendly help text to standard output.
+ */
 export function printHelp(): void {
   console.log(`
 create-ranu — Canonical project scaffolder for Ranu.js
@@ -137,6 +158,12 @@ Examples:
 `);
 }
 
+/**
+ * Main execution routine for the create-ranu command-line interface.
+ *
+ * @param argv - Argument strings without node binary and script path.
+ * @returns Exit status code (0 for success, 1 for error).
+ */
 export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): number {
   const wantsJson = argv.includes('--json');
   try {
