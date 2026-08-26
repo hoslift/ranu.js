@@ -10,7 +10,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   platform: 'node',
-  banner: {
-    js: '#!/usr/bin/env node',
+  tsconfig: 'tsconfig.build.json',
+  banner: ({ entry }) => {
+    if (entry === 'bin/create-ranu') {
+      return { js: '#!/usr/bin/env node' };
+    }
+    return {};
   },
 });
