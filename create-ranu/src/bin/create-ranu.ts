@@ -256,7 +256,7 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
   }
 }
 
-/* v8 ignore next 17 */
+/* v8 ignore start */
 function checkDirectExecution(): boolean {
   if (process.argv[1] === undefined) return false;
   try {
@@ -276,3 +276,4 @@ if (checkDirectExecution()) {
     process.exit(1);
   }
 }
+/* v8 ignore stop */
