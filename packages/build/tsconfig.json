@@ -13,9 +13,6 @@
     { "path": "../config" },
     { "path": "../plugin" }
   ],
-  "files": [
-    "src/index.ts",
-    "src/analyzer.ts"
-  ],
+  "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]
 }
