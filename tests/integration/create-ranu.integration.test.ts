@@ -1,28 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { scaffoldProject, validateProjectName, validateTargetDirectory } from '../../create-ranu/src/index.js';
 import { build } from '@ranu/build';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 describe('create-ranu integration', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = path.resolve(__dirname, '../../fixtures/temp-scaffold-test');
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
-    fs.mkdirSync(tempDir, { recursive: true });
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-scaffold-int-'));
   });
 
   afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it('scaffolds a complete Ranu.js app and builds successfully with @ranu/build', async () => {
