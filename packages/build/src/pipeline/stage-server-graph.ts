@@ -32,7 +32,7 @@ function getFrameworkNodePaths(): string[] {
  */
 export async function runServerGraphStage(
   ctx: BuildContext,
-  routes: RouteEntryInfo[]
+  routes: RouteEntryInfo[],
 ): Promise<ServerGraphResult> {
   const diagnostics: RanuDiagnostic[] = [];
 
@@ -45,9 +45,7 @@ export async function runServerGraphStage(
   for (const route of routes) {
     if (route.sourceFile && fs.existsSync(route.sourceFile)) {
       // e.g. 'routes/page-root' -> source file
-      const entryKey = route.outputRelativePath
-        .replace(/^server\//, '')
-        .replace(/\.mjs$/, '');
+      const entryKey = route.outputRelativePath.replace(/^server\//, '').replace(/\.mjs$/, '');
       entryPoints[entryKey] = route.sourceFile;
     }
 
@@ -70,6 +68,19 @@ export async function runServerGraphStage(
     }
   }
 
+  // Compile middleware if present at project root
+  const middlewareExtensions = ['ts', 'js', 'mjs', 'cjs'];
+  const middlewareCandidates = ['', 'src/'].flatMap((prefix) =>
+    middlewareExtensions.map((extension) => `${prefix}middleware.${extension}`),
+  );
+  for (const cand of middlewareCandidates) {
+    const fullPath = path.join(ctx.projectRoot, cand);
+    if (fs.existsSync(fullPath)) {
+      entryPoints['middleware'] = fullPath;
+      break;
+    }
+  }
+
   if (Object.keys(entryPoints).length === 0) {
     return { success: true, diagnostics };
   }
@@ -81,15 +92,16 @@ export async function runServerGraphStage(
     projectRoot: ctx.projectRoot,
     staticOutDir: ctx.staticOutDir,
     tempOutDir: ctx.tempOutDir,
-    onDiagnostic: d => diagnostics.push(d),
+    onDiagnostic: (d) => diagnostics.push(d),
   });
 
   const sourcemapMode = ctx.config.sourceMaps ?? 'hidden';
-  const sourcemap = sourcemapMode === 'hidden'
-    ? 'external' // esbuild 'external' writes .map file without linking comment in output
-    : sourcemapMode === false
-      ? false
-      : sourcemapMode;
+  const sourcemap =
+    sourcemapMode === 'hidden'
+      ? 'external' // esbuild 'external' writes .map file without linking comment in output
+      : sourcemapMode === false
+        ? false
+        : sourcemapMode;
 
   const bundleResult = await adapter.bundle({
     entryPoints,

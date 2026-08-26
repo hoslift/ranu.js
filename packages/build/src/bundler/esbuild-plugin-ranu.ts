@@ -33,6 +33,33 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
   return {
     name: 'ranu-framework-plugin',
     setup(build) {
+      // Keep the public/internal server specifier intact in Node bundles and
+      // reject either form from client-reachable code.
+      build.onResolve({ filter: /^@?ranu\/server$/ }, (args) => {
+        if (platform === 'node') {
+          return {
+            path: args.path,
+            external: true,
+          };
+        }
+        return {
+          errors: [
+            {
+              text: `RANU_BUILD_SERVER_ONLY_CLIENT: Module "${args.path}" is server-only and cannot be imported from client-reachable code.`,
+              location: {
+                file: args.importer,
+                line: 1,
+                column: 1,
+                length: 0,
+                lineText: '',
+                namespace: 'file',
+                suggestion: 'Remove the server API import or move the code to the server graph',
+              },
+            },
+          ],
+        };
+      });
+
       // 1. Virtual module for ranu/server-only
       build.onResolve({ filter: /^ranu\/server-only$/ }, (args) => {
         if (platform === 'browser') {
