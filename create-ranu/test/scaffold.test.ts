@@ -18,9 +18,9 @@ describe('create-ranu scaffoldProject', () => {
     vi.restoreAllMocks();
   });
 
-  it('scaffolds a valid, canonical Ranu.js project with all template files', async () => {
+  it('scaffolds a valid, canonical Ranu.js project with all template files', () => {
     const targetDir = path.join(tempDir, 'my-ranu-app');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       packageManager: 'pnpm',
       quiet: true,
@@ -62,12 +62,12 @@ describe('create-ranu scaffoldProject', () => {
     expect(readme).toContain('pnpm dev');
   });
 
-  it('fails if target directory exists and is non-empty without force', async () => {
+  it('fails if target directory exists and is non-empty without force', () => {
     const targetDir = path.join(tempDir, 'existing-app');
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(path.join(targetDir, 'index.html'), 'existing');
 
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       force: false,
       quiet: true,
@@ -77,12 +77,12 @@ describe('create-ranu scaffoldProject', () => {
     expect(result.error).toContain('already exists and is not empty');
   });
 
-  it('succeeds on non-empty directory if force is true', async () => {
+  it('succeeds on non-empty directory if force is true', () => {
     const targetDir = path.join(tempDir, 'forced-app');
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(path.join(targetDir, 'existing.txt'), 'content');
 
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       force: true,
       quiet: true,
@@ -93,9 +93,9 @@ describe('create-ranu scaffoldProject', () => {
     expect(fs.existsSync(path.join(targetDir, 'existing.txt'))).toBe(true);
   });
 
-  it('fails when project name is invalid', async () => {
+  it('fails when project name is invalid', () => {
     const targetDir = path.join(tempDir, 'InvalidName!');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       quiet: true,
     });
@@ -104,11 +104,11 @@ describe('create-ranu scaffoldProject', () => {
     expect(result.error).toContain('Invalid project name');
   });
 
-  it('handles git initialization when requested', async () => {
+  it('handles git initialization when requested', () => {
     const gitSpy = vi.spyOn(gitModule, 'initGit').mockReturnValue(true);
 
     const targetDir = path.join(tempDir, 'git-app');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       git: true,
       quiet: true,
@@ -119,11 +119,11 @@ describe('create-ranu scaffoldProject', () => {
     expect(gitSpy).toHaveBeenCalledWith(path.resolve(targetDir));
   });
 
-  it('records gitStatus as failed when git init fails', async () => {
+  it('records gitStatus as failed when git init fails', () => {
     vi.spyOn(gitModule, 'initGit').mockReturnValue(false);
 
     const targetDir = path.join(tempDir, 'git-fail-app');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       git: true,
       quiet: true,
@@ -133,11 +133,11 @@ describe('create-ranu scaffoldProject', () => {
     expect(result.gitStatus).toBe('failed');
   });
 
-  it('handles dependency installation when requested', async () => {
+  it('handles dependency installation when requested', () => {
     const installSpy = vi.spyOn(pmModule, 'runInstall').mockReturnValue(true);
 
     const targetDir = path.join(tempDir, 'install-app');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       install: true,
       packageManager: 'pnpm',
@@ -149,11 +149,11 @@ describe('create-ranu scaffoldProject', () => {
     expect(installSpy).toHaveBeenCalledWith('pnpm', path.resolve(targetDir), true);
   });
 
-  it('records installStatus as failed when runInstall returns false', async () => {
+  it('records installStatus as failed when runInstall returns false', () => {
     vi.spyOn(pmModule, 'runInstall').mockReturnValue(false);
 
     const targetDir = path.join(tempDir, 'install-fail-app');
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       install: true,
       packageManager: 'npm',

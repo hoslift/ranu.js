@@ -1,4 +1,6 @@
+/* eslint-disable no-console */
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scaffoldProject } from '../scaffold.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
 import type { PackageManager } from '../types.js';
@@ -136,6 +138,7 @@ Examples:
 }
 
 export async function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
+  const wantsJson = argv.includes('--json');
   try {
     const parsed = parseArgs(argv);
 
@@ -170,7 +173,7 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
       console.log(`\nCreating a new Ranu.js project in \x1b[36m${targetDir}\x1b[0m...\n`);
     }
 
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: targetDir,
       packageManager: pm,
       install: parsed.install,
@@ -207,7 +210,8 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
       console.log('    Starts the production server.\n');
       console.log('We suggest that you begin by typing:\n');
       if (relDir !== '.') {
-        console.log(`  \x1b[36mcd ${relDir}\x1b[0m`);
+        const formattedDir = relDir.includes(' ') ? `"${relDir}"` : relDir;
+        console.log(`  \x1b[36mcd ${formattedDir}\x1b[0m`);
       }
       console.log(`  \x1b[36m${devCmd}\x1b[0m\n`);
     }
@@ -215,13 +219,21 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
     return 0;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`\x1b[31m✖ Error:\x1b[0m ${msg}`);
+    if (wantsJson) {
+      console.error(JSON.stringify({ success: false, error: msg }));
+    } else {
+      console.error(`\x1b[31m✖ Error:\x1b[0m ${msg}`);
+    }
     return 1;
   }
 }
 
-/* v8 ignore next 7 */
-if (process.env.NODE_ENV !== 'test') {
+/* v8 ignore next 6 */
+const isDirectExecution =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isDirectExecution) {
   runCreateRanu()
     .then((code) => process.exit(code))
     .catch(() => process.exit(1));

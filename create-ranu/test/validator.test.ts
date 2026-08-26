@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { validateProjectName, validateTargetDirectory } from '../src/validator.js';
 
 describe('create-ranu validator', () => {
@@ -13,6 +13,7 @@ describe('create-ranu validator', () => {
 
   afterEach(() => {
     fs.rmSync(tempDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   describe('validateProjectName', () => {
@@ -67,6 +68,16 @@ describe('create-ranu validator', () => {
   });
 
   describe('validateTargetDirectory', () => {
+    it('rejects empty or whitespace-only paths', () => {
+      const res1 = validateTargetDirectory('');
+      expect(res1.valid).toBe(false);
+      expect(res1.error).toContain('Target directory path cannot be empty.');
+
+      const res2 = validateTargetDirectory('   ');
+      expect(res2.valid).toBe(false);
+      expect(res2.error).toContain('Target directory path cannot be empty.');
+    });
+
     it('accepts non-existent directory within allowed paths', () => {
       const target = path.join(tempDir, 'new-app');
       const res = validateTargetDirectory(target);
@@ -121,6 +132,20 @@ describe('create-ranu validator', () => {
       const res = validateTargetDirectory(filePath);
       expect(res.valid).toBe(false);
       expect(res.error).toContain('already exists and is not a directory');
+    });
+
+    it('handles filesystem inspection errors gracefully', () => {
+      const target = path.join(tempDir, 'fs-error-app');
+      fs.mkdirSync(target, { recursive: true });
+
+      vi.spyOn(fs, 'readdirSync').mockImplementation(() => {
+        throw new Error('EACCES: permission denied');
+      });
+
+      const res = validateTargetDirectory(target);
+      expect(res.valid).toBe(false);
+      expect(res.error).toContain('Failed to inspect target path');
+      expect(res.error).toContain('permission denied');
     });
   });
 });

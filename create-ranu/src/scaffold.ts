@@ -12,7 +12,7 @@ import { generateTemplateFiles } from './template.js';
  * @param options - Options controlling destination path, project name, package manager, and setup flags.
  * @returns Object describing the result of project scaffolding.
  */
-export async function scaffoldProject(options: ScaffoldOptions): Promise<ScaffoldResult> {
+export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
   const dirValidation = validateTargetDirectory(options.projectPath, {
     force: options.force,
     cwd: options.cwd,

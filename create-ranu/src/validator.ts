@@ -110,7 +110,17 @@ export function validateTargetDirectory(
   options: { force?: boolean | undefined; cwd?: string | undefined } = {}
 ): { valid: boolean; error?: string; resolvedPath: string } {
   const baseCwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
-  const resolvedPath = path.resolve(baseCwd, targetPath.trim());
+  const trimmed = targetPath.trim();
+
+  if (!trimmed) {
+    return {
+      valid: false,
+      error: 'Target directory path cannot be empty.',
+      resolvedPath: baseCwd,
+    };
+  }
+
+  const resolvedPath = path.resolve(baseCwd, trimmed);
 
   // Check if target is root directory
   const parsedRoot = path.parse(resolvedPath).root;
@@ -133,24 +143,33 @@ export function validateTargetDirectory(
   }
 
   // Check if target directory exists and is non-empty
-  if (fs.existsSync(resolvedPath)) {
-    const stat = fs.statSync(resolvedPath);
-    if (!stat.isDirectory()) {
-      return {
-        valid: false,
-        error: `Target path "${resolvedPath}" already exists and is not a directory.`,
-        resolvedPath,
-      };
-    }
+  try {
+    if (fs.existsSync(resolvedPath)) {
+      const stat = fs.statSync(resolvedPath);
+      if (!stat.isDirectory()) {
+        return {
+          valid: false,
+          error: `Target path "${resolvedPath}" already exists and is not a directory.`,
+          resolvedPath,
+        };
+      }
 
-    const files = fs.readdirSync(resolvedPath);
-    if (files.length > 0 && !options.force) {
-      return {
-        valid: false,
-        error: `Target directory "${resolvedPath}" already exists and is not empty. Use --force to proceed.`,
-        resolvedPath,
-      };
+      const files = fs.readdirSync(resolvedPath);
+      if (files.length > 0 && !options.force) {
+        return {
+          valid: false,
+          error: `Target directory "${resolvedPath}" already exists and is not empty. Use --force to proceed.`,
+          resolvedPath,
+        };
+      }
     }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      valid: false,
+      error: `Failed to inspect target path "${resolvedPath}": ${msg}`,
+      resolvedPath,
+    };
   }
 
   return {

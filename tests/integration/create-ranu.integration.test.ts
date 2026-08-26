@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { scaffoldProject, validateProjectName, validateTargetDirectory } from '../../create-ranu/src/index.js';
 import { build } from '@ranu/build';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('create-ranu integration', () => {
   let tempDir: string;
@@ -25,7 +28,7 @@ describe('create-ranu integration', () => {
   it('scaffolds a complete Ranu.js app and builds successfully with @ranu/build', async () => {
     const projectDir = path.join(tempDir, 'sample-app');
 
-    const result = await scaffoldProject({
+    const result = scaffoldProject({
       projectPath: projectDir,
       packageManager: 'pnpm',
       quiet: true,

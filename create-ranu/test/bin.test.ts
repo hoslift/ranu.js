@@ -108,10 +108,20 @@ describe('create-ranu bin CLI', () => {
       logSpy.mockRestore();
     });
 
+    it('formats paths with spaces correctly in next steps', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const targetDir = path.join(tempDir, 'app with spaces');
+      const code = await runCreateRanu([targetDir]);
+      expect(code).toBe(0);
+
+      logSpy.mockRestore();
+    });
+
     it('handles scaffolding failure in text and JSON mode', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      vi.spyOn(scaffoldModule, 'scaffoldProject').mockResolvedValueOnce({
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockReturnValueOnce({
         success: false,
         projectPath: '/bad',
         projectName: 'bad',
@@ -123,7 +133,7 @@ describe('create-ranu bin CLI', () => {
       const code1 = await runCreateRanu(['bad-app']);
       expect(code1).toBe(1);
 
-      vi.spyOn(scaffoldModule, 'scaffoldProject').mockResolvedValueOnce({
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockReturnValueOnce({
         success: false,
         projectPath: '/bad',
         projectName: 'bad',
@@ -138,11 +148,14 @@ describe('create-ranu bin CLI', () => {
       errSpy.mockRestore();
     });
 
-    it('catches and reports unexpected errors', async () => {
+    it('catches and reports unexpected errors in text and JSON mode', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const code = await runCreateRanu(['--invalid-flag-123']);
-      expect(code).toBe(1);
+      const code1 = await runCreateRanu(['--invalid-flag-123']);
+      expect(code1).toBe(1);
+
+      const code2 = await runCreateRanu(['--invalid-flag-123', '--json']);
+      expect(code2).toBe(1);
 
       errSpy.mockRestore();
     });
