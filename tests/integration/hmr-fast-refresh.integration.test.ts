@@ -211,5 +211,5 @@ export default function BlogPage() {
 
     // 8. Graceful shutdown
     await devServer.close();
-  });
+  }, 15_000);
 });

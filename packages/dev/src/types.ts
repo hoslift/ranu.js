@@ -1,5 +1,6 @@
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type { RouteEntryInfo } from '@ranu/build';
+import type { RanuPlugin } from '@ranu/plugin';
 import type { CompiledRouteRecord } from '@ranu/router';
 
 export interface DevServerOptions {
@@ -10,6 +11,7 @@ export interface DevServerOptions {
   readonly watch?: boolean | undefined;
   readonly debounceMs?: number | undefined;
   readonly publicEnv?: Record<string, string> | undefined;
+  readonly plugins?: readonly RanuPlugin[] | undefined;
 }
 
 export interface DevServerAddress {
@@ -19,13 +21,7 @@ export interface DevServerAddress {
 }
 
 export type DevFileChangeCategory =
-  | 'route'
-  | 'css'
-  | 'asset'
-  | 'public'
-  | 'config'
-  | 'env'
-  | 'other';
+  'route' | 'css' | 'asset' | 'public' | 'config' | 'env' | 'other';
 
 export interface DevFileEvent {
   readonly type: 'add' | 'change' | 'unlink';

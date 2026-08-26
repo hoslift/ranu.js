@@ -287,6 +287,17 @@ describe('RanuServerRuntime Engine', () => {
     });
   });
 
+  it('rejects unsupported methods before dispatching a static page', async () => {
+    const { runtime, staticDispatcher } = createRuntime();
+    const response = await runtime.handle(
+      new Request('http://localhost/static-page', { method: 'POST' }),
+    );
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Allow')).toBe('GET, HEAD');
+    expect(staticDispatcher.dispatch).not.toHaveBeenCalled();
+  });
+
   it('returns 404 for static-only dynamic paths absent from StaticManifest', async () => {
     const staticOnlyRecord: CompiledRouteRecord[] = [
       {
@@ -314,6 +325,19 @@ describe('RanuServerRuntime Engine', () => {
     const request = new Request('http://localhost/about');
     const response = await runtime.handle(request);
     expect(response.status).toBe(200);
+  });
+
+  it('generates a request ID when Web Crypto is unavailable', async () => {
+    vi.stubGlobal('crypto', undefined);
+    try {
+      const { runtime, renderer } = createRuntime();
+      await runtime.handle(new Request('http://localhost/about'));
+
+      const contextPassed = renderer.render.mock.calls[0]![1];
+      expect(contextPassed.requestId.length).toBeGreaterThan(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('ignores invalid upstream request IDs containing illegal characters', async () => {
@@ -346,6 +370,17 @@ describe('RanuServerRuntime Engine', () => {
     expect(renderer.render).toHaveBeenCalled();
     const contextPassed = renderer.render.mock.calls[0]![1];
     expect(contextPassed.params).toEqual({ id: '42' });
+  });
+
+  it('returns 404 when a matched route disappears before dispatch', async () => {
+    const inconsistentRecords = [...defaultRouteRecords];
+    inconsistentRecords.find = () => undefined;
+    const { runtime, renderer } = createRuntime({ routeRecords: inconsistentRecords });
+
+    const response = await runtime.handle(new Request('http://localhost/about'));
+
+    expect(response.status).toBe(404);
+    expect(renderer.render).not.toHaveBeenCalled();
   });
 
   it('propagates AbortSignal identity', async () => {

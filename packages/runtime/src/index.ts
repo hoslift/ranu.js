@@ -11,3 +11,4 @@ export * from './signals.js';
 export * from './dispatch.js';
 export * from './errors.js';
 export * from './engine.js';
+export * from './matcher.js';

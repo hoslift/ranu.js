@@ -13,6 +13,6 @@
     { "path": "../dev" },
     { "path": "../runtime-node" }
   ],
-  "include": ["src"],
+  "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]
 }

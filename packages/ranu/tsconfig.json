@@ -9,6 +9,7 @@
   },
   "references": [
     { "path": "../config" },
+    { "path": "../plugin" },
     { "path": "../react" },
     { "path": "../server" }
   ],

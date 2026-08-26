@@ -22,11 +22,12 @@
     "@ranu/build": "workspace:*",
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
-    "@ranu/runtime": "workspace:*",
-    "@ranu/runtime-node": "workspace:*",
-    "@ranu/router": "workspace:*",
     "@ranu/manifests": "workspace:*",
-    "@ranu/react": "workspace:*"
+    "@ranu/plugin": "workspace:*",
+    "@ranu/react": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/runtime": "workspace:*",
+    "@ranu/runtime-node": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

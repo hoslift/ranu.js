@@ -16,6 +16,7 @@ const harness = vi.hoisted(() => ({
   serveStaticFile: vi.fn(),
   toWebRequest: vi.fn(),
   writeWebResponse: vi.fn(),
+  createRuntimeMiddleware: vi.fn(),
 }));
 
 vi.mock('../src/coordinator.js', () => ({
@@ -83,6 +84,7 @@ vi.mock('@ranu/runtime', () => ({
       harness.runtimes.push(this);
     }
   },
+  createRuntimeMiddleware: harness.createRuntimeMiddleware,
 }));
 
 vi.mock('@ranu/runtime-node', () => ({
@@ -149,6 +151,9 @@ describe('DevServer focused coverage', () => {
       .mockReset()
       .mockImplementation((_req, signal) => new Request('http://localhost/', { signal }));
     harness.writeWebResponse.mockReset().mockResolvedValue(undefined);
+    harness.createRuntimeMiddleware.mockReset().mockImplementation(() => ({
+      run: vi.fn(async () => ({ type: 'next' })),
+    }));
   });
 
   afterEach(() => {
@@ -180,6 +185,10 @@ describe('DevServer focused coverage', () => {
         'export default async function fallback() { return new Response("default handler"); }',
     );
     fs.writeFileSync(path.join(serverDir, 'no-handler.mjs'), 'export const value = 1;');
+    fs.writeFileSync(
+      path.join(serverDir, 'middleware.mjs'),
+      'export default function middleware() {}',
+    );
 
     const layoutPath = 'app/layout.tsx';
     const loadingPath = 'app/loading.tsx';
@@ -216,6 +225,10 @@ describe('DevServer focused coverage', () => {
     const runtimeOptions = harness.runtimeOptions[0];
     const loader = harness.rendererOptions[0].loader;
     const context = { requestId: 'request-1' };
+
+    await runtimeOptions.middleware.run(new Request('http://localhost/'), context);
+    await runtimeOptions.middleware.run(new Request('http://localhost/again'), context);
+    expect(harness.createRuntimeMiddleware).toHaveBeenCalledOnce();
 
     expect(runtimeOptions.contextStore.get()).toBeUndefined();
     await runtimeOptions.contextStore.run(context, async () => {
