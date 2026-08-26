@@ -5,8 +5,8 @@ import { pathToFileURL } from 'node:url';
 import type { Socket } from 'node:net';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ClientManifest } from '@ranu/manifests';
-import type { ApiDispatchTarget } from '@ranu/runtime';
-import { RanuServerRuntime, type RanuRequestContext } from '@ranu/runtime';
+import type { ApiDispatchTarget, RuntimeMiddleware } from '@ranu/runtime';
+import { RanuServerRuntime, createRuntimeMiddleware, type RanuRequestContext } from '@ranu/runtime';
 import { toWebRequest, writeWebResponse } from '@ranu/runtime-node';
 import {
   ReactRenderer,
@@ -17,6 +17,7 @@ import {
   type ErrorModule,
   type NotFoundModule,
 } from '@ranu/react';
+import { PluginManager } from '@ranu/plugin';
 import type { DevServerOptions, DevServerAddress, DevBuildState } from './types.js';
 import { ProjectWatcher } from './watcher.js';
 import { RebuildCoordinator } from './coordinator.js';
@@ -51,6 +52,7 @@ export class DevServer {
   private watcher: ProjectWatcher | null = null;
   readonly coordinator: RebuildCoordinator;
   readonly reloadChannel: DevReloadChannel;
+  readonly pluginManager: PluginManager;
   private runtime: RanuServerRuntime | null = null;
   private readonly connections = new Set<Socket>();
   private readonly versionedModuleCopies = new Set<string>();
@@ -65,6 +67,11 @@ export class DevServer {
     this.serverOutDir = path.join(this.outDir, 'server');
 
     this.reloadChannel = new DevReloadChannel();
+    this.pluginManager = new PluginManager(options.plugins ?? [], {
+      mode: 'development',
+      command: 'dev',
+      projectRoot: this.projectRoot,
+    });
     this.coordinator = new RebuildCoordinator({
       options,
       onBuildComplete: (state) => this.handleBuildComplete(state),
@@ -244,12 +251,29 @@ export class DevServer {
       ) => Promise.resolve(new Response('Not Found', { status: 404 })),
     };
 
+    let middleware: RuntimeMiddleware | undefined;
+    const middlewarePath = path.join(this.serverOutDir, 'middleware.mjs');
+    if (fs.existsSync(middlewarePath)) {
+      let runtimeMiddlewarePromise: Promise<RuntimeMiddleware> | undefined;
+      middleware = {
+        run: async (req, ctx) => {
+          runtimeMiddlewarePromise ??= this.importCompiledModule<unknown>(
+            middlewarePath,
+            state.generation,
+          ).then((mod) => createRuntimeMiddleware(mod));
+          const runtimeMw = await runtimeMiddlewarePromise;
+          return runtimeMw.run(req, ctx);
+        },
+      };
+    }
+
     const replacementRuntime = new RanuServerRuntime({
       routeRecords: [...(state.routeRecords ?? [])],
       contextStore: new DevRequestContextStore(),
       apiDispatcher,
       staticDispatcher,
       renderer,
+      ...(middleware ? { middleware } : {}),
       config: { mode: 'development' },
     });
 
@@ -415,7 +439,7 @@ export class DevServer {
     const targetPort = port ?? this.options.port ?? 3000;
     const targetHost = host ?? this.options.host ?? 'localhost';
 
-    return new Promise<DevServerAddress>((resolve, reject) => {
+    const address = await new Promise<DevServerAddress>((resolve, reject) => {
       const onError = (err: Error) => {
         this.httpServer.off('listening', onListening);
         if (this.watcher) {
@@ -450,6 +474,28 @@ export class DevServer {
 
       this.httpServer.listen(targetPort, targetHost);
     });
+
+    // Plugin Hook: devStart
+    try {
+      await this.pluginManager.runDevStart({
+        pluginName: '',
+        mode: 'development',
+        command: 'dev',
+        projectRoot: this.projectRoot,
+        logger: (this.pluginManager as any).setupContext.logger,
+        port: address.port,
+        host: address.host,
+      });
+    } catch (error: unknown) {
+      try {
+        await this.close();
+      } catch {
+        // Preserve the startup hook error after best-effort resource cleanup.
+      }
+      throw error;
+    }
+
+    return address;
   }
 
   /** Triggers an explicit development rebuild. */
@@ -463,6 +509,19 @@ export class DevServer {
   async close(): Promise<void> {
     if (this.isShuttingDown) return;
     this.isShuttingDown = true;
+
+    // Plugin Hook: devEnd
+    try {
+      await this.pluginManager.runDevEnd({
+        pluginName: '',
+        mode: 'development',
+        command: 'dev',
+        projectRoot: this.projectRoot,
+        logger: (this.pluginManager as any).setupContext.logger,
+      });
+    } catch {
+      // Tolerate error during shutdown
+    }
 
     if (this.watcher) {
       this.watcher.close();

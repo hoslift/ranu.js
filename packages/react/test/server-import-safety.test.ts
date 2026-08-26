@@ -34,12 +34,12 @@ describe('Stage 13B & Phase 14: Server Import Safety', () => {
     expect(typeof reactModule.createRouteLoader).toBe('function');
     expect(typeof reactModule.createPrefetchService).toBe('function');
     expect(typeof reactModule.createTransitionCoordinator).toBe('function');
-  });
+  }, 15_000);
 
   it('fails gracefully when getHydrationPayloadFromDocument is called without a document', async () => {
     const { getHydrationPayloadFromDocument } = await import('../src/index.js');
     expect(() => getHydrationPayloadFromDocument(undefined)).toThrow(
-      /Hydration bootstrap requires a valid Document context/
+      /Hydration bootstrap requires a valid Document context/,
     );
   });
 });

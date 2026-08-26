@@ -1,3 +1,44 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+export async function loadCompiledMiddleware(
+  buildDir: string,
+  fileExists: (filePath: string) => boolean = fs.existsSync,
+  importModule: (moduleUrl: string) => Promise<unknown> = (moduleUrl) => import(moduleUrl),
+): Promise<unknown> {
+  const middlewarePath = path.resolve(buildDir, 'server/middleware.mjs');
+  if (!fileExists(middlewarePath)) return undefined;
+  return importModule(pathToFileURL(middlewarePath).href);
+}
+
+export interface ProductionRuntimeFactoryOptions {
+  createRuntime: (options: Record<string, unknown>) => unknown;
+  createMiddleware: (middlewareModule: unknown) => unknown;
+  runtimeOptions: Record<string, unknown> & { middleware?: unknown };
+}
+
+/**
+ * Creates a production runtime using a middleware module supplied by the
+ * generated entrypoint's module loader.
+ */
+export async function createProductionRuntimeWithLoader(
+  { createRuntime, createMiddleware, runtimeOptions }: ProductionRuntimeFactoryOptions,
+  loadMiddleware: () => Promise<unknown>,
+): Promise<unknown> {
+  if (typeof createRuntime !== 'function' || typeof createMiddleware !== 'function') {
+    throw new TypeError('Production runtime factories must be functions.');
+  }
+  const middlewareModule = await loadMiddleware();
+  const middleware = middlewareModule
+    ? createMiddleware(middlewareModule)
+    : runtimeOptions.middleware;
+  return createRuntime({
+    ...runtimeOptions,
+    ...(middleware ? { middleware } : {}),
+  });
+}
+
 /**
  * Generates the JavaScript source code for the production Node entrypoint (.ranu/build/server/entry.mjs).
  *
@@ -7,6 +48,8 @@
  * - Initializes Ranu runtime engine and Node HTTP server
  */
 export function generateProductionEntrySource(buildId: string): string {
+  const runtimeFactorySource = createProductionRuntimeWithLoader.toString();
+  const middlewareLoaderSource = loadCompiledMiddleware.toString();
   return `// Ranu.js Production Server Entrypoint
 // Generated automatically by @ranu/build (Build ID: ${buildId})
 
@@ -38,7 +81,7 @@ export const staticManifest = loadJson(buildDescriptor.manifests.static);
 /**
  * Module loader backed by compiled server routes in .ranu/build/server/
  */
-export const moduleLoader = {
+export const moduleLoader = { loadMiddleware: () => (${middlewareLoaderSource})(buildDir),
   async loadRouteEntry(routeId) {
     const entry = serverManifest.routes.find(r => r.routeId === routeId);
     if (!entry) {
@@ -48,7 +91,7 @@ export const moduleLoader = {
     return await import(pathToFileURL(modulePath).href);
   }
 };
-
+export const createProductionRuntime = (options) => (${runtimeFactorySource})(options, () => moduleLoader.loadMiddleware());
 /** Production entry info export */
 export default {
   buildId,
