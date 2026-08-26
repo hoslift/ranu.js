@@ -49,7 +49,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
         return await runDeployCommand(args, logger);
 
       case 'create':
-        return await runCreateCommand(args, logger);
+        return runCreateCommand(args, logger);
 
       case 'help':
         return runHelpCommand(args.args[0], logger, args.json);

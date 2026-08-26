@@ -1,6 +1,6 @@
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 
-export async function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
+export function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): number {
   const targetDir = args.args[0] ?? 'my-ranu-app';
 
   if (args.json) {

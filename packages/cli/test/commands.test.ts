@@ -20,10 +20,10 @@ describe('@ranu/cli commands', () => {
     expect(runVersionCommand({ args: [], json: true }, logger)).toBe(0);
   });
 
-  it('runs create command in text and json mode', async () => {
+  it('runs create command in text and json mode', () => {
     const logger = createCliLogger({ quiet: true });
-    expect(await runCreateCommand({ args: ['my-app'] }, logger)).toBe(0);
-    expect(await runCreateCommand({ args: ['my-app'], json: true }, logger)).toBe(0);
+    expect(runCreateCommand({ args: ['my-app'] }, logger)).toBe(0);
+    expect(runCreateCommand({ args: ['my-app'], json: true }, logger)).toBe(0);
   });
 
   it('runs help command in JSON mode', () => {
