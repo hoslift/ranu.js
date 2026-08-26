@@ -145,6 +145,12 @@ export class RebuildCoordinator {
             serverRootFiles.push(layoutPath);
           }
         }
+        for (const candidate of ['middleware.ts', 'middleware.js', 'middleware.mjs', 'middleware.cjs', 'src/middleware.ts', 'src/middleware.js']) {
+          const middlewarePath = path.join(this.projectRoot, candidate);
+          if (fs.existsSync(middlewarePath) && !serverRootFiles.includes(middlewarePath)) {
+            serverRootFiles.push(middlewarePath);
+          }
+        }
 
         const moduleGraph = buildModuleGraph(serverRootFiles, this.projectRoot);
         diagnostics.push(...validateGraphBoundaries(moduleGraph).diagnostics);

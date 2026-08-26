@@ -68,6 +68,19 @@ export async function runServerGraphStage(
     }
   }
 
+  // Compile middleware if present at project root
+  const middlewareExtensions = ['ts', 'js', 'mjs', 'cjs'];
+  const middlewareCandidates = ['', 'src/'].flatMap((prefix) =>
+    middlewareExtensions.map((extension) => `${prefix}middleware.${extension}`),
+  );
+  for (const cand of middlewareCandidates) {
+    const fullPath = path.join(ctx.projectRoot, cand);
+    if (fs.existsSync(fullPath)) {
+      entryPoints['middleware'] = fullPath;
+      break;
+    }
+  }
+
   if (Object.keys(entryPoints).length === 0) {
     return { success: true, diagnostics };
   }

@@ -1,3 +1,5 @@
+import type { MiddlewareHeadersInit } from '@ranu/runtime';
+
 export interface Cookie {
   readonly name: string;
   readonly value: string;
@@ -26,4 +28,15 @@ export interface CookieStore {
   has(name: string): boolean;
   set(name: string, value: string, options?: CookieSetOptions): this;
   delete(name: string, options?: CookieDeleteOptions): this;
+}
+
+export interface MiddlewareContext {
+  readonly requestId: string;
+  readonly params: Record<string, string | string[]>;
+  readonly locals: Map<string, unknown>;
+  readonly signal: AbortSignal;
+}
+
+export interface MiddlewareNextOptions {
+  headers?: MiddlewareHeadersInit;
 }

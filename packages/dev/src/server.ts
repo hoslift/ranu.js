@@ -5,8 +5,8 @@ import { pathToFileURL } from 'node:url';
 import type { Socket } from 'node:net';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ClientManifest } from '@ranu/manifests';
-import type { ApiDispatchTarget } from '@ranu/runtime';
-import { RanuServerRuntime, type RanuRequestContext } from '@ranu/runtime';
+import type { ApiDispatchTarget, RuntimeMiddleware } from '@ranu/runtime';
+import { RanuServerRuntime, createRuntimeMiddleware, type RanuRequestContext } from '@ranu/runtime';
 import { toWebRequest, writeWebResponse } from '@ranu/runtime-node';
 import {
   ReactRenderer,
@@ -251,12 +251,29 @@ export class DevServer {
       ) => Promise.resolve(new Response('Not Found', { status: 404 })),
     };
 
+    let middleware: RuntimeMiddleware | undefined;
+    const middlewarePath = path.join(this.serverOutDir, 'middleware.mjs');
+    if (fs.existsSync(middlewarePath)) {
+      let runtimeMiddlewarePromise: Promise<RuntimeMiddleware> | undefined;
+      middleware = {
+        run: async (req, ctx) => {
+          runtimeMiddlewarePromise ??= this.importCompiledModule<unknown>(
+            middlewarePath,
+            state.generation,
+          ).then((mod) => createRuntimeMiddleware(mod));
+          const runtimeMw = await runtimeMiddlewarePromise;
+          return runtimeMw.run(req, ctx);
+        },
+      };
+    }
+
     const replacementRuntime = new RanuServerRuntime({
       routeRecords: [...(state.routeRecords ?? [])],
       contextStore: new DevRequestContextStore(),
       apiDispatcher,
       staticDispatcher,
       renderer,
+      ...(middleware ? { middleware } : {}),
       config: { mode: 'development' },
     });
 
