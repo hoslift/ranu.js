@@ -111,8 +111,8 @@ describe('create-ranu bin CLI', () => {
     it('formats paths with spaces correctly in next steps', () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      const targetDir = path.join(tempDir, 'app with spaces');
-      const code = runCreateRanu([targetDir]);
+      const targetDir = path.join(tempDir, 'folder with spaces', 'my-app');
+      const code = runCreateRanu([targetDir, '--no-install', '--no-git']);
       expect(code).toBe(0);
 
       logSpy.mockRestore();
