@@ -59,8 +59,9 @@ describe('@ranu/cli argument parsing', () => {
     expect(() => parseCliArgs(['dev', '--port'])).toThrow('Flag "--port" requires a valid integer argument.');
   });
 
-  it('throws when --root is missing value', () => {
+  it('throws when --root or --host is missing value', () => {
     expect(() => parseCliArgs(['dev', '--root'])).toThrow('Flag "--root" requires a valid path argument.');
+    expect(() => parseCliArgs(['dev', '--host'])).toThrow('Flag "--host" requires a valid host argument.');
   });
 
   it('throws when an unknown flag is provided', () => {
