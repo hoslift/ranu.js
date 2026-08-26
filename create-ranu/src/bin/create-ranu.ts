@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scaffoldProject } from '../scaffold.js';
@@ -255,12 +256,19 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
   }
 }
 
-/* v8 ignore next 10 */
-const isDirectExecution =
-  process.argv[1] !== undefined &&
-  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+/* v8 ignore next 17 */
+function checkDirectExecution(): boolean {
+  if (process.argv[1] === undefined) return false;
+  try {
+    const realArgv1 = fs.realpathSync(process.argv[1]);
+    const modulePath = fileURLToPath(import.meta.url);
+    return modulePath === realArgv1 || modulePath === path.resolve(process.argv[1]);
+  } catch {
+    return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+  }
+}
 
-if (isDirectExecution) {
+if (checkDirectExecution()) {
   try {
     const code = runCreateRanu();
     process.exit(code);

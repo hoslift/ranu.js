@@ -120,7 +120,7 @@ export function validateTargetDirectory(
     };
   }
 
-  const resolvedPath = path.resolve(baseCwd, trimmed);
+  const resolvedPath = path.resolve(baseCwd, targetPath);
 
   // Check if target is root directory
   const parsedRoot = path.parse(resolvedPath).root;
