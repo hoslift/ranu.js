@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { parseArgs, runCreateRanu } from '../src/bin/create-ranu.js';
+import { parseArgs, printHelp, runCreateRanu } from '../src/bin/create-ranu.js';
 import * as scaffoldModule from '../src/scaffold.js';
 
 describe('create-ranu bin CLI', () => {
@@ -10,6 +10,7 @@ describe('create-ranu bin CLI', () => {
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-ranu-bin-'));
+    vi.restoreAllMocks();
   });
 
   afterEach(() => {
@@ -20,6 +21,7 @@ describe('create-ranu bin CLI', () => {
   describe('parseArgs', () => {
     it('parses target path and flags', () => {
       const parsed = parseArgs([
+        '',
         'my-app',
         '--package-manager',
         'pnpm',
@@ -46,6 +48,13 @@ describe('create-ranu bin CLI', () => {
       expect(parsed.json).toBe(true);
     });
 
+    it('parses supported package manager arguments via -p and --package-manager', () => {
+      expect(parseArgs(['-p', 'npm']).packageManager).toBe('npm');
+      expect(parseArgs(['-p', 'pnpm']).packageManager).toBe('pnpm');
+      expect(parseArgs(['-p', 'yarn']).packageManager).toBe('yarn');
+      expect(parseArgs(['-p', 'bun']).packageManager).toBe('bun');
+    });
+
     it('parses --help and --version', () => {
       expect(parseArgs(['--help']).help).toBe(true);
       expect(parseArgs(['-h']).help).toBe(true);
@@ -60,12 +69,24 @@ describe('create-ranu bin CLI', () => {
       expect(() => parseArgs(['my-app', '-p'])).toThrow(
         'Flag "--package-manager" requires a valid package manager argument.'
       );
+      expect(() => parseArgs(['my-app', '-p', '--git'])).toThrow(
+        'Flag "--package-manager" requires a valid package manager argument.'
+      );
     });
 
     it('throws on unknown flag', () => {
       expect(() => parseArgs(['my-app', '--unknown-flag'])).toThrow(
         'Unknown flag "--unknown-flag"'
       );
+    });
+  });
+
+  describe('printHelp', () => {
+    it('prints help message to console.log', () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      printHelp();
+      expect(logSpy).toHaveBeenCalled();
+      logSpy.mockRestore();
     });
   });
 
@@ -108,12 +129,39 @@ describe('create-ranu bin CLI', () => {
       logSpy.mockRestore();
     });
 
-    it('formats paths with spaces correctly in next steps', () => {
+    it('scaffolds with default my-ranu-app when no directory specified', () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockReturnValueOnce({
+        success: true,
+        projectPath: process.cwd(),
+        projectName: 'my-ranu-app',
+        packageManager: 'pnpm',
+        filesCreated: ['package.json'],
+      });
+
+      const code = runCreateRanu(['--quiet']);
+      expect(code).toBe(0);
+      logSpy.mockRestore();
+    });
+
+    it('formats paths with spaces correctly in next steps and current directory', () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const targetDir = path.join(tempDir, 'folder with spaces', 'my-app');
       const code = runCreateRanu([targetDir, '--no-install', '--no-git']);
       expect(code).toBe(0);
+
+      // Test current directory relDir === '.'
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockReturnValueOnce({
+        success: true,
+        projectPath: process.cwd(),
+        projectName: 'current-dir-app',
+        packageManager: 'pnpm',
+        filesCreated: ['package.json'],
+      });
+
+      const codeCurrent = runCreateRanu(['.']);
+      expect(codeCurrent).toBe(0);
 
       logSpy.mockRestore();
     });
@@ -148,7 +196,7 @@ describe('create-ranu bin CLI', () => {
       errSpy.mockRestore();
     });
 
-    it('catches and reports unexpected errors in text and JSON mode', () => {
+    it('catches and reports unexpected errors in text and JSON mode, including non-Error types', () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const code1 = runCreateRanu(['--invalid-flag-123']);
@@ -156,6 +204,19 @@ describe('create-ranu bin CLI', () => {
 
       const code2 = runCreateRanu(['--invalid-flag-123', '--json']);
       expect(code2).toBe(1);
+
+      // Non-Error thrown
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockImplementationOnce(() => {
+        throw 'Fatal string exception';
+      });
+      const code3 = runCreateRanu(['app-crash', '--json']);
+      expect(code3).toBe(1);
+
+      vi.spyOn(scaffoldModule, 'scaffoldProject').mockImplementationOnce(() => {
+        throw 'Fatal string exception text';
+      });
+      const code4 = runCreateRanu(['app-crash-text']);
+      expect(code4).toBe(1);
 
       errSpy.mockRestore();
     });

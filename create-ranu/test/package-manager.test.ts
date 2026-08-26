@@ -1,12 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import childProcess from 'node:child_process';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   detectPackageManager,
   getInstallCommand,
   getRunCommand,
   runInstall,
 } from '../src/package-manager.js';
+import type { PackageManager } from '../src/types.js';
 
 describe('create-ranu package-manager module', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('detectPackageManager', () => {
     it('detects pnpm from user agent', () => {
       expect(detectPackageManager('pnpm/9.0.0 npm/? node/v22.0.0')).toBe('pnpm');
@@ -23,6 +29,7 @@ describe('create-ranu package-manager module', () => {
     it('defaults to npm for unknown or empty user agent', () => {
       expect(detectPackageManager('unknown-client')).toBe('npm');
       expect(detectPackageManager('')).toBe('npm');
+      expect(detectPackageManager()).toBeDefined();
     });
   });
 
@@ -32,6 +39,7 @@ describe('create-ranu package-manager module', () => {
       expect(getInstallCommand('pnpm')).toEqual({ command: 'pnpm', args: ['install'] });
       expect(getInstallCommand('yarn')).toEqual({ command: 'yarn', args: ['install'] });
       expect(getInstallCommand('bun')).toEqual({ command: 'bun', args: ['install'] });
+      expect(getInstallCommand('unknown' as PackageManager)).toEqual({ command: 'npm', args: ['install'] });
     });
   });
 
@@ -41,14 +49,21 @@ describe('create-ranu package-manager module', () => {
       expect(getRunCommand('pnpm', 'dev')).toBe('pnpm dev');
       expect(getRunCommand('yarn', 'dev')).toBe('yarn dev');
       expect(getRunCommand('bun', 'dev')).toBe('bun dev');
+      expect(getRunCommand('unknown' as PackageManager, 'dev')).toBe('npm run dev');
     });
   });
 
   describe('runInstall', () => {
-    it('executes install command safely', () => {
-      // Test running an invalid install that fails gracefully
-      const res = runInstall('npm', '/non/existent/directory/12345', true);
-      expect(typeof res).toBe('boolean');
+    it('executes install command safely on success and failure', () => {
+      vi.spyOn(childProcess, 'execSync').mockReturnValueOnce(Buffer.from(''));
+      const success = runInstall('pnpm', '/dummy/dir', false);
+      expect(success).toBe(true);
+
+      vi.spyOn(childProcess, 'execSync').mockImplementationOnce(() => {
+        throw new Error('command failed');
+      });
+      const fail = runInstall('npm', '/dummy/dir', true);
+      expect(fail).toBe(false);
     });
   });
 });

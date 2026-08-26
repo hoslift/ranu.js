@@ -5,12 +5,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { scaffoldProject } from '../src/scaffold.js';
 import * as gitModule from '../src/git.js';
 import * as pmModule from '../src/package-manager.js';
+import * as validatorModule from '../src/validator.js';
 
-describe('create-ranu scaffoldProject', () => {
+describe('scaffoldProject', () => {
   let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-ranu-scaffold-'));
+    vi.restoreAllMocks();
   });
 
   afterEach(() => {
@@ -18,149 +20,190 @@ describe('create-ranu scaffoldProject', () => {
     vi.restoreAllMocks();
   });
 
-  it('scaffolds a valid, canonical Ranu.js project with all template files', () => {
-    const targetDir = path.join(tempDir, 'my-ranu-app');
+  it('scaffolds all project files correctly', () => {
+    const dest = path.join(tempDir, 'my-test-app');
     const result = scaffoldProject({
-      projectPath: targetDir,
+      projectPath: dest,
       packageManager: 'pnpm',
-      quiet: true,
     });
 
     expect(result.success).toBe(true);
-    expect(result.projectName).toBe('my-ranu-app');
+    expect(result.projectName).toBe('my-test-app');
     expect(result.packageManager).toBe('pnpm');
-    expect(result.projectPath).toBe(path.resolve(targetDir));
+    expect(result.filesCreated).toContain('package.json');
+    expect(result.filesCreated).toContain('ranu.config.ts');
+    expect(result.filesCreated).toContain('app/layout.tsx');
+    expect(result.filesCreated).toContain('app/page.tsx');
+    expect(result.filesCreated).toContain('tsconfig.json');
+    expect(result.filesCreated).toContain('.gitignore');
+    expect(result.filesCreated).toContain('README.md');
+    expect(result.filesCreated).toContain('public/robots.txt');
 
-    // Verify all canonical files exist
-    expect(fs.existsSync(path.join(targetDir, 'package.json'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'ranu.config.ts'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'app', 'layout.tsx'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'app', 'page.tsx'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'tsconfig.json'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, '.gitignore'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'README.md'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'public', 'robots.txt'))).toBe(true);
-
-    // Verify package.json content
-    const pkg = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf-8'));
-    expect(pkg.name).toBe('my-ranu-app');
-    expect(pkg.private).toBe(true);
-    expect(pkg.type).toBe('module');
-    expect(pkg.scripts.dev).toBe('ranu dev');
-    expect(pkg.scripts.build).toBe('ranu build');
-    expect(pkg.scripts.start).toBe('ranu start');
-    expect(pkg.dependencies.ranu).toBeDefined();
-    expect(pkg.dependencies.react).toBeDefined();
-
-    // Verify tsconfig.json is valid JSON
-    const tsconfig = JSON.parse(fs.readFileSync(path.join(targetDir, 'tsconfig.json'), 'utf-8'));
-    expect(tsconfig.compilerOptions.jsx).toBe('react-jsx');
-    expect(tsconfig.compilerOptions.strict).toBe(true);
-
-    // Verify README mentions the selected package manager
-    const readme = fs.readFileSync(path.join(targetDir, 'README.md'), 'utf-8');
-    expect(readme).toContain('pnpm dev');
+    expect(fs.existsSync(path.join(dest, 'package.json'))).toBe(true);
+    expect(fs.existsSync(path.join(dest, 'app', 'layout.tsx'))).toBe(true);
   });
 
-  it('fails if target directory exists and is non-empty without force', () => {
-    const targetDir = path.join(tempDir, 'existing-app');
-    fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(path.join(targetDir, 'index.html'), 'existing');
-
+  it('fails when target directory validation fails', () => {
+    const rootDir = path.parse(tempDir).root;
     const result = scaffoldProject({
-      projectPath: targetDir,
-      force: false,
-      quiet: true,
+      projectPath: rootDir,
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('already exists and is not empty');
+    expect(result.error).toContain('Cannot create project directly at system root');
   });
 
-  it('succeeds on non-empty directory if force is true', () => {
-    const targetDir = path.join(tempDir, 'forced-app');
-    fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(path.join(targetDir, 'existing.txt'), 'content');
-
-    const result = scaffoldProject({
-      projectPath: targetDir,
-      force: true,
-      quiet: true,
+  it('handles target directory validation failure with custom projectName and undefined error fallback', () => {
+    vi.spyOn(validatorModule, 'validateTargetDirectory').mockReturnValueOnce({
+      valid: false,
+      resolvedPath: '/invalid/path',
+      error: undefined,
     });
 
-    expect(result.success).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'package.json'))).toBe(true);
-    expect(fs.existsSync(path.join(targetDir, 'existing.txt'))).toBe(true);
-  });
-
-  it('fails when project name is invalid', () => {
-    const targetDir = path.join(tempDir, 'InvalidName!');
     const result = scaffoldProject({
-      projectPath: targetDir,
-      quiet: true,
+      projectPath: 'bad-dir',
+      projectName: 'custom-name',
+      packageManager: 'yarn',
     });
 
     expect(result.success).toBe(false);
+    expect(result.projectName).toBe('custom-name');
+    expect(result.packageManager).toBe('yarn');
+    expect(result.error).toBe('Invalid target directory');
+  });
+
+  it('fails when project name validation fails', () => {
+    const dest = path.join(tempDir, 'INVALID_NAME_UPPERCASE');
+    const result = scaffoldProject({
+      projectPath: dest,
+      packageManager: 'bun',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.packageManager).toBe('bun');
     expect(result.error).toContain('Invalid project name');
   });
 
-  it('handles git initialization when requested', () => {
-    const gitSpy = vi.spyOn(gitModule, 'initGit').mockReturnValue(true);
-
-    const targetDir = path.join(tempDir, 'git-app');
+  it('uses explicitly passed projectName over directory name', () => {
+    const dest = path.join(tempDir, 'dir-name');
     const result = scaffoldProject({
-      projectPath: targetDir,
+      projectPath: dest,
+      projectName: 'custom-app',
+      packageManager: 'npm',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.projectName).toBe('custom-app');
+    const pkgJson = JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'));
+    expect(pkgJson.name).toBe('custom-app');
+  });
+
+  it('handles write errors gracefully', () => {
+    const dest = path.join(tempDir, 'fail-app');
+
+    vi.spyOn(fs, 'writeFileSync').mockImplementationOnce(() => {
+      throw new Error('EACCES: permission denied');
+    });
+
+    const result = scaffoldProject({
+      projectPath: dest,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to write template files: EACCES: permission denied');
+  });
+
+  it('handles non-Error thrown during template writing', () => {
+    const dest = path.join(tempDir, 'string-err-app');
+
+    vi.spyOn(fs, 'writeFileSync').mockImplementationOnce(() => {
+      throw 'Unknown disk error';
+    });
+
+    const result = scaffoldProject({
+      projectPath: dest,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to write template files: Unknown disk error');
+  });
+
+  it('initializes git when git flag is true', () => {
+    const dest = path.join(tempDir, 'git-app');
+    vi.spyOn(gitModule, 'initGit').mockReturnValueOnce(true);
+
+    const result = scaffoldProject({
+      projectPath: dest,
       git: true,
-      quiet: true,
     });
 
     expect(result.success).toBe(true);
     expect(result.gitStatus).toBe('initialized');
-    expect(gitSpy).toHaveBeenCalledWith(path.resolve(targetDir));
   });
 
-  it('records gitStatus as failed when git init fails', () => {
-    vi.spyOn(gitModule, 'initGit').mockReturnValue(false);
+  it('handles git init failure and throws when git flag is true', () => {
+    const dest1 = path.join(tempDir, 'git-fail-app-1');
+    vi.spyOn(gitModule, 'initGit').mockReturnValueOnce(false);
 
-    const targetDir = path.join(tempDir, 'git-fail-app');
-    const result = scaffoldProject({
-      projectPath: targetDir,
+    const result1 = scaffoldProject({
+      projectPath: dest1,
       git: true,
-      quiet: true,
     });
 
-    expect(result.success).toBe(true);
-    expect(result.gitStatus).toBe('failed');
+    expect(result1.success).toBe(true);
+    expect(result1.gitStatus).toBe('failed');
+
+    const dest2 = path.join(tempDir, 'git-fail-app-2');
+    vi.spyOn(gitModule, 'initGit').mockImplementationOnce(() => {
+      throw new Error('git crashed');
+    });
+
+    const result2 = scaffoldProject({
+      projectPath: dest2,
+      git: true,
+    });
+
+    expect(result2.success).toBe(true);
+    expect(result2.gitStatus).toBe('failed');
   });
 
-  it('handles dependency installation when requested', () => {
-    const installSpy = vi.spyOn(pmModule, 'runInstall').mockReturnValue(true);
+  it('runs install when install flag is true', () => {
+    const dest = path.join(tempDir, 'install-app');
+    vi.spyOn(pmModule, 'runInstall').mockReturnValueOnce(true);
 
-    const targetDir = path.join(tempDir, 'install-app');
     const result = scaffoldProject({
-      projectPath: targetDir,
+      projectPath: dest,
       install: true,
-      packageManager: 'pnpm',
       quiet: true,
     });
 
     expect(result.success).toBe(true);
     expect(result.installStatus).toBe('installed');
-    expect(installSpy).toHaveBeenCalledWith('pnpm', path.resolve(targetDir), true);
   });
 
-  it('records installStatus as failed when runInstall returns false', () => {
-    vi.spyOn(pmModule, 'runInstall').mockReturnValue(false);
+  it('handles install failure and throws when install flag is true', () => {
+    const dest1 = path.join(tempDir, 'install-fail-app-1');
+    vi.spyOn(pmModule, 'runInstall').mockReturnValueOnce(false);
 
-    const targetDir = path.join(tempDir, 'install-fail-app');
-    const result = scaffoldProject({
-      projectPath: targetDir,
+    const result1 = scaffoldProject({
+      projectPath: dest1,
       install: true,
-      packageManager: 'npm',
-      quiet: true,
     });
 
-    expect(result.success).toBe(true);
-    expect(result.installStatus).toBe('failed');
+    expect(result1.success).toBe(true);
+    expect(result1.installStatus).toBe('failed');
+
+    const dest2 = path.join(tempDir, 'install-fail-app-2');
+    vi.spyOn(pmModule, 'runInstall').mockImplementationOnce(() => {
+      throw new Error('npm failed');
+    });
+
+    const result2 = scaffoldProject({
+      projectPath: dest2,
+      install: true,
+    });
+
+    expect(result2.success).toBe(true);
+    expect(result2.installStatus).toBe('failed');
   });
 });

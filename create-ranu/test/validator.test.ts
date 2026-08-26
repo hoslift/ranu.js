@@ -9,6 +9,7 @@ describe('create-ranu validator', () => {
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-ranu-val-'));
+    vi.restoreAllMocks();
   });
 
   afterEach(() => {
@@ -134,18 +135,35 @@ describe('create-ranu validator', () => {
       expect(res.error).toContain('already exists and is not a directory');
     });
 
-    it('handles filesystem inspection errors gracefully', () => {
+    it('handles filesystem inspection errors gracefully on stat and readdir', () => {
       const target = path.join(tempDir, 'fs-error-app');
       fs.mkdirSync(target, { recursive: true });
 
-      vi.spyOn(fs, 'readdirSync').mockImplementation(() => {
+      vi.spyOn(fs, 'statSync').mockImplementationOnce(() => {
+        throw new Error('EPERM: operation not permitted');
+      });
+
+      const res1 = validateTargetDirectory(target);
+      expect(res1.valid).toBe(false);
+      expect(res1.error).toContain('Failed to inspect target path');
+      expect(res1.error).toContain('operation not permitted');
+
+      vi.spyOn(fs, 'readdirSync').mockImplementationOnce(() => {
         throw new Error('EACCES: permission denied');
       });
 
-      const res = validateTargetDirectory(target);
-      expect(res.valid).toBe(false);
-      expect(res.error).toContain('Failed to inspect target path');
-      expect(res.error).toContain('permission denied');
+      const res2 = validateTargetDirectory(target);
+      expect(res2.valid).toBe(false);
+      expect(res2.error).toContain('Failed to inspect target path');
+      expect(res2.error).toContain('permission denied');
+
+      vi.spyOn(fs, 'readdirSync').mockImplementationOnce(() => {
+        throw 'Generic raw string failure';
+      });
+
+      const res3 = validateTargetDirectory(target);
+      expect(res3.valid).toBe(false);
+      expect(res3.error).toContain('Generic raw string failure');
     });
   });
 });
