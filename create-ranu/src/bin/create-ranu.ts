@@ -137,7 +137,7 @@ Examples:
 `);
 }
 
-export async function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
+export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): number {
   const wantsJson = argv.includes('--json');
   try {
     const parsed = parseArgs(argv);
@@ -228,13 +228,16 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
   }
 }
 
-/* v8 ignore next 6 */
+/* v8 ignore next 10 */
 const isDirectExecution =
   process.argv[1] !== undefined &&
   fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
 if (isDirectExecution) {
-  runCreateRanu()
-    .then((code) => process.exit(code))
-    .catch(() => process.exit(1));
+  try {
+    const code = runCreateRanu();
+    process.exit(code);
+  } catch {
+    process.exit(1);
+  }
 }
