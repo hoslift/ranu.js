@@ -10,69 +10,34 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'version',
 ];
 
-const KNOWN_FLAGS = new Set<string>([
-  '--root',
-  '-r',
-  '--port',
-  '-p',
-  '--host',
-  '-h',
-  '--clean',
-  '--open',
-  '--verbose',
-  '--debug',
-  '--quiet',
-  '-q',
-  '--json',
-  '--help',
-  '--version',
-  '-v',
-]);
-
 /**
  * Calculates simple Levenshtein distance for command typo suggestions.
  */
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
-  const dp: number[][] = [];
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
 
   for (let i = 0; i <= m; i++) {
-    const row: number[] = new Array(n + 1).fill(0) as number[];
-    row[0] = i;
-    dp.push(row);
+    (dp[i] as number[])[0] = i;
   }
-
-  const firstRow = dp[0];
-  if (firstRow) {
-    for (let j = 0; j <= n; j++) {
-      firstRow[j] = j;
-    }
+  for (let j = 0; j <= n; j++) {
+    (dp[0] as number[])[j] = j;
   }
 
   for (let i = 1; i <= m; i++) {
-    const currRow = dp[i];
-    const prevRow = dp[i - 1];
-    if (!currRow || !prevRow) continue;
-
+    const prevRow = dp[i - 1] as number[];
+    const currRow = dp[i] as number[];
     for (let j = 1; j <= n; j++) {
-      const charA = a.charAt(i - 1);
-      const charB = b.charAt(j - 1);
-
-      const pVal = prevRow[j - 1] ?? 0;
-      const topVal = prevRow[j] ?? 0;
-      const leftVal = currRow[j - 1] ?? 0;
-
-      if (charA === charB) {
-        currRow[j] = pVal;
+      if (a.charAt(i - 1) === b.charAt(j - 1)) {
+        currRow[j] = prevRow[j - 1] as number;
       } else {
-        currRow[j] = 1 + Math.min(topVal, leftVal, pVal);
+        currRow[j] = 1 + Math.min(prevRow[j] as number, currRow[j - 1] as number, prevRow[j - 1] as number);
       }
     }
   }
 
-  const lastRow = dp[m];
-  return lastRow ? (lastRow[n] ?? 0) : 0;
+  return (dp[m] as number[])[n] as number;
 }
 
 /**
@@ -112,23 +77,16 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let help = false;
   let version = false;
 
-  let i = 0;
-  while (i < argv.length) {
-    const arg = argv[i];
-    if (arg === undefined) {
-      i++;
-      continue;
-    }
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string;
 
     if (arg === '--help') {
       help = true;
-      i++;
       continue;
     }
 
     if (arg === '--version' || arg === '-v') {
       version = true;
-      i++;
       continue;
     }
 
@@ -139,7 +97,6 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
         throw new Error('Flag "--root" requires a valid path argument.');
       }
       root = val;
-      i++;
       continue;
     }
 
@@ -154,7 +111,6 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
         throw new Error(`Invalid port number "${val}". Port must be an integer between 1 and 65535.`);
       }
       port = rawPort;
-      i++;
       continue;
     }
 
@@ -165,43 +121,36 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
         throw new Error('Flag "--host" requires a valid host argument.');
       }
       host = val;
-      i++;
       continue;
     }
 
     if (arg === '--clean') {
       clean = true;
-      i++;
       continue;
     }
 
     if (arg === '--open') {
       open = true;
-      i++;
       continue;
     }
 
     if (arg === '--verbose') {
       verbose = true;
-      i++;
       continue;
     }
 
     if (arg === '--debug') {
       debug = true;
-      i++;
       continue;
     }
 
     if (arg === '--quiet' || arg === '-q') {
       quiet = true;
-      i++;
       continue;
     }
 
     if (arg === '--json') {
       json = true;
-      i++;
       continue;
     }
 
@@ -221,8 +170,6 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     } else {
       positionalArgs.push(arg);
     }
-
-    i++;
   }
 
   return {

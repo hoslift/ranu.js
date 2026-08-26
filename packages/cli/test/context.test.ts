@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as configModule from '@ranu/config';
 import {
   validateNodeVersion,
   discoverProjectRoot,
@@ -114,7 +115,7 @@ describe('@ranu/cli context and discovery', () => {
     ).rejects.toThrow('Invalid configuration');
   });
 
-  it('throws helpful error on syntax failure during config load', async () => {
+  it('throws helpful error on syntax failure or non-Error throw during config load', async () => {
     fs.mkdirSync(path.join(tempDir, 'app'), { recursive: true });
     fs.writeFileSync(
       path.join(tempDir, 'ranu.config.ts'),
@@ -125,5 +126,33 @@ describe('@ranu/cli context and discovery', () => {
     await expect(
       resolveProjectContext({ args: [], root: tempDir }, logger, 'production')
     ).rejects.toThrow('Failed to load configuration');
+
+    // Non-Error with object
+    vi.spyOn(configModule, 'loadConfig').mockRejectedValueOnce({ message: 'Object error' });
+    await expect(
+      resolveProjectContext({ args: [], root: tempDir }, logger, 'production')
+    ).rejects.toThrow('Object error');
+
+    // Non-Error with primitive string
+    vi.spyOn(configModule, 'loadConfig').mockRejectedValueOnce('Primitive error string');
+    await expect(
+      resolveProjectContext({ args: [], root: tempDir }, logger, 'production')
+    ).rejects.toThrow('Primitive error string');
+  });
+
+  it('throws if discoverConfig returns a diagnostic', async () => {
+    vi.spyOn(configModule, 'discoverConfig').mockReturnValueOnce({
+      configPath: undefined,
+      diagnostic: {
+        code: 'RANU_MULTIPLE_CONFIG',
+        message: 'Multiple configuration files discovered',
+        severity: 'error',
+      },
+    });
+
+    const logger = createCliLogger({ quiet: true });
+    await expect(
+      resolveProjectContext({ args: [], root: tempDir }, logger, 'production')
+    ).rejects.toThrow('Multiple configuration files discovered');
   });
 });

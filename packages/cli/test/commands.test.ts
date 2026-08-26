@@ -249,7 +249,7 @@ describe('@ranu/cli commands comprehensive', () => {
   });
 
   describe('runCli orchestrator', () => {
-    it('dispatches to dev, build, start, deploy, create, help, and version', async () => {
+    it('dispatches to dev, build, start, deploy, create, help, version, and default', async () => {
       vi.spyOn(buildModule, 'build').mockResolvedValue({
         success: true,
         buildId: 'b1',
@@ -258,15 +258,45 @@ describe('@ranu/cli commands comprehensive', () => {
         diagnostics: [],
       });
 
+      const devServerMock = {
+        start: vi.fn().mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      vi.spyOn(devModule, 'createDevServer').mockReturnValue(devServerMock as any);
+
+      const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
+      fs.mkdirSync(buildServerDir, { recursive: true });
+      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default { handle: () => {} };');
+      const serverMock = {
+        listen: vi.fn().mockResolvedValue({ host: '0.0.0.0', port: 3000 }),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      vi.spyOn(nodeServerModule, 'createNodeServer').mockReturnValue(serverMock as any);
+
+      // Default dispatch when no command provided
+      expect(await runCli([])).toBe(0);
       expect(await runCli(['--help'])).toBe(0);
       expect(await runCli(['--version'])).toBe(0);
       expect(await runCli(['version'])).toBe(0);
       expect(await runCli(['help', 'build'])).toBe(0);
       expect(await runCli(['create', 'test-app', '--json'])).toBe(0);
       expect(await runCli(['build', '--root', tempDir, '--json'])).toBe(0);
+
+      // Dispatch dev
+      const devPromise = runCli(['dev', '--root', tempDir]);
+      setTimeout(() => process.emit('SIGINT'), 50);
+      expect(await devPromise).toBe(0);
+
+      // Dispatch start
+      const startPromise = runCli(['start', '--root', tempDir]);
+      setTimeout(() => process.emit('SIGINT'), 50);
+      expect(await startPromise).toBe(0);
+
+      // Dispatch deploy (without adapter returns 1)
+      expect(await runCli(['deploy', '--root', tempDir])).toBe(1);
     });
 
-    it('handles unexpected errors in JSON and debug mode', async () => {
+    it('handles unexpected errors and non-Error throws in JSON and debug mode', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
@@ -275,6 +305,13 @@ describe('@ranu/cli commands comprehensive', () => {
 
       const codeDebug = await runCli(['build', '--root', '/non/existent/path/123', '--debug']);
       expect(codeDebug).toBe(1);
+
+      // Non-Error throw
+      vi.spyOn(buildModule, 'build').mockImplementation(() => {
+        throw 'String error thrown';
+      });
+      const codeStringErr = await runCli(['build', '--root', tempDir]);
+      expect(codeStringErr).toBe(1);
 
       errSpy.mockRestore();
       debugSpy.mockRestore();
