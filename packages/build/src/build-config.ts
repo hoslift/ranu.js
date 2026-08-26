@@ -1,6 +1,11 @@
 import type { ResolvedRanuConfig } from '@ranu/config';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 
+export interface BuildPluginAlias {
+  readonly find: string | RegExp;
+  readonly replacement: string;
+}
+
 /** User-facing / programmatic options for build invocation */
 export interface BuildConfig {
   /** Project root directory containing ranu.config and app/ */
@@ -19,9 +24,11 @@ export interface BuildConfig {
   minify?: boolean | undefined;
 
   /** TypeScript typechecking options */
-  typescript?: {
-    check?: boolean | undefined;
-  } | undefined;
+  typescript?:
+    | {
+        check?: boolean | undefined;
+      }
+    | undefined;
 }
 
 /** Internal execution context shared across build stages */
@@ -36,4 +43,6 @@ export interface BuildContext {
   staticOutDir: string;
   manifestOutDir: string;
   diagnostics: RanuDiagnostic[];
+  pluginAliases?: readonly BuildPluginAlias[];
+  pluginDefines?: Readonly<Record<string, string>>;
 }

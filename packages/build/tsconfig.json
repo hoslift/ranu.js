@@ -10,7 +10,8 @@
     { "path": "../diagnostics" },
     { "path": "../manifests" },
     { "path": "../router" },
-    { "path": "../config" }
+    { "path": "../config" },
+    { "path": "../plugin" }
   ],
   "files": [
     "src/index.ts",

@@ -183,4 +183,32 @@ export function Counter({ initial = 0 }: { initial?: number }) {
     const outFile = path.join(outDir, 'counter.js');
     expect(fs.existsSync(outFile)).toBe(true);
   });
+
+  it('resolves regex plugin aliases and leaves non-matching imports to esbuild', async () => {
+    const aliasedFile = path.join(tempDir, 'aliased.ts');
+    const localFile = path.join(tempDir, 'local.ts');
+    const entryFile = path.join(tempDir, 'entry.ts');
+    fs.writeFileSync(aliasedFile, "export const aliased = 'regex-alias';\n");
+    fs.writeFileSync(localFile, "export const local = 'local-import';\n");
+    fs.writeFileSync(
+      entryFile,
+      "import { aliased } from '@regex-value';\nimport { local } from './local';\nconsole.log(aliased, local);\n",
+    );
+
+    const outDir = path.join(tempDir, 'dist-regex-alias');
+    const adapter = new EsbuildAdapter();
+    const result = await adapter.bundle({
+      entryPoints: { entry: entryFile },
+      outdir: outDir,
+      absWorkingDir: tempDir,
+      platform: 'node',
+      format: 'esm',
+      pluginAliases: [{ find: /^@regex-value$/, replacement: aliasedFile }],
+    });
+
+    expect(result.success).toBe(true);
+    const output = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
+    expect(output).toContain('regex-alias');
+    expect(output).toContain('local-import');
+  });
 });

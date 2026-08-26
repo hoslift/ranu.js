@@ -22,6 +22,7 @@
     "@ranu/core": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/manifests": "workspace:*",
+    "@ranu/plugin": "workspace:*",
     "@ranu/react": "workspace:*",
     "@ranu/router": "workspace:*",
     "@ranu/runtime": "workspace:*",

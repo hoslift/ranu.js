@@ -49,6 +49,7 @@
   "dependencies": {
     "@ranu/config": "workspace:*",
     "@ranu/core": "workspace:*",
+    "@ranu/plugin": "workspace:*",
     "@ranu/react": "workspace:*",
     "@ranu/server": "workspace:*"
   },

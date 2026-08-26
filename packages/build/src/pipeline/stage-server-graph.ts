@@ -106,12 +106,15 @@ export async function runServerGraphStage(
   const bundleResult = await adapter.bundle({
     entryPoints,
     outdir: ctx.serverOutDir,
+    absWorkingDir: ctx.projectRoot,
     platform: 'node',
     format: 'esm',
     target: 'node22',
     splitting: false, // Per-route self-contained bundles for predictable loading
     sourcemap,
     minify: ctx.config.minify ?? false,
+    define: { ...(ctx.pluginDefines ?? {}) },
+    pluginAliases: ctx.pluginAliases,
     plugins: [ranuPlugin],
     jsx: 'automatic',
     jsxImportSource: 'react',
