@@ -1,11 +1,11 @@
-import { execSync } from 'node:child_process';
+import childProcess from 'node:child_process';
 
 /**
  * Checks whether git CLI is available on PATH.
  */
 export function isGitInstalled(): boolean {
   try {
-    execSync('git --version', { stdio: 'ignore' });
+    childProcess.execSync('git --version', { stdio: 'ignore' });
     return true;
   } catch {
     return false;
@@ -17,7 +17,7 @@ export function isGitInstalled(): boolean {
  */
 export function isInsideGitWorkTree(targetDir: string): boolean {
   try {
-    execSync('git rev-parse --is-inside-work-tree', {
+    childProcess.execSync('git rev-parse --is-inside-work-tree', {
       cwd: targetDir,
       stdio: 'ignore',
     });
@@ -41,7 +41,7 @@ export function initGit(targetDir: string): boolean {
     if (isInsideGitWorkTree(targetDir)) {
       return false;
     }
-    execSync('git init', { cwd: targetDir, stdio: 'ignore' });
+    childProcess.execSync('git init', { cwd: targetDir, stdio: 'ignore' });
     return true;
   } catch {
     return false;

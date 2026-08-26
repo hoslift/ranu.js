@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import childProcess from 'node:child_process';
 import type { PackageManager } from './types.js';
 
 /**
@@ -53,7 +53,7 @@ export function getInstallCommand(pm: PackageManager): { command: string; args: 
 export function runInstall(pm: PackageManager, projectPath: string, quiet?: boolean): boolean {
   try {
     const { command, args } = getInstallCommand(pm);
-    execSync(`${command} ${args.join(' ')}`, {
+    childProcess.execSync(`${command} ${args.join(' ')}`, {
       cwd: projectPath,
       stdio: quiet ? 'ignore' : 'inherit',
     });
