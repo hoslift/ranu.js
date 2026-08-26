@@ -2,6 +2,12 @@ import { build } from '@ranu/build';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
+/**
+ * Runs an optimized production build and reports its result.
+ *
+ * @param args - Command-line options controlling build output
+ * @returns `0` if the build succeeds, `1` if it fails
+ */
 export async function runBuildCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'production');
 

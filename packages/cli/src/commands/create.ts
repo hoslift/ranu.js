@@ -1,5 +1,11 @@
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 
+/**
+ * Displays commands for scaffolding a new Ranu.js application.
+ *
+ * @param args - CLI arguments, including the optional target directory and JSON output flag
+ * @returns The command exit status, always `0`
+ */
 export function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): number {
   const targetDir = args.args[0] ?? 'my-ranu-app';
 

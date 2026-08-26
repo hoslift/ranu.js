@@ -5,6 +5,13 @@ import { createNodeServer } from '@ranu/runtime-node';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
+/**
+ * Starts the production Ranu.js server and waits for a termination signal.
+ *
+ * @param args - CLI options for configuring the server and output format
+ * @returns `0` after the server shuts down
+ * @throws Error if the production build is missing or does not export a valid runtime
+ */
 export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'production');
 

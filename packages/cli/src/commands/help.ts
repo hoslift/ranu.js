@@ -1,5 +1,12 @@
 import type { CliLogger } from '../types.js';
 
+/**
+ * Displays general or command-specific help for the Ranu.js CLI.
+ *
+ * @param subcommand - The command for which to display detailed help
+ * @param isJson - Whether to output structured help data through the logger
+ * @returns The exit code `0`
+ */
 export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?: boolean): number {
   if (isJson && logger) {
     logger.json({

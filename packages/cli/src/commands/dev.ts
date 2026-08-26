@@ -2,6 +2,13 @@ import { createDevServer } from '@ranu/dev';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
+/**
+ * Starts the development server and waits for a termination signal before shutting it down.
+ *
+ * @param args - Command-line options controlling output formatting and server behavior
+ * @param logger - Logger used to report server status
+ * @returns The process exit code after the server shuts down
+ */
 export async function runDevCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'development');
 

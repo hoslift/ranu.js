@@ -1,6 +1,12 @@
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
+/**
+ * Executes the configured deployment adapter for the production project.
+ *
+ * @param args - Command-line options controlling output format
+ * @returns `0` when deployment preparation succeeds, `1` when no valid adapter is configured
+ */
 export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'production');
 

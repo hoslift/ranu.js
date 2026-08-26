@@ -27,7 +27,10 @@ export function validateNodeVersion(): void {
 }
 
 /**
- * Discovers the project root directory.
+ * Finds the nearest project root containing a Ranu configuration file or `app` directory.
+ *
+ * @param startDir - Directory from which to begin searching
+ * @returns The matching project root, or the resolved `startDir` when no project root is found
  */
 export function discoverProjectRoot(startDir: string): string {
   let current = path.resolve(startDir);
@@ -67,7 +70,13 @@ export function cleanProjectArtifacts(projectRoot: string): void {
 }
 
 /**
- * Resolves full CLI execution context.
+ * Resolves the project and configuration context for CLI execution.
+ *
+ * @param args - Parsed CLI arguments that determine the project root, cleanup behavior, and configuration overrides
+ * @param logger - Logger used during context resolution
+ * @param defaultMode - Default framework mode for the resolved configuration
+ * @returns The resolved CLI context, including project paths, configuration, mode, logger, and CI status
+ * @throws If the Node.js version, project root, or project configuration is invalid
  */
 export async function resolveProjectContext(
   args: ParsedCliArgs,

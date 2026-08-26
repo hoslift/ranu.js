@@ -9,7 +9,10 @@ import { runDeployCommand } from './commands/deploy.js';
 import { runCreateCommand } from './commands/create.js';
 
 /**
- * Main Ranu.js CLI orchestrator and entry dispatcher.
+ * Dispatches CLI arguments to the corresponding command and reports command errors.
+ *
+ * @param argv - Command-line arguments to process.
+ * @returns The command exit code.
  */
 export async function runCli(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   let isDebug = false;

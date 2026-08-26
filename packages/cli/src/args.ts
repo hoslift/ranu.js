@@ -11,7 +11,11 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
 ];
 
 /**
- * Calculates simple Levenshtein distance for command typo suggestions.
+ * Calculates the minimum number of single-character edits needed to transform one string into another.
+ *
+ * @param a - The source string
+ * @param b - The target string
+ * @returns The edit distance between `a` and `b`
  */
 function levenshtein(a: string, b: string): number {
   const m = a.length;
@@ -41,7 +45,10 @@ function levenshtein(a: string, b: string): number {
 }
 
 /**
- * Suggests a close known command if user makes a typo.
+ * Finds the closest recognized command for an input string.
+ *
+ * @param input - The command text to compare with recognized commands
+ * @returns The closest recognized command when its edit distance is less than 3, `undefined` otherwise
  */
 export function findClosestCommand(input: string): string | undefined {
   let closest: string | undefined;
@@ -59,7 +66,10 @@ export function findClosestCommand(input: string): string | undefined {
 }
 
 /**
- * Parses raw command-line arguments into a validated ParsedCliArgs object.
+ * Parses command-line arguments into a validated options object.
+ *
+ * @param argv - The raw command-line arguments
+ * @returns Parsed commands, positional arguments, options, and enabled flags
  */
 export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let command: CliCommand | undefined;

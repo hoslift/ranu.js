@@ -7,6 +7,12 @@ export interface CliLoggerOptions {
   json?: boolean | undefined;
 }
 
+/**
+ * Creates a CLI logger configured with output, verbosity, debugging, and JSON modes.
+ *
+ * @param options - Controls quiet, verbose, debug, and JSON output behavior.
+ * @returns A configured CLI logger.
+ */
 export function createCliLogger(options: CliLoggerOptions = {}): CliLogger {
   const isQuiet = Boolean(options.quiet);
   const isVerbose = Boolean(options.verbose);
