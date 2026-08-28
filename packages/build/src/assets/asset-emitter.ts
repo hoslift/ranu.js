@@ -53,9 +53,26 @@ export function emitStaticAsset(
     throw new Error(`Asset path "${filePath}" escapes project root "${projectRoot}".`);
   }
 
-  const content = fs.readFileSync(normalizedFile);
-  const ext = path.extname(normalizedFile).toLowerCase();
-  const base = path.basename(normalizedFile, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+  let realFile = normalizedFile;
+  let realRoot = normalizedRoot;
+  try {
+    if (fs.existsSync(normalizedFile)) {
+      realFile = fs.realpathSync(normalizedFile);
+    }
+    if (fs.existsSync(normalizedRoot)) {
+      realRoot = fs.realpathSync(normalizedRoot);
+    }
+  } catch {
+    // If realpath resolution fails, fall back to normalized check
+  }
+
+  if (!isPathContained(realFile, realRoot)) {
+    throw new Error(`Asset path "${filePath}" resolves outside project root "${projectRoot}".`);
+  }
+
+  const content = fs.readFileSync(realFile);
+  const ext = path.extname(realFile).toLowerCase();
+  const base = path.basename(realFile, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
 
   // Generate 8-character deterministic content hash
   const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
@@ -130,8 +147,23 @@ export function rewriteCssUrls(
       return match;
     }
 
+    let realResolved = resolvedPath;
+    let realRoot = normalizedRoot;
+    try {
+      realResolved = fs.realpathSync(resolvedPath);
+      realRoot = fs.realpathSync(normalizedRoot);
+    } catch {
+      // fallback
+    }
+
+    if (!isPathContained(realResolved, realRoot)) {
+      throw new Error(
+        `Path traversal detected in CSS url("${trimmed}") in file "${cssFilePath}". Traversal outside project root is prohibited.`,
+      );
+    }
+
     // 3. Emit referenced static asset and rewrite url to hashed public URL
-    const emitted = emitStaticAsset(resolvedPath, staticOutDir, projectRoot);
+    const emitted = emitStaticAsset(realResolved, staticOutDir, projectRoot);
     referencedAssets.push(emitted.publicUrl);
 
     const safeQuote = quote || '"';
