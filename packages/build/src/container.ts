@@ -116,6 +116,16 @@ export function writeContainerArtifacts(
       : options;
 
   const writeNoFollow = (filePath: string, contents: string): boolean => {
+    try {
+      if (fs.lstatSync(filePath).isSymbolicLink()) {
+        throw new Error(`Refusing to write container artifact through symlink: "${filePath}".`);
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) {
+        throw error;
+      }
+    }
+
     const flags =
       fs.constants.O_WRONLY |
       fs.constants.O_CREAT |

@@ -150,7 +150,9 @@ describe('@ranu/build — Container Deployment', () => {
       const missingTarget = path.join(tempDir, 'missing');
       fs.symlinkSync(missingTarget, path.join(tempDir, '.dockerignore'));
 
-      expect(writeContainerArtifacts(tempDir).written).toBe(true);
+      expect(() => writeContainerArtifacts(tempDir)).toThrow(
+        /Refusing to write container artifact through symlink/,
+      );
       expect(fs.existsSync(missingTarget)).toBe(false);
     });
   });
