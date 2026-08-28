@@ -14,6 +14,7 @@ export default defineConfig({
     '@ranu/react',
     '@ranu/router',
     '@ranu/runtime',
+    '@ranu/server',
     'esbuild',
     'typescript',
   ],
