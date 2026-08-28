@@ -2,5 +2,9 @@
   "name": "@ranu/eslint-config",
   "private": true,
   "version": "0.0.0",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build": "echo ready",
+    "test": "echo ready"
+  }
 }

@@ -17,10 +17,10 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "pnpm --filter \"@ranu/*\" --filter \"ranu\" --filter \"create-ranu\" -r run build",
+    "build": "pnpm -r --filter \"./packages/*\" --filter \"./adapters/*\" --filter \"./create-ranu\" run build",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm --filter \"@ranu/*\" --filter \"ranu\" --filter \"create-ranu\" -r run test",
-    "test:unit": "pnpm -r --filter './packages/*' --filter './adapters/*' --filter './create-ranu' test",
+    "test": "pnpm -r --filter \"./packages/*\" --filter \"./adapters/*\" --filter \"./create-ranu\" run test",
+    "test:unit": "pnpm -r --filter \"./packages/*\" --filter \"./adapters/*\" --filter \"./create-ranu\" run test",
     "test:integration": "vitest run tests/integration",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
