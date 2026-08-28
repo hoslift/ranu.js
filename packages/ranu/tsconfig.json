@@ -11,6 +11,7 @@
     { "path": "../config" },
     { "path": "../plugin" },
     { "path": "../react" },
+    { "path": "../runtime-node" },
     { "path": "../server" }
   ],
   "include": ["src"],

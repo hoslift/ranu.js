@@ -5,7 +5,7 @@ import childProcess from 'node:child_process';
  */
 export function isGitInstalled(): boolean {
   try {
-    childProcess.execSync('git --version', { stdio: 'ignore' });
+    childProcess.execFileSync('git', ['--version'], { stdio: 'ignore' });
     return true;
   } catch {
     return false;
@@ -17,7 +17,7 @@ export function isGitInstalled(): boolean {
  */
 export function isInsideGitWorkTree(targetDir: string): boolean {
   try {
-    childProcess.execSync('git rev-parse --is-inside-work-tree', {
+    childProcess.execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
       cwd: targetDir,
       stdio: 'ignore',
     });
@@ -41,7 +41,7 @@ export function initGit(targetDir: string): boolean {
     if (isInsideGitWorkTree(targetDir)) {
       return false;
     }
-    childProcess.execSync('git init', { cwd: targetDir, stdio: 'ignore' });
+    childProcess.execFileSync('git', ['init'], { cwd: targetDir, stdio: 'ignore' });
     return true;
   } catch {
     return false;

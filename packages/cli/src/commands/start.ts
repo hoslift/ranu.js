@@ -46,18 +46,22 @@ export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): P
   });
 
   const address = await server.listen(port, host);
+  const displayHost =
+    address.host === '::' || address.host === '0.0.0.0' || address.host === ''
+      ? '127.0.0.1'
+      : address.host;
 
   if (args.json) {
     logger.json({
       status: 'ready',
-      url: `http://${address.host}:${address.port}`,
+      url: `http://${displayHost}:${address.port}`,
       mode: 'production',
       root: ctx.projectRoot,
     });
   } else {
     logger.log('');
     logger.success(`Ranu.js production server listening`);
-    logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${address.host}:${address.port}\x1b[0m`);
+    logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${displayHost}:${address.port}\x1b[0m`);
     logger.log(`  \x1b[1mMode:\x1b[0m    production`);
     logger.log(`  \x1b[1mRoot:\x1b[0m    ${ctx.projectRoot}`);
     logger.log('');

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build as bundle } from 'esbuild';
+import { buildSync } from 'esbuild';
 import type {
   RanuDeploymentAdapter,
   DeploymentCapabilities,
@@ -56,6 +56,19 @@ export function isPathContained(childPath: string, parentDir: string): boolean {
   return !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
+function assertNoDestinationSymlink(destination: string, authorizedRoot: string): void {
+  let current = path.resolve(destination);
+  const root = path.resolve(authorizedRoot);
+
+  while (isPathContained(current, root)) {
+    if (fs.lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      throw new Error(`Refusing to copy through symbolic link "${current}".`);
+    }
+    if (current === root) break;
+    current = path.dirname(current);
+  }
+}
+
 /**
  * Recursively copies a directory while safely skipping forbidden/sensitive files.
  */
@@ -67,6 +80,8 @@ export function copyDirectorySafe(
 ): string[] {
   const copiedFiles: string[] = [];
   if (!fs.existsSync(srcDir)) return copiedFiles;
+
+  assertNoDestinationSymlink(destDir, authorizedRoot);
 
   fs.mkdirSync(destDir, { recursive: true });
 
@@ -94,6 +109,7 @@ export function copyDirectorySafe(
       const nested = copyDirectorySafe(srcPath, destPath, authorizedRoot, forbiddenNames);
       copiedFiles.push(...nested);
     } else if (entry.isFile()) {
+      assertNoDestinationSymlink(destPath, authorizedRoot);
       fs.copyFileSync(srcPath, destPath);
       copiedFiles.push(destPath);
     }
@@ -112,24 +128,18 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
     capabilities: VERCEL_CAPABILITIES,
 
     async adapt(context: DeploymentAdapterContext): Promise<DeploymentResult> {
+      await Promise.resolve();
+
       const projectRoot = path.resolve(context.projectRoot ?? process.cwd());
       const buildDir = path.resolve(context.buildDir ?? path.join(projectRoot, '.ranu', 'build'));
       const outputDir = path.resolve(
         options.outputDir ?? context.outputDir ?? path.join(projectRoot, '.vercel', 'output'),
       );
-      const publicDir = path.join(projectRoot, 'public');
 
       // Validate outputDir safety
       const relToRoot = path.relative(outputDir, projectRoot);
       const relToBuild = path.relative(outputDir, buildDir);
-      const relFromBuild = path.relative(buildDir, outputDir);
-      const relFromPublic = path.relative(publicDir, outputDir);
-      if (
-        outputDir === projectRoot ||
-        outputDir === buildDir ||
-        relToRoot === '' ||
-        relToBuild === ''
-      ) {
+      if (outputDir === projectRoot || outputDir === buildDir || relToRoot === '' || relToBuild === '') {
         throw new Error(
           `Invalid output directory "${outputDir}": output directory cannot be equal to project root or build directory.`,
         );
@@ -142,16 +152,6 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       if (!relToBuild.startsWith('..') && !path.isAbsolute(relToBuild)) {
         throw new Error(
           `Invalid output directory "${outputDir}": output directory cannot contain the build directory.`,
-        );
-      }
-      if (!relFromBuild.startsWith('..') && !path.isAbsolute(relFromBuild)) {
-        throw new Error(
-          `Invalid output directory "${outputDir}": output directory cannot be inside the build directory.`,
-        );
-      }
-      if (!relFromPublic.startsWith('..') && !path.isAbsolute(relFromPublic)) {
-        throw new Error(
-          `Invalid output directory "${outputDir}": output directory cannot be equal to or inside the public directory.`,
         );
       }
 
@@ -168,10 +168,10 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       );
 
       // 2. Validate capability compatibility
-      const runtimeTarget: unknown = buildDescriptor.runtime;
-      if (runtimeTarget !== 'node') {
+      const buildRuntime = String(buildDescriptor.runtime);
+      if (buildRuntime !== 'node') {
         throw new Error(
-          `Vercel adapter requires build runtime target "node", but received "${String(runtimeTarget)}".`,
+          `Vercel adapter requires build runtime target "node", but received "${buildRuntime}".`,
         );
       }
 
@@ -208,6 +208,7 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
         const cleanPath = st.pathname === '/' ? 'index.html' : `${st.pathname.replace(/^\//, '')}.html`;
         overrides[cleanPath] = {
           contentType: 'text/html; charset=utf-8',
+          path: st.pathname === '/' ? '' : st.pathname.replace(/^\//, ''),
         };
       }
 
@@ -278,6 +279,7 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       }
 
       // 6c. Copy public/ directory files if present
+      const publicDir = path.join(projectRoot, 'public');
       if (fs.existsSync(publicDir)) {
         const copiedPublic = copyDirectorySafe(
           publicDir,
@@ -335,15 +337,12 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       }
 
       // 7c. Generate serverless entrypoint handler (index.mjs)
-      const runtimeNodeBundle = resolveRuntimeNodeBundle();
       const funcEntrySource = `// Vercel Serverless Function Handler for Ranu.js
 // Generated by @ranu/adapter-vercel (Build ID: ${buildDescriptor.buildId})
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createProductionRequestHandler, createProductionRuntime } from ${JSON.stringify(
-        runtimeNodeBundle.entry,
-      )};
+import { createProductionRequestHandler, createProductionRuntime } from '@ranu/runtime-node';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -379,23 +378,6 @@ export default async function handler(req, res) {
 `;
 
       const funcEntryPath = path.join(mainFuncDir, 'index.mjs');
-      await bundle({
-        stdin: {
-          contents: funcEntrySource,
-          resolveDir: projectRoot,
-          sourcefile: 'index.mjs',
-        },
-        bundle: true,
-        format: 'esm',
-        platform: 'node',
-        target: 'node22',
-        outfile: funcEntryPath,
-        logLevel: 'silent',
-        ...(runtimeNodeBundle.alias ? { alias: runtimeNodeBundle.alias } : {}),
-      });
-      emittedFiles.push(funcEntryPath);
-
-      // 7d. Package descriptor for the serverless function
       const projectPackageJsonPath = path.join(projectRoot, 'package.json');
       let projectDeps: Record<string, string> = {};
       if (fs.existsSync(projectPackageJsonPath)) {
@@ -407,6 +389,55 @@ export default async function handler(req, res) {
         }
       }
 
+      const sourceDir = path.dirname(fileURLToPath(import.meta.url));
+      const bundledRuntimePackages = [
+        '@ranu/core',
+        '@ranu/diagnostics',
+        '@ranu/manifests',
+        '@ranu/react',
+        '@ranu/router',
+        '@ranu/runtime',
+        '@ranu/runtime-node',
+      ];
+      const workspaceRuntimeEntry = path.resolve(
+        sourceDir,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      const workspacePackageAliases = fs.existsSync(workspaceRuntimeEntry)
+        ? {
+            '@ranu/core': path.resolve(sourceDir, '../../../packages/core/src/index.ts'),
+            '@ranu/diagnostics': path.resolve(
+              sourceDir,
+              '../../../packages/diagnostics/src/index.ts',
+            ),
+            '@ranu/manifests': path.resolve(sourceDir, '../../../packages/manifests/src/index.ts'),
+            '@ranu/react': path.resolve(sourceDir, '../../../packages/react/src/index.ts'),
+            '@ranu/router': path.resolve(sourceDir, '../../../packages/router/src/index.ts'),
+            '@ranu/runtime': path.resolve(sourceDir, '../../../packages/runtime/src/index.ts'),
+            '@ranu/runtime-node': workspaceRuntimeEntry,
+          }
+        : undefined;
+      buildSync({
+        stdin: {
+          contents: funcEntrySource,
+          loader: 'js',
+          resolveDir: sourceDir,
+          sourcefile: 'index.mjs',
+        },
+        outfile: funcEntryPath,
+        bundle: true,
+        format: 'esm',
+        platform: 'node',
+        target: 'node22',
+        ...(workspacePackageAliases ? { alias: workspacePackageAliases } : {}),
+        external: Object.keys(projectDeps).filter(
+          (dependency) => !bundledRuntimePackages.includes(dependency),
+        ),
+        logLevel: 'silent',
+      });
+      emittedFiles.push(funcEntryPath);
+
+      // 7d. Package descriptor for the serverless function
       const funcPackageJson = {
         type: 'module',
         main: 'index.mjs',
@@ -446,36 +477,6 @@ export default async function handler(req, res) {
       };
     },
   };
-}
-
-function resolveRuntimeNodeBundle(): { entry: string; alias?: Record<string, string> } {
-  try {
-    const installedEntry = fileURLToPath(import.meta.resolve('@ranu/runtime-node'));
-    if (fs.existsSync(installedEntry)) {
-      return { entry: installedEntry };
-    }
-  } catch {
-    // Fall through to the source-tree entry used by workspace tests.
-  }
-
-  const workspaceEntry = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    '../../../packages/runtime-node/src/index.ts',
-  );
-  if (fs.existsSync(workspaceEntry)) {
-    const packagesDir = path.dirname(path.dirname(path.dirname(workspaceEntry)));
-    return {
-      entry: workspaceEntry,
-      alias: Object.fromEntries(
-        ['core', 'diagnostics', 'manifests', 'react', 'router', 'runtime'].map((packageName) => [
-          `@ranu/${packageName}`,
-          path.join(packagesDir, packageName, 'src', 'index.ts'),
-        ]),
-      ),
-    };
-  }
-
-  throw new Error('Cannot bundle @ranu/runtime-node: package entry point was not found.');
 }
 
 export const vercelAdapter = createVercelAdapter;

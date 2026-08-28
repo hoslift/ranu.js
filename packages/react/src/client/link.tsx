@@ -38,6 +38,7 @@ export function handleLinkClick(
   const trimmed = options.href.trim();
   if (
     trimmed.startsWith('javascript:') ||
+    trimmed.startsWith('vbscript:') ||
     trimmed.startsWith('mailto:') ||
     trimmed.startsWith('tel:') ||
     trimmed.startsWith('blob:') ||

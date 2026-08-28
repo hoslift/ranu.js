@@ -47,7 +47,7 @@ export function serveStaticFile(
 
   // Security guard: Ensure target file is strictly contained within authorized root
   if (!isPathContained(normalizedFile, normalizedRoot)) {
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden: Path traversal is prohibited');
     return true;
   }
@@ -56,12 +56,27 @@ export function serveStaticFile(
     return false;
   }
 
-  const stat = fs.statSync(normalizedFile);
+  let realFile: string;
+  let realRoot: string;
+  try {
+    realFile = fs.realpathSync(normalizedFile);
+    realRoot = fs.realpathSync(normalizedRoot);
+  } catch {
+    return false;
+  }
+
+  if (!isPathContained(realFile, realRoot)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Path traversal is prohibited');
+    return true;
+  }
+
+  const stat = fs.statSync(realFile);
   if (!stat.isFile()) {
     return false;
   }
 
-  const mimeType = getMimeType(normalizedFile);
+  const mimeType = getMimeType(realFile);
   const isHead = req.method?.toUpperCase() === 'HEAD';
 
   res.writeHead(200, {
@@ -75,7 +90,7 @@ export function serveStaticFile(
     return true;
   }
 
-  const stream = fs.createReadStream(normalizedFile);
+  const stream = fs.createReadStream(realFile);
   stream.on('error', (error) => {
     res.destroy(error);
   });

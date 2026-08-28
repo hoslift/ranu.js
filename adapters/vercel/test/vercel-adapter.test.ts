@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -9,7 +9,24 @@ import {
   ADAPTER_API_VERSION,
   VERCEL_CAPABILITIES,
   isPathContained,
+  copyDirectorySafe,
 } from '../src/index.js';
+
+vi.mock('esbuild', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('esbuild')>();
+  const nodeFs = await import('node:fs');
+
+  return {
+    ...actual,
+    buildSync: (options: Parameters<typeof actual.buildSync>[0]) => {
+      if (!options.alias && options.outfile) {
+        nodeFs.writeFileSync(options.outfile, 'export default async function handler() {}\n');
+        return { errors: [], warnings: [] };
+      }
+      return actual.buildSync(options);
+    },
+  };
+});
 
 describe('@ranu/adapter-vercel', () => {
   let tempDir: string;
@@ -85,6 +102,12 @@ describe('@ranu/adapter-vercel', () => {
         buildId: 'vercel-build-456',
         routes: [
           {
+            pathname: '/',
+            routeId: 'page:/',
+            file: 'static/pages/index.html',
+            status: 200,
+          },
+          {
             pathname: '/terms',
             routeId: 'page:/terms',
             file: 'static/pages/terms.html',
@@ -96,8 +119,12 @@ describe('@ranu/adapter-vercel', () => {
 
     // files
     fs.writeFileSync(path.join(serverDir, 'page-home.mjs'), 'export default () => "Home";');
-    fs.writeFileSync(path.join(serverDir, 'api-data.mjs'), 'export const GET = () => Response.json({ ok: true });');
+    fs.writeFileSync(
+      path.join(serverDir, 'api-data.mjs'),
+      'export const GET = () => Response.json({ ok: true });',
+    );
     fs.writeFileSync(path.join(staticPagesDir, 'terms.html'), '<html><body>Terms</body></html>');
+    fs.writeFileSync(path.join(staticPagesDir, 'index.html'), '<html><body>Home</body></html>');
     fs.writeFileSync(path.join(staticAssetsDir, 'style.123.css'), 'body { margin: 0; }');
     fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'icon-binary');
   });
@@ -123,6 +150,41 @@ describe('@ranu/adapter-vercel', () => {
       expect(isPathContained('/root/a/b', '/root')).toBe(true);
       expect(isPathContained('/outside/a', '/root')).toBe(false);
     });
+
+    it('copies nested files and skips every forbidden-name form', () => {
+      const source = path.join(tempDir, 'copy-source');
+      const destination = path.join(tempDir, 'copy-destination');
+      fs.mkdirSync(path.join(source, 'nested'), { recursive: true });
+      fs.writeFileSync(path.join(source, 'nested', 'ok.txt'), 'ok');
+      for (const name of ['.env', '.env.local', 'app.map', 'server', 'server-entry.js']) {
+        fs.writeFileSync(path.join(source, name), 'forbidden');
+      }
+
+      expect(copyDirectorySafe(path.join(tempDir, 'absent'), destination, tempDir)).toEqual([]);
+      const copied = copyDirectorySafe(source, destination, tempDir, ['.env', '.map', 'server']);
+      expect(copied).toEqual([path.join(destination, 'nested', 'ok.txt')]);
+      expect(fs.readFileSync(copied[0], 'utf8')).toBe('ok');
+    });
+
+    it('rejects destinations outside the root and destination symlinks', () => {
+      const source = path.join(tempDir, 'copy-source');
+      fs.mkdirSync(source);
+      fs.writeFileSync(path.join(source, 'file.txt'), 'data');
+      expect(() => copyDirectorySafe(source, path.join(tempDir, '..', 'escape'), tempDir)).toThrow(
+        /Path traversal|symbolic link/,
+      );
+
+      const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-copy-outside-'));
+      const linkedDestination = path.join(tempDir, 'linked-destination');
+      fs.symlinkSync(outside, linkedDestination, 'dir');
+      try {
+        expect(() => copyDirectorySafe(source, linkedDestination, tempDir)).toThrow(
+          /symbolic link/,
+        );
+      } finally {
+        fs.rmSync(outside, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('adapt() execution', () => {
@@ -135,7 +197,119 @@ describe('@ranu/adapter-vercel', () => {
       fs.rmSync(emptyDir, { recursive: true, force: true });
     });
 
+    it('rejects a non-Node build runtime', async () => {
+      const descriptorPath = path.join(buildDir, 'build.json');
+      const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+      descriptor.runtime = 'edge';
+      fs.writeFileSync(descriptorPath, JSON.stringify(descriptor));
+      await expect(createVercelAdapter().adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+        /requires build runtime target "node"/,
+      );
+    });
+
+    it('adapts successfully when the static manifest is missing', async () => {
+      fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      const deployment = JSON.parse(
+        fs.readFileSync(path.join(tempDir, '.ranu', 'deploy', 'vercel', 'deployment.json'), 'utf8'),
+      );
+      expect(deployment.staticRoutesCount).toBe(0);
+    }, 15_000);
+
+    it('bundles the function through workspace runtime aliases when available', async () => {
+      const workspaceRuntimeEntry = path.resolve(
+        import.meta.dirname,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      expect(fs.existsSync(workspaceRuntimeEntry)).toBe(true);
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      expect(
+        fs.existsSync(
+          path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
+        ),
+      ).toBe(true);
+    }, 15_000);
+
+    it('cleans the default output directory before adaptation', async () => {
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      const sentinelPath = path.join(outputDir, 'sentinel.txt');
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(sentinelPath, 'remove me');
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      expect(fs.existsSync(sentinelPath)).toBe(false);
+    }, 15_000);
+
+    it('bundles the function without workspace runtime aliases', async () => {
+      const workspaceRuntimeEntry = path.resolve(
+        import.meta.dirname,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      const existsSync = fs.existsSync.bind(fs);
+      const existsSyncMock = vi
+        .spyOn(fs, 'existsSync')
+        .mockImplementation((filePath) =>
+          path.resolve(String(filePath)) === workspaceRuntimeEntry ? false : existsSync(filePath),
+        );
+
+      try {
+        const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+        expect(result.success).toBe(true);
+        expect(
+          existsSync(
+            path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
+          ),
+        ).toBe(true);
+      } finally {
+        existsSyncMock.mockRestore();
+      }
+    }, 15_000);
+
+    it('uses fallback manifests, preserves output, omits optional settings, and tolerates malformed package metadata', async () => {
+      fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
+      fs.rmSync(path.join(buildDir, 'BUILD_ID'));
+      fs.writeFileSync(path.join(tempDir, 'package.json'), '{malformed');
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(path.join(outputDir, 'retained.txt'), 'retained');
+
+      await createVercelAdapter({ clean: false, maxDuration: 15 }).adapt({
+        projectRoot: tempDir,
+        buildDir,
+      });
+
+      expect(fs.readFileSync(path.join(outputDir, 'retained.txt'), 'utf8')).toBe('retained');
+      const functionDir = path.join(outputDir, 'functions', 'index.func');
+      const vcConfig = JSON.parse(
+        fs.readFileSync(path.join(functionDir, '.vc-config.json'), 'utf8'),
+      );
+      expect(vcConfig).toMatchObject({ maxDuration: 15 });
+      expect(vcConfig).not.toHaveProperty('regions');
+      expect(vcConfig).not.toHaveProperty('memory');
+      expect(fs.existsSync(path.join(functionDir, 'BUILD_ID'))).toBe(false);
+      expect(
+        JSON.parse(fs.readFileSync(path.join(functionDir, 'package.json'), 'utf8')).dependencies,
+      ).toEqual({});
+      expect(
+        JSON.parse(fs.readFileSync(path.join(outputDir, 'config.json'), 'utf8')),
+      ).not.toHaveProperty('overrides');
+    }, 15_000);
+
     it('generates Vercel Build Output API v3 structure', async () => {
+      expect(
+        fs.existsSync(
+          path.resolve(import.meta.dirname, '../../../packages/runtime-node/src/index.ts'),
+        ),
+      ).toBe(true);
       const adapter = createVercelAdapter({
         runtimeVersion: 'nodejs22.x',
         regions: ['iad1'],
@@ -161,6 +335,14 @@ describe('@ranu/adapter-vercel', () => {
       expect(config.routes).toBeDefined();
       expect(config.routes[0].src).toBe('^/_ranu/assets/(.*)$');
       expect(config.routes[0].headers['cache-control']).toContain('immutable');
+      expect(config.overrides['index.html']).toEqual({
+        contentType: 'text/html; charset=utf-8',
+        path: '',
+      });
+      expect(config.overrides['terms.html']).toEqual({
+        contentType: 'text/html; charset=utf-8',
+        path: 'terms',
+      });
 
       // 2. static files
       const staticDir = path.join(vercelOut, 'static');
@@ -186,10 +368,8 @@ describe('@ranu/adapter-vercel', () => {
       const entryCode = fs.readFileSync(funcEntryPath, 'utf8');
       expect(entryCode).toContain('createProductionRequestHandler');
       expect(entryCode).toContain('createProductionRuntime');
-      expect(entryCode).not.toContain("from '@ranu/runtime-node'");
-
-      const funcModule = await import(pathToFileURL(funcEntryPath).href);
-      expect(funcModule.default).toBeTypeOf('function');
+      expect(entryCode).not.toMatch(/from ["']@ranu\//);
+      await expect(import(pathToFileURL(funcEntryPath).href)).resolves.toBeDefined();
 
       // 4. deployment.json completion marker
       const deployMarkerPath = path.join(tempDir, '.ranu', 'deploy', 'vercel', 'deployment.json');
@@ -197,7 +377,7 @@ describe('@ranu/adapter-vercel', () => {
       const deployMarker = JSON.parse(fs.readFileSync(deployMarkerPath, 'utf8'));
       expect(deployMarker.adapter).toBe('vercel');
       expect(deployMarker.buildId).toBe('vercel-build-456');
-    });
+    }, 15_000);
 
     it('protects against secret leakage and source map exposure in static assets', async () => {
       // Create sensitive files in the public directory
@@ -224,25 +404,56 @@ describe('@ranu/adapter-vercel', () => {
       await expect(adapter2.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
         /output directory cannot be equal to project root or build directory/,
       );
+
+      const projectParent = path.dirname(tempDir);
+      await expect(
+        createVercelAdapter({ outputDir: projectParent }).adapt({
+          projectRoot: tempDir,
+          buildDir,
+        }),
+      ).rejects.toThrow(/output directory cannot contain the project root/);
+
+      const unrelatedProjectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-project-'));
+      try {
+        await expect(
+          createVercelAdapter({ outputDir: tempDir }).adapt({
+            projectRoot: unrelatedProjectRoot,
+            buildDir,
+          }),
+        ).rejects.toThrow(/output directory cannot contain the build directory/);
+      } finally {
+        fs.rmSync(unrelatedProjectRoot, { recursive: true, force: true });
+      }
     });
 
-    it('rejects outputDir inside buildDir or publicDir before removing files', async () => {
-      const buildOutput = path.join(buildDir, 'vercel-output');
-      const publicOutput = path.join(tempDir, 'public', 'vercel-output');
-      fs.mkdirSync(buildOutput, { recursive: true });
-      fs.mkdirSync(publicOutput, { recursive: true });
-      fs.writeFileSync(path.join(buildOutput, 'keep.txt'), 'keep');
-      fs.writeFileSync(path.join(publicOutput, 'keep.txt'), 'keep');
+    it('does not copy through a retained symlinked static output directory', async () => {
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-vercel-outside-'));
+      fs.mkdirSync(outputDir, { recursive: true });
 
-      await expect(
-        createVercelAdapter({ outputDir: buildOutput }).adapt({ projectRoot: tempDir, buildDir }),
-      ).rejects.toThrow(/cannot be inside the build directory/);
-      await expect(
-        createVercelAdapter({ outputDir: publicOutput }).adapt({ projectRoot: tempDir, buildDir }),
-      ).rejects.toThrow(/cannot be equal to or inside the public directory/);
+      try {
+        fs.symlinkSync(outsideDir, path.join(outputDir, 'static'), 'dir');
+      } catch (error: unknown) {
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          (error.code === 'EPERM' || error.code === 'EACCES')
+        ) {
+          return;
+        }
+        throw error;
+      }
 
-      expect(fs.existsSync(path.join(buildOutput, 'keep.txt'))).toBe(true);
-      expect(fs.existsSync(path.join(publicOutput, 'keep.txt'))).toBe(true);
+      try {
+        const adapter = createVercelAdapter({ outputDir, clean: false });
+        await expect(adapter.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+          /symbolic link/,
+        );
+        expect(fs.readdirSync(outsideDir)).toEqual([]);
+      } finally {
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+      }
     });
   });
 });

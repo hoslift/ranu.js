@@ -20,6 +20,7 @@ export default defineConfig({
     '@ranu/core',
     '@ranu/plugin',
     '@ranu/react',
+    '@ranu/runtime-node',
     '@ranu/server',
   ],
   tsconfig: 'tsconfig.build.json',

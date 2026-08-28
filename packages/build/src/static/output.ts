@@ -24,15 +24,23 @@ export function deriveStaticOutputPath(
     return path.join('static', 'pages', 'index.html').replace(/\\/g, '/');
   }
 
-  // Strip leading and trailing slashes for segment parsing
-  const clean = normalized.replace(/^\/+/, '').replace(/\/+$/, '');
-  const segments = clean.split('/').map(seg => {
-    // Defense in depth: reject any traversal characters
-    if (seg === '.' || seg === '..' || seg.includes('\\') || seg.includes('\0')) {
-      throw new Error(`Invalid static pathname segment "${seg}" in "${pathname}". Traversal characters are strictly prohibited.`);
-    }
-    return seg;
-  });
+  // Strip leading and trailing slashes for segment parsing without ReDoS
+  const segments = normalized
+    .split('/')
+    .filter((seg) => seg.length > 0)
+    .map((seg) => {
+      // Defense in depth: reject any traversal characters
+      if (seg === '.' || seg === '..' || seg.includes('\\') || seg.includes('\0')) {
+        throw new Error(
+          `Invalid static pathname segment "${seg}" in "${pathname}". Traversal characters are strictly prohibited.`,
+        );
+      }
+      return seg;
+    });
+
+  if (segments.length === 0) {
+    return path.join('static', 'pages', 'index.html').replace(/\\/g, '/');
+  }
 
   if (trailingSlash === 'always') {
     return path.join('static', 'pages', ...segments, 'index.html').replace(/\\/g, '/');

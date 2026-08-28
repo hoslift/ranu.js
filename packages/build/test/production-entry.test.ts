@@ -90,4 +90,12 @@ describe('production entry generation', () => {
     expect(source).toContain('moduleLoader.loadMiddleware()');
     expect(source).not.toContain('ProductionRuntimeFactoryOptions');
   });
+
+  it('returns a closeable server without exiting programmatic callers', () => {
+    const source = generateProductionEntrySource('build-123');
+
+    expect(source).toContain('return { ...address, server, close };');
+    expect(source).toContain('if (isDirectExecution())');
+    expect(source).not.toContain('process.exit(0)');
+  });
 });

@@ -46,6 +46,18 @@ describe('@ranu/cli argument parsing', () => {
     expect(parsed.quiet).toBe(true);
   });
 
+  it('parses and trims --adapter', () => {
+    expect(parseCliArgs(['deploy', '--adapter', '  vercel  ']).adapter).toBe('vercel');
+  });
+
+  it.each([
+    ['missing', ['deploy', '--adapter']],
+    ['flag-like', ['deploy', '--adapter', '--json']],
+    ['whitespace-only', ['deploy', '--adapter', '   ']],
+  ])('rejects a %s --adapter value', (_label, argv) => {
+    expect(() => parseCliArgs(argv)).toThrow('Flag "--adapter" requires a valid adapter name.');
+  });
+
   it('parses --help and --version', () => {
     expect(parseCliArgs(['--help']).help).toBe(true);
     expect(parseCliArgs(['-v']).version).toBe(true);
@@ -56,12 +68,18 @@ describe('@ranu/cli argument parsing', () => {
     expect(() => parseCliArgs(['dev', '--port', '0'])).toThrow('Invalid port number "0"');
     expect(() => parseCliArgs(['dev', '--port', '70000'])).toThrow('Invalid port number "70000"');
     expect(() => parseCliArgs(['dev', '--port', 'abc'])).toThrow('Invalid port number "abc"');
-    expect(() => parseCliArgs(['dev', '--port'])).toThrow('Flag "--port" requires a valid integer argument.');
+    expect(() => parseCliArgs(['dev', '--port'])).toThrow(
+      'Flag "--port" requires a valid integer argument.',
+    );
   });
 
   it('throws when --root or --host is missing value', () => {
-    expect(() => parseCliArgs(['dev', '--root'])).toThrow('Flag "--root" requires a valid path argument.');
-    expect(() => parseCliArgs(['dev', '--host'])).toThrow('Flag "--host" requires a valid host argument.');
+    expect(() => parseCliArgs(['dev', '--root'])).toThrow(
+      'Flag "--root" requires a valid path argument.',
+    );
+    expect(() => parseCliArgs(['dev', '--host'])).toThrow(
+      'Flag "--host" requires a valid host argument.',
+    );
   });
 
   it('throws when an unknown flag is provided', () => {

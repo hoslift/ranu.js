@@ -12,6 +12,8 @@ export interface DockerfileOptions {
   cmd?: string[] | undefined;
   /** Whether to run as non-root user (default: true) */
   nonRoot?: boolean | undefined;
+  /** Whether the npm project has package-lock.json or npm-shrinkwrap.json. */
+  npmLockfile?: boolean | undefined;
 }
 
 /**
@@ -24,7 +26,7 @@ export function generateDockerfile(options: DockerfileOptions = {}): string {
   const nonRoot = options.nonRoot !== false;
   const cmd = options.cmd ?? ['node', '.ranu/build/server/entry.mjs'];
 
-  let installCommand = 'RUN npm ci';
+  let installCommand = options.npmLockfile ? 'RUN npm ci' : 'RUN npm install';
   let copyLock = 'COPY package*.json ./';
   let buildCommand = 'RUN npm run build';
   let pruneCommand = 'RUN npm prune --production';
@@ -103,16 +105,50 @@ export function writeContainerArtifacts(
   const dockerignorePath = path.join(projectRoot, '.dockerignore');
 
   let written = false;
+  const generatedOptions =
+    (options.packageManager ?? 'npm') === 'npm'
+      ? {
+          ...options,
+          npmLockfile:
+            fs.existsSync(path.join(projectRoot, 'package-lock.json')) ||
+            fs.existsSync(path.join(projectRoot, 'npm-shrinkwrap.json')),
+        }
+      : options;
 
-  if (!fs.existsSync(dockerfilePath) || overwrite) {
-    fs.writeFileSync(dockerfilePath, generateDockerfile(options), 'utf8');
-    written = true;
-  }
+  const writeNoFollow = (filePath: string, contents: string): boolean => {
+    try {
+      if (fs.lstatSync(filePath).isSymbolicLink()) {
+        throw new Error(`Refusing to write container artifact through symlink: "${filePath}".`);
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) {
+        throw error;
+      }
+    }
 
-  if (!fs.existsSync(dockerignorePath) || overwrite) {
-    fs.writeFileSync(dockerignorePath, generateDockerignore(), 'utf8');
-    written = true;
-  }
+    const flags =
+      fs.constants.O_WRONLY |
+      fs.constants.O_CREAT |
+      fs.constants.O_NOFOLLOW |
+      (overwrite ? fs.constants.O_TRUNC : fs.constants.O_EXCL);
+    let fd: number | undefined;
+
+    try {
+      fd = fs.openSync(filePath, flags, 0o666);
+      fs.writeFileSync(fd, contents, 'utf8');
+      return true;
+    } catch (error: unknown) {
+      if (!overwrite && error instanceof Error && 'code' in error && error.code === 'EEXIST') {
+        return false;
+      }
+      throw error;
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+  };
+
+  written = writeNoFollow(dockerfilePath, generateDockerfile(generatedOptions)) || written;
+  written = writeNoFollow(dockerignorePath, generateDockerignore()) || written;
 
   return {
     dockerfilePath,

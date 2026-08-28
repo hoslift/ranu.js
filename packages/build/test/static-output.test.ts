@@ -16,6 +16,9 @@ describe('Phase 15 Stage 15B: Static Output Path Derivation & Writing', () => {
   });
 
   describe('deriveStaticOutputPath', () => {
+    it.each(['/', '////', '  ////  '])('maps slash-only pathname %j to index', (pathname) => {
+      expect(deriveStaticOutputPath(pathname)).toBe('static/pages/index.html');
+    });
     it('maps root pathname to static/pages/index.html', () => {
       expect(deriveStaticOutputPath('/')).toBe('static/pages/index.html');
       expect(deriveStaticOutputPath('')).toBe('static/pages/index.html');
@@ -26,27 +29,45 @@ describe('Phase 15 Stage 15B: Static Output Path Derivation & Writing', () => {
       expect(deriveStaticOutputPath('/about')).toBe('static/pages/about.html');
       expect(deriveStaticOutputPath('/contact')).toBe('static/pages/contact.html');
       expect(deriveStaticOutputPath('/blog/post-1')).toBe('static/pages/blog/post-1.html');
-      expect(deriveStaticOutputPath('/docs/api/v1/reference')).toBe('static/pages/docs/api/v1/reference.html');
+      expect(deriveStaticOutputPath('/docs/api/v1/reference')).toBe(
+        'static/pages/docs/api/v1/reference.html',
+      );
     });
 
     it('maps pathnames with trailingSlash = always to directory/index.html', () => {
       expect(deriveStaticOutputPath('/about', 'always')).toBe('static/pages/about/index.html');
       expect(deriveStaticOutputPath('/about/', 'always')).toBe('static/pages/about/index.html');
-      expect(deriveStaticOutputPath('/blog/post-1', 'always')).toBe('static/pages/blog/post-1/index.html');
-      expect(deriveStaticOutputPath('/blog/post-1/', 'always')).toBe('static/pages/blog/post-1/index.html');
+      expect(deriveStaticOutputPath('/blog/post-1', 'always')).toBe(
+        'static/pages/blog/post-1/index.html',
+      );
+      expect(deriveStaticOutputPath('/blog/post-1/', 'always')).toBe(
+        'static/pages/blog/post-1/index.html',
+      );
     });
 
     it('preserves percent-encoded characters in output file paths', () => {
-      expect(deriveStaticOutputPath('/search/hello%20world')).toBe('static/pages/search/hello%20world.html');
+      expect(deriveStaticOutputPath('/search/hello%20world')).toBe(
+        'static/pages/search/hello%20world.html',
+      );
       expect(deriveStaticOutputPath('/tag/caf%C3%A9')).toBe('static/pages/tag/caf%C3%A9.html');
     });
 
     it('throws on path traversal attempts in pathname segments', () => {
-      expect(() => deriveStaticOutputPath('/../escaped')).toThrow('Traversal characters are strictly prohibited');
-      expect(() => deriveStaticOutputPath('/blog/../post')).toThrow('Traversal characters are strictly prohibited');
-      expect(() => deriveStaticOutputPath('/./current')).toThrow('Traversal characters are strictly prohibited');
-      expect(() => deriveStaticOutputPath('/win\\escape')).toThrow('Traversal characters are strictly prohibited');
-      expect(() => deriveStaticOutputPath('/null\0byte')).toThrow('Traversal characters are strictly prohibited');
+      expect(() => deriveStaticOutputPath('/../escaped')).toThrow(
+        'Traversal characters are strictly prohibited',
+      );
+      expect(() => deriveStaticOutputPath('/blog/../post')).toThrow(
+        'Traversal characters are strictly prohibited',
+      );
+      expect(() => deriveStaticOutputPath('/./current')).toThrow(
+        'Traversal characters are strictly prohibited',
+      );
+      expect(() => deriveStaticOutputPath('/win\\escape')).toThrow(
+        'Traversal characters are strictly prohibited',
+      );
+      expect(() => deriveStaticOutputPath('/null\0byte')).toThrow(
+        'Traversal characters are strictly prohibited',
+      );
     });
   });
 

@@ -55,11 +55,11 @@ describe('create-ranu package-manager module', () => {
 
   describe('runInstall', () => {
     it('executes install command safely on success and failure', () => {
-      vi.spyOn(childProcess, 'execSync').mockReturnValueOnce(Buffer.from(''));
+      vi.spyOn(childProcess, 'execFileSync').mockReturnValueOnce(Buffer.from(''));
       const success = runInstall('pnpm', '/dummy/dir', false);
       expect(success).toBe(true);
 
-      vi.spyOn(childProcess, 'execSync').mockImplementationOnce(() => {
+      vi.spyOn(childProcess, 'execFileSync').mockImplementationOnce(() => {
         throw new Error('command failed');
       });
       const fail = runInstall('npm', '/dummy/dir', true);
