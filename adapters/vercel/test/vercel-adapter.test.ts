@@ -191,6 +191,35 @@ describe('@ranu/adapter-vercel', () => {
       );
     });
 
+    it('adapts successfully when the static manifest is missing', async () => {
+      fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      const deployment = JSON.parse(
+        fs.readFileSync(path.join(tempDir, '.ranu', 'deploy', 'vercel', 'deployment.json'), 'utf8'),
+      );
+      expect(deployment.staticRoutesCount).toBe(0);
+    }, 15_000);
+
+    it('bundles the function through workspace runtime aliases when available', async () => {
+      const workspaceRuntimeEntry = path.resolve(
+        import.meta.dirname,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      expect(fs.existsSync(workspaceRuntimeEntry)).toBe(true);
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      expect(
+        fs.existsSync(
+          path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
+        ),
+      ).toBe(true);
+    }, 15_000);
+
     it('uses fallback manifests, preserves output, omits optional settings, and tolerates malformed package metadata', async () => {
       fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
       fs.rmSync(path.join(buildDir, 'BUILD_ID'));

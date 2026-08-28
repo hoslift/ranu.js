@@ -403,6 +403,28 @@ describe('@ranu/manifests', () => {
       expect(result.success).toBe(false);
       expect(result.diagnostics[0].message).toContain('contains an absolute path');
     });
+
+    it('rejects server routes that are not ordered alphabetically by routeId', () => {
+      const manifest: ServerManifest = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        routes: [
+          { routeId: 'page:/about', serverEntry: './dist/about.js' },
+          { routeId: 'api:/api/users', serverEntry: './dist/api/users.js' },
+        ],
+      };
+
+      const result = validateServerManifest(manifest);
+
+      expect(result.success).toBe(false);
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          message:
+            'ServerManifest routes are not ordered deterministically (alphabetically by routeId).',
+        }),
+      );
+    });
   });
 
   describe('ClientManifest validation', () => {
