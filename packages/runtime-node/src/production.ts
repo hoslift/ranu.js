@@ -388,8 +388,12 @@ export async function createProductionServer(
     bodyLimit: options.bodyLimit,
   });
 
-  // Attach custom production request handler to the HTTP server
-  (server as any).requestHandler = requestHandler;
+  // Attach custom production request handler to the underlying HTTP server
+  const httpServer = (server as any).httpServer;
+  if (httpServer) {
+    httpServer.removeAllListeners('request');
+    httpServer.on('request', requestHandler);
+  }
 
   return server;
 }
