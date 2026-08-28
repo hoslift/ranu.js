@@ -46,6 +46,7 @@ export async function createProductionRuntimeWithLoader(
  * - Reads build.json and sub-manifests (routes, server, static, client)
  * - Sets up component module loader for dynamic import()
  * - Initializes Ranu runtime engine and Node HTTP server
+ * - Supports direct standalone execution (node .ranu/build/server/entry.mjs)
  */
 export function generateProductionEntrySource(buildId: string): string {
   const runtimeFactorySource = createProductionRuntimeWithLoader.toString();
@@ -81,7 +82,8 @@ export const staticManifest = loadJson(buildDescriptor.manifests.static);
 /**
  * Module loader backed by compiled server routes in .ranu/build/server/
  */
-export const moduleLoader = { loadMiddleware: () => (${middlewareLoaderSource})(buildDir),
+export const moduleLoader = {
+  loadMiddleware: () => (${middlewareLoaderSource})(buildDir),
   async loadRouteEntry(routeId) {
     const entry = serverManifest.routes.find(r => r.routeId === routeId);
     if (!entry) {
@@ -91,7 +93,57 @@ export const moduleLoader = { loadMiddleware: () => (${middlewareLoaderSource})(
     return await import(pathToFileURL(modulePath).href);
   }
 };
+
 export const createProductionRuntime = (options) => (${runtimeFactorySource})(options, () => moduleLoader.loadMiddleware());
+
+/**
+ * Helper to start production HTTP server programmatically.
+ */
+export async function startServer(options = {}) {
+  const { createProductionServer } = await import('@ranu/runtime-node');
+  const port = options.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+  const host = options.host ?? process.env.HOST ?? '0.0.0.0';
+  const server = await createProductionServer({
+    buildDir,
+    port,
+    host,
+    trustProxy: options.trustProxy,
+  });
+  return server.listen(port, host);
+}
+
+/** Direct execution guard */
+const isDirectExecution = () => {
+  try {
+    if (!process.argv[1]) return false;
+    const resolvedArg = path.resolve(process.argv[1]);
+    return fileURLToPath(import.meta.url) === resolvedArg;
+  } catch {
+    return false;
+  }
+};
+
+if (isDirectExecution()) {
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const host = process.env.HOST ?? '0.0.0.0';
+  const { createProductionServer } = await import('@ranu/runtime-node');
+  const server = await createProductionServer({
+    buildDir,
+    port,
+    host,
+  });
+  const address = await server.listen(port, host);
+  // eslint-disable-next-line no-console
+  console.log(\`Ranu.js production server listening at http://\${address.host}:\${address.port}\`);
+
+  const shutdown = async () => {
+    await server.close();
+    process.exit(0);
+  };
+  process.once('SIGINT', () => void shutdown());
+  process.once('SIGTERM', () => void shutdown());
+}
+
 /** Production entry info export */
 export default {
   buildId,
@@ -101,6 +153,8 @@ export default {
   clientManifest,
   staticManifest,
   moduleLoader,
+  createProductionRuntime,
+  startServer,
 };
 `;
 }

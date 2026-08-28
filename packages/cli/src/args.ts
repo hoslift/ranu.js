@@ -84,6 +84,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let debug = false;
   let quiet = false;
   let json = false;
+  let adapter: string | undefined;
   let help = false;
   let version = false;
 
@@ -164,6 +165,16 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--adapter') {
+      i++;
+      const val = argv[i];
+      if (val === undefined || val.startsWith('-')) {
+        throw new Error('Flag "--adapter" requires a valid adapter name.');
+      }
+      adapter = val;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown flag "${arg}". Run "ranu --help" to see available options.`);
     }
@@ -194,6 +205,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     debug: debug ? true : undefined,
     quiet: quiet ? true : undefined,
     json: json ? true : undefined,
+    adapter,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

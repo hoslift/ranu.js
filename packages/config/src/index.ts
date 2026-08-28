@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import type { RanuMode, RouteKind, RenderMode, RanuCommand } from '@ranu/core';
+import type { RanuMode, RouteKind, RenderMode, RanuCommand, RanuDeploymentAdapter } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import dotenv from 'dotenv';
 
@@ -25,7 +25,7 @@ export interface RanuUserConfig {
     defaultMode?: RenderMode;
   };
   deployment?: {
-    adapter?: any;
+    adapter?: RanuDeploymentAdapter | any;
   };
   env?: {
     files?: boolean;
