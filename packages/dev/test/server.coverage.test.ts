@@ -295,7 +295,14 @@ describe('DevServer focused coverage', () => {
     const coordinator = harness.coordinators[0];
     const channel = harness.channels[0];
 
-    let doubles = createHttpDoubles('/_ranu/dev-reload');
+    let doubles = createHttpDoubles('/bad%E0%A4%A');
+    await privateServer.handleHttpRequest(doubles.req, doubles.res);
+    expect(doubles.res.writeHead).toHaveBeenCalledWith(400, {
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
+    expect(doubles.res.end).toHaveBeenCalledWith('Bad Request');
+
+    doubles = createHttpDoubles('/_ranu/dev-reload');
     await privateServer.handleHttpRequest(doubles.req, doubles.res);
     expect(channel.handleConnection).toHaveBeenCalled();
 
