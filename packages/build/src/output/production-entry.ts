@@ -120,15 +120,17 @@ export async function startServer(options = {}) {
   });
 
   const address = await server.listen(port, host);
+  const close = () => server.close();
 
-  const shutdown = async () => {
-    await server.close();
-    process.exit(0);
-  };
-  process.once('SIGINT', () => void shutdown());
-  process.once('SIGTERM', () => void shutdown());
+  if (isDirectExecution()) {
+    const shutdown = async () => {
+      await close();
+    };
+    process.once('SIGINT', () => void shutdown());
+    process.once('SIGTERM', () => void shutdown());
+  }
 
-  return address;
+  return { ...address, server, close };
 }
 
 /** Direct execution guard */
@@ -144,9 +146,9 @@ const isDirectExecution = () => {
 
 if (isDirectExecution()) {
   startServer()
-    .then((address) => {
+    .then(({ host, port }) => {
       // eslint-disable-next-line no-console
-      console.log(\`Ranu.js production server listening at http://\${address.host}:\${address.port}\`);
+      console.log(\`Ranu.js production server listening at http://\${host}:\${port}\`);
     })
     .catch((err) => {
       // eslint-disable-next-line no-console

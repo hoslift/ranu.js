@@ -220,6 +220,50 @@ describe('@ranu/manifests', () => {
       expect(result.diagnostics[0].message).toContain('contains forbidden "methods" property in V2');
     });
 
+    it.each([
+      ['loading', 42],
+      ['layouts', 'app/layout.tsx'],
+      ['errors', 'app/error.tsx'],
+      ['notFound', 'app/not-found.tsx'],
+    ])('rejects invalid page %s scalar values', (field, value) => {
+      const manifest = {
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [
+          {
+            id: 'page:/about',
+            kind: 'page',
+            pattern: '/about',
+            params: [],
+            [field]: value,
+          },
+        ],
+      };
+
+      expect(validateRouteManifest(manifest).success).toBe(false);
+    });
+
+    it.each(['layouts', 'errors', 'notFound'])(
+      'rejects non-string elements in page %s arrays',
+      (field) => {
+        const manifest = {
+          schemaVersion: 2,
+          buildId: 'build_123',
+          routes: [
+            {
+              id: 'page:/about',
+              kind: 'page',
+              pattern: '/about',
+              params: [],
+              [field]: ['valid.tsx', 42],
+            },
+          ],
+        };
+
+        expect(validateRouteManifest(manifest).success).toBe(false);
+      },
+    );
+
     it('future manifest version rejected', () => {
       const manifest = {
         schemaVersion: 3, // unknown version

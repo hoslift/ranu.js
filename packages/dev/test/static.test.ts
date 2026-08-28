@@ -178,10 +178,16 @@ describe('Development Static File Server', () => {
     const symlinkPath = path.join(tempDir, 'symlink.txt');
     try {
       fs.symlinkSync(outsideTarget, symlinkPath);
-    } catch {
-      // Symlink creation might be restricted on some environments without admin
+    } catch (error: unknown) {
       fs.rmSync(outsideTarget, { force: true });
-      return;
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error.code === 'EPERM' || error.code === 'EACCES')
+      ) {
+        return;
+      }
+      throw error;
     }
 
     let responseCode = 0;
@@ -206,4 +212,3 @@ describe('Development Static File Server', () => {
     }
   });
 });
-

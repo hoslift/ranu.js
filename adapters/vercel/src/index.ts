@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildSync } from 'esbuild';
 import type {
   RanuDeploymentAdapter,
   DeploymentCapabilities,
@@ -54,6 +56,19 @@ export function isPathContained(childPath: string, parentDir: string): boolean {
   return !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
+function assertNoDestinationSymlink(destination: string, authorizedRoot: string): void {
+  let current = path.resolve(destination);
+  const root = path.resolve(authorizedRoot);
+
+  while (isPathContained(current, root)) {
+    if (fs.lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      throw new Error(`Refusing to copy through symbolic link "${current}".`);
+    }
+    if (current === root) break;
+    current = path.dirname(current);
+  }
+}
+
 /**
  * Recursively copies a directory while safely skipping forbidden/sensitive files.
  */
@@ -65,6 +80,8 @@ export function copyDirectorySafe(
 ): string[] {
   const copiedFiles: string[] = [];
   if (!fs.existsSync(srcDir)) return copiedFiles;
+
+  assertNoDestinationSymlink(destDir, authorizedRoot);
 
   fs.mkdirSync(destDir, { recursive: true });
 
@@ -92,6 +109,7 @@ export function copyDirectorySafe(
       const nested = copyDirectorySafe(srcPath, destPath, authorizedRoot, forbiddenNames);
       copiedFiles.push(...nested);
     } else if (entry.isFile()) {
+      assertNoDestinationSymlink(destPath, authorizedRoot);
       fs.copyFileSync(srcPath, destPath);
       copiedFiles.push(destPath);
     }
@@ -110,6 +128,8 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
     capabilities: VERCEL_CAPABILITIES,
 
     async adapt(context: DeploymentAdapterContext): Promise<DeploymentResult> {
+      await Promise.resolve();
+
       const projectRoot = path.resolve(context.projectRoot ?? process.cwd());
       const buildDir = path.resolve(context.buildDir ?? path.join(projectRoot, '.ranu', 'build'));
       const outputDir = path.resolve(
@@ -148,9 +168,10 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       );
 
       // 2. Validate capability compatibility
-      if (buildDescriptor.runtime !== 'node') {
+      const buildRuntime = String(buildDescriptor.runtime);
+      if (buildRuntime !== 'node') {
         throw new Error(
-          `Vercel adapter requires build runtime target "node", but received "${buildDescriptor.runtime}".`,
+          `Vercel adapter requires build runtime target "node", but received "${buildRuntime}".`,
         );
       }
 
@@ -187,6 +208,7 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
         const cleanPath = st.pathname === '/' ? 'index.html' : `${st.pathname.replace(/^\//, '')}.html`;
         overrides[cleanPath] = {
           contentType: 'text/html; charset=utf-8',
+          path: st.pathname === '/' ? '' : st.pathname.replace(/^\//, ''),
         };
       }
 
@@ -325,7 +347,6 @@ import { createProductionRequestHandler, createProductionRuntime } from '@ranu/r
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let runtimePromise = null;
 let requestHandlerPromise = null;
 
 async function getHandler() {
@@ -357,10 +378,6 @@ export default async function handler(req, res) {
 `;
 
       const funcEntryPath = path.join(mainFuncDir, 'index.mjs');
-      fs.writeFileSync(funcEntryPath, funcEntrySource, 'utf8');
-      emittedFiles.push(funcEntryPath);
-
-      // 7d. Package descriptor for the serverless function
       const projectPackageJsonPath = path.join(projectRoot, 'package.json');
       let projectDeps: Record<string, string> = {};
       if (fs.existsSync(projectPackageJsonPath)) {
@@ -372,13 +389,59 @@ export default async function handler(req, res) {
         }
       }
 
+      const sourceDir = path.dirname(fileURLToPath(import.meta.url));
+      const bundledRuntimePackages = [
+        '@ranu/core',
+        '@ranu/diagnostics',
+        '@ranu/manifests',
+        '@ranu/react',
+        '@ranu/router',
+        '@ranu/runtime',
+        '@ranu/runtime-node',
+      ];
+      const workspaceRuntimeEntry = path.resolve(
+        sourceDir,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      const workspacePackageAliases = fs.existsSync(workspaceRuntimeEntry)
+        ? {
+            '@ranu/core': path.resolve(sourceDir, '../../../packages/core/src/index.ts'),
+            '@ranu/diagnostics': path.resolve(
+              sourceDir,
+              '../../../packages/diagnostics/src/index.ts',
+            ),
+            '@ranu/manifests': path.resolve(sourceDir, '../../../packages/manifests/src/index.ts'),
+            '@ranu/react': path.resolve(sourceDir, '../../../packages/react/src/index.ts'),
+            '@ranu/router': path.resolve(sourceDir, '../../../packages/router/src/index.ts'),
+            '@ranu/runtime': path.resolve(sourceDir, '../../../packages/runtime/src/index.ts'),
+            '@ranu/runtime-node': workspaceRuntimeEntry,
+          }
+        : undefined;
+      buildSync({
+        stdin: {
+          contents: funcEntrySource,
+          loader: 'js',
+          resolveDir: sourceDir,
+          sourcefile: 'index.mjs',
+        },
+        outfile: funcEntryPath,
+        bundle: true,
+        format: 'esm',
+        platform: 'node',
+        target: 'node22',
+        ...(workspacePackageAliases ? { alias: workspacePackageAliases } : {}),
+        external: Object.keys(projectDeps).filter(
+          (dependency) => !bundledRuntimePackages.includes(dependency),
+        ),
+        logLevel: 'silent',
+      });
+      emittedFiles.push(funcEntryPath);
+
+      // 7d. Package descriptor for the serverless function
       const funcPackageJson = {
         type: 'module',
         main: 'index.mjs',
-        dependencies: {
-          '@ranu/runtime-node': 'workspace:*',
-          ...projectDeps,
-        },
+        dependencies: projectDeps,
       };
       const funcPackagePath = path.join(mainFuncDir, 'package.json');
       fs.writeFileSync(funcPackagePath, JSON.stringify(funcPackageJson, null, 2), 'utf8');

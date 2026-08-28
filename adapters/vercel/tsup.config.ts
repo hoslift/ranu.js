@@ -6,6 +6,6 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['@ranu/core', '@ranu/manifests'],
+  external: ['@ranu/core', '@ranu/manifests', '@ranu/runtime-node', 'esbuild'],
   tsconfig: 'tsconfig.build.json',
 });

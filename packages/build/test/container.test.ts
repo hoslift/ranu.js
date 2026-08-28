@@ -20,11 +20,12 @@ describe('@ranu/build — Container Deployment', () => {
   });
 
   describe('generateDockerfile', () => {
-    it('generates a multi-stage Dockerfile with default npm setup and dependency pruning', () => {
+    it('uses npm install when lockfile availability is unknown', () => {
       const dockerfile = generateDockerfile();
 
       expect(dockerfile).toContain('FROM node:22-alpine AS build');
-      expect(dockerfile).toContain('RUN npm ci');
+      expect(dockerfile).toContain('RUN npm install');
+      expect(dockerfile).not.toContain('RUN npm ci');
       expect(dockerfile).toContain('RUN npm run build');
       expect(dockerfile).toContain('RUN npm prune --production');
       expect(dockerfile).toContain('FROM node:22-alpine AS runtime');
@@ -66,6 +67,10 @@ describe('@ranu/build — Container Deployment', () => {
       const dockerfile = generateDockerfile({ nonRoot: false });
       expect(dockerfile).not.toContain('USER node');
     });
+
+    it('uses npm ci when an npm lockfile is available', () => {
+      expect(generateDockerfile({ npmLockfile: true })).toContain('RUN npm ci');
+    });
   });
 
   describe('generateDockerignore', () => {
@@ -92,6 +97,7 @@ describe('@ranu/build — Container Deployment', () => {
 
       const dockerfileContent = fs.readFileSync(dockerfilePath, 'utf8');
       expect(dockerfileContent).toContain('FROM node:22-alpine AS build');
+      expect(dockerfileContent).toContain('RUN npm install');
     });
 
     it('does not overwrite existing files when overwrite is false', () => {
@@ -100,6 +106,52 @@ describe('@ranu/build — Container Deployment', () => {
 
       const res = writeContainerArtifacts(tempDir, {}, false);
       expect(fs.readFileSync(dockerfilePath, 'utf8')).toBe('# Custom Dockerfile');
+    });
+
+    it('overwrites existing regular files when requested', () => {
+      const dockerfilePath = path.join(tempDir, 'Dockerfile');
+      fs.writeFileSync(dockerfilePath, '# Custom Dockerfile');
+
+      expect(writeContainerArtifacts(tempDir, {}, true).written).toBe(true);
+      expect(fs.readFileSync(dockerfilePath, 'utf8')).toContain('FROM node:22-alpine AS build');
+    });
+
+    it('detects npm lockfiles when writing artifacts', () => {
+      fs.writeFileSync(path.join(tempDir, 'package-lock.json'), '{}');
+
+      writeContainerArtifacts(tempDir);
+
+      expect(fs.readFileSync(path.join(tempDir, 'Dockerfile'), 'utf8')).toContain('RUN npm ci');
+    });
+
+    it('does not follow output symlinks', () => {
+      const outsideFile = path.join(tempDir, 'outside');
+      const dockerfilePath = path.join(tempDir, 'Dockerfile');
+      fs.writeFileSync(outsideFile, 'outside');
+
+      try {
+        fs.symlinkSync(outsideFile, dockerfilePath);
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          (error.code === 'EPERM' || error.code === 'EACCES')
+        ) {
+          return;
+        }
+        throw error;
+      }
+
+      expect(() => writeContainerArtifacts(tempDir, {}, true)).toThrow();
+      expect(fs.readFileSync(outsideFile, 'utf8')).toBe('outside');
+    });
+
+    it('does not follow dangling output symlinks', () => {
+      const missingTarget = path.join(tempDir, 'missing');
+      fs.symlinkSync(missingTarget, path.join(tempDir, '.dockerignore'));
+
+      expect(writeContainerArtifacts(tempDir).written).toBe(true);
+      expect(fs.existsSync(missingTarget)).toBe(false);
     });
   });
 });

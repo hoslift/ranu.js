@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { pathToFileURL } from 'node:url';
 import {
   createVercelAdapter,
   adapterName,
@@ -84,6 +85,12 @@ describe('@ranu/adapter-vercel', () => {
         buildId: 'vercel-build-456',
         routes: [
           {
+            pathname: '/',
+            routeId: 'page:/',
+            file: 'static/pages/index.html',
+            status: 200,
+          },
+          {
             pathname: '/terms',
             routeId: 'page:/terms',
             file: 'static/pages/terms.html',
@@ -97,6 +104,7 @@ describe('@ranu/adapter-vercel', () => {
     fs.writeFileSync(path.join(serverDir, 'page-home.mjs'), 'export default () => "Home";');
     fs.writeFileSync(path.join(serverDir, 'api-data.mjs'), 'export const GET = () => Response.json({ ok: true });');
     fs.writeFileSync(path.join(staticPagesDir, 'terms.html'), '<html><body>Terms</body></html>');
+    fs.writeFileSync(path.join(staticPagesDir, 'index.html'), '<html><body>Home</body></html>');
     fs.writeFileSync(path.join(staticAssetsDir, 'style.123.css'), 'body { margin: 0; }');
     fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'icon-binary');
   });
@@ -160,6 +168,14 @@ describe('@ranu/adapter-vercel', () => {
       expect(config.routes).toBeDefined();
       expect(config.routes[0].src).toBe('^/_ranu/assets/(.*)$');
       expect(config.routes[0].headers['cache-control']).toContain('immutable');
+      expect(config.overrides['index.html']).toEqual({
+        contentType: 'text/html; charset=utf-8',
+        path: '',
+      });
+      expect(config.overrides['terms.html']).toEqual({
+        contentType: 'text/html; charset=utf-8',
+        path: 'terms',
+      });
 
       // 2. static files
       const staticDir = path.join(vercelOut, 'static');
@@ -185,6 +201,8 @@ describe('@ranu/adapter-vercel', () => {
       const entryCode = fs.readFileSync(funcEntryPath, 'utf8');
       expect(entryCode).toContain('createProductionRequestHandler');
       expect(entryCode).toContain('createProductionRuntime');
+      expect(entryCode).not.toMatch(/from ["']@ranu\//);
+      await expect(import(pathToFileURL(funcEntryPath).href)).resolves.toBeDefined();
 
       // 4. deployment.json completion marker
       const deployMarkerPath = path.join(tempDir, '.ranu', 'deploy', 'vercel', 'deployment.json');
@@ -192,7 +210,7 @@ describe('@ranu/adapter-vercel', () => {
       const deployMarker = JSON.parse(fs.readFileSync(deployMarkerPath, 'utf8'));
       expect(deployMarker.adapter).toBe('vercel');
       expect(deployMarker.buildId).toBe('vercel-build-456');
-    });
+    }, 15_000);
 
     it('protects against secret leakage and source map exposure in static assets', async () => {
       // Create sensitive files in the public directory
@@ -219,6 +237,36 @@ describe('@ranu/adapter-vercel', () => {
       await expect(adapter2.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
         /output directory cannot be equal to project root or build directory/,
       );
+    });
+
+    it('does not copy through a retained symlinked static output directory', async () => {
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-vercel-outside-'));
+      fs.mkdirSync(outputDir, { recursive: true });
+
+      try {
+        fs.symlinkSync(outsideDir, path.join(outputDir, 'static'), 'dir');
+      } catch (error: unknown) {
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          (error.code === 'EPERM' || error.code === 'EACCES')
+        ) {
+          return;
+        }
+        throw error;
+      }
+
+      try {
+        const adapter = createVercelAdapter({ outputDir, clean: false });
+        await expect(adapter.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+          /symbolic link/,
+        );
+        expect(fs.readdirSync(outsideDir)).toEqual([]);
+      } finally {
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+      }
     });
   });
 });

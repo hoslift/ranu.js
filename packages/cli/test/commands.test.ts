@@ -244,10 +244,14 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(code).toBe(0);
 
       // JSON mode with SIGTERM
+      const jsonSpy = vi.spyOn(logger, 'json');
       const promiseJson = runStartCommand({ args: [], root: tempDir, json: true }, logger);
       setTimeout(() => process.emit('SIGTERM'), 50);
       const codeJson = await promiseJson;
       expect(codeJson).toBe(0);
+      expect(jsonSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ url: 'http://127.0.0.1:3000' }),
+      );
 
       nodeServerSpy.mockRestore();
     });

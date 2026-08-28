@@ -433,6 +433,27 @@ describe('@ranu/runtime-node', () => {
   });
 
   describe('NodeServer Startup & Graceful Shutdown', () => {
+    it('preserves wildcard bind addresses', async () => {
+      const server = createNodeServer({
+        runtime: new RanuServerRuntime({
+          routeRecords: [],
+          contextStore: new NodeRequestContextStore(),
+          apiDispatcher: new NodeApiEndpointDispatcher({ loadModule: async () => ({}) }),
+          staticDispatcher: mockStaticDispatcher,
+          renderer: mockRenderer,
+          config: { mode: 'production' },
+        }),
+        port: 0,
+        host: '0.0.0.0',
+      });
+
+      try {
+        await expect(server.listen()).resolves.toMatchObject({ host: '0.0.0.0' });
+      } finally {
+        await server.close();
+      }
+    });
+
     it('boots Node HTTP server and executes API request through RanuServerRuntime', async () => {
       const mockModule: ApiRouteModule = {
         GET: async (req, ctx) => Response.json({ message: 'Hello from Node runtime!', id: ctx.params.id }),

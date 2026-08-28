@@ -72,10 +72,7 @@ export class NodeServer {
 
         if (addr && typeof addr === 'object') {
           boundPort = addr.port;
-          boundHost =
-            addr.address === '::' || addr.address === '0.0.0.0' || addr.address === ''
-              ? '127.0.0.1'
-              : addr.address;
+          boundHost = addr.address;
         }
 
         resolve({

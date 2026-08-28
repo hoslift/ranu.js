@@ -299,6 +299,30 @@ export function validateRouteManifest(
       });
     }
 
+    if (route.kind === 'page') {
+      if (route.loading !== undefined && typeof route.loading !== 'string') {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `RouteManifest page entry "${route.id || idx}" has non-string "loading" property.`,
+        });
+      }
+
+      for (const field of ['layouts', 'errors', 'notFound'] as const) {
+        const value = route[field];
+        if (
+          value !== undefined &&
+          (!Array.isArray(value) || value.some((item) => typeof item !== 'string'))
+        ) {
+          diagnostics.push({
+            code: 'RANU_BUILD_MANIFEST_INVALID',
+            severity: 'error',
+            message: `RouteManifest page entry "${route.id || idx}" "${field}" must be an array of strings.`,
+          });
+        }
+      }
+    }
+
     if (!Array.isArray(route.params)) {
       diagnostics.push({
         code: 'RANU_BUILD_MANIFEST_INVALID',

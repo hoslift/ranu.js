@@ -51,6 +51,7 @@
     "@ranu/core": "workspace:*",
     "@ranu/plugin": "workspace:*",
     "@ranu/react": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
     "@ranu/server": "workspace:*"
   },
   "devDependencies": {

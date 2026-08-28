@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { EventEmitter } from 'node:events';
 import {
   createProductionRuntime,
   createProductionRequestHandler,
@@ -161,6 +162,7 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -180,6 +182,40 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(isPathContained(path.join(root, 'a', 'b.txt'), root)).toBe(true);
       expect(isPathContained(path.join(root, '..', 'escape.txt'), root)).toBe(false);
     });
+
+    it('handles read errors and destroys the stream when the response closes', () => {
+      const filePath = path.join(tempDir, 'public', 'robots.txt');
+      const stream = new EventEmitter() as EventEmitter & {
+        destroyed: boolean;
+        destroy: ReturnType<typeof vi.fn>;
+        pipe: ReturnType<typeof vi.fn>;
+      };
+      stream.destroyed = false;
+      stream.destroy = vi.fn(() => {
+        stream.destroyed = true;
+      });
+      stream.pipe = vi.fn();
+      vi.spyOn(fs, 'createReadStream').mockReturnValue(
+        stream as unknown as ReturnType<typeof fs.createReadStream>,
+      );
+
+      const response = Object.assign(new EventEmitter(), {
+        destroyed: false,
+        writeHead: vi.fn(),
+        end: vi.fn(),
+        destroy: vi.fn(),
+      });
+      expect(
+        serveStaticFile(filePath, path.join(tempDir, 'public'), {} as any, response as any),
+      ).toBe(true);
+
+      const readError = new Error('read failed');
+      stream.emit('error', readError);
+      expect(response.destroy).toHaveBeenCalledWith(readError);
+
+      response.emit('close');
+      expect(stream.destroy).toHaveBeenCalledOnce();
+    });
   });
 
   describe('createProductionRuntime', () => {
@@ -189,6 +225,17 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
         /No production build found/,
       );
       fs.rmSync(emptyDir, { recursive: true, force: true });
+    });
+
+    it('reports compiled middleware import failures', async () => {
+      fs.writeFileSync(
+        path.join(buildDir, 'server', 'middleware.mjs'),
+        'throw new Error("broken middleware");',
+      );
+
+      await expect(createProductionRuntime({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+        /Failed to load compiled middleware/,
+      );
     });
 
     it('creates working production runtime for SSR, SSG, and API endpoints', async () => {

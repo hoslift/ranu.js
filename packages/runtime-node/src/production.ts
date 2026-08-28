@@ -182,6 +182,10 @@ export function serveStaticFile(
   }
 
   const stream = fs.createReadStream(realFile);
+  stream.once('error', (error) => {
+    if (!res.destroyed) res.destroy(error);
+  });
+  res.once('close', () => stream.destroy());
   stream.pipe(res);
   return true;
 }
@@ -350,8 +354,10 @@ export async function createProductionRuntime(
     try {
       const mwModule = await import(pathToFileURL(middlewarePath).href);
       middleware = createRuntimeMiddleware(mwModule);
-    } catch (_err: unknown) {
-      // Failed to load compiled middleware
+    } catch (error: unknown) {
+      throw new Error(`Failed to load compiled middleware from "${middlewarePath}".`, {
+        cause: error,
+      });
     }
   }
 
