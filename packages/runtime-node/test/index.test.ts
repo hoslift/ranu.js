@@ -91,6 +91,18 @@ describe('@ranu/runtime-node', () => {
       };
       expect(buildRequestUrl(req, { trustProxy: true })).toBe('https://actual-domain.com/test');
     });
+
+    it('uses a forwarded HTTPS protocol without a forwarded host', () => {
+      const req = {
+        url: '/secure',
+        headers: {
+          host: 'direct.example',
+          'x-forwarded-proto': 'https',
+        },
+        socket: { encrypted: false },
+      };
+      expect(buildRequestUrl(req, { trustProxy: true })).toBe('https://direct.example/secure');
+    });
   });
 
   describe('toWebRequest Conversion & Body Limits', () => {
@@ -105,8 +117,8 @@ describe('@ranu/runtime-node', () => {
         url: '/api/test',
         headers: {
           host: 'localhost:3000',
-          'authorization': 'Bearer token123',
-          'accept': ['application/json', 'text/plain'],
+          authorization: 'Bearer token123',
+          accept: ['application/json', 'text/plain'],
         },
       }) as unknown as IncomingMessage;
 
@@ -121,7 +133,11 @@ describe('@ranu/runtime-node', () => {
     });
 
     it('immediately rejects requests exceeding Content-Length with 413 PayloadTooLargeError', () => {
-      const readable = new Readable({ read() { this.push(null); } });
+      const readable = new Readable({
+        read() {
+          this.push(null);
+        },
+      });
       const req = Object.assign(readable, {
         method: 'POST',
         url: '/upload',
@@ -211,8 +227,12 @@ describe('@ranu/runtime-node', () => {
         setHeader(k: string, v: any) {
           headersSet[k.toLowerCase()] = v;
         },
-        write() { return true; },
-        end() { this.writableEnded = true; },
+        write() {
+          return true;
+        },
+        end() {
+          this.writableEnded = true;
+        },
         writableEnded: false,
         destroyed: false,
       } as unknown as ServerResponse;
@@ -220,10 +240,7 @@ describe('@ranu/runtime-node', () => {
       const signal = new AbortController().signal;
       await writeWebResponse(webResponse, res, { signal });
 
-      expect(headersSet['set-cookie']).toEqual([
-        'a=1; Path=/; HttpOnly',
-        'b=2; Path=/; Secure',
-      ]);
+      expect(headersSet['set-cookie']).toEqual(['a=1; Path=/; HttpOnly', 'b=2; Path=/; Secure']);
     });
 
     it('suppresses response body for 204, 304, and isBodylessStatus', async () => {
@@ -237,8 +254,13 @@ describe('@ranu/runtime-node', () => {
       const res = {
         statusCode: 200,
         setHeader() {},
-        write() { written = true; return true; },
-        end() { this.writableEnded = true; },
+        write() {
+          written = true;
+          return true;
+        },
+        end() {
+          this.writableEnded = true;
+        },
         writableEnded: false,
         destroyed: false,
       } as unknown as ServerResponse;
@@ -257,13 +279,21 @@ describe('@ranu/runtime-node', () => {
       const res = {
         statusCode: 200,
         setHeader() {},
-        write() { written = true; return true; },
-        end() { this.writableEnded = true; },
+        write() {
+          written = true;
+          return true;
+        },
+        end() {
+          this.writableEnded = true;
+        },
         writableEnded: false,
         destroyed: false,
       } as unknown as ServerResponse;
 
-      await writeWebResponse(webResponse, res, { signal: new AbortController().signal, suppressBody: true });
+      await writeWebResponse(webResponse, res, {
+        signal: new AbortController().signal,
+        suppressBody: true,
+      });
       expect(written).toBe(false);
     });
   });
@@ -303,7 +333,9 @@ describe('@ranu/runtime-node', () => {
     it('calculates deterministic Allow header', () => {
       expect(calculateAllowHeader(['GET', 'POST'])).toBe('GET, HEAD, OPTIONS, POST');
       expect(calculateAllowHeader(['HEAD', 'POST'])).toBe('HEAD, OPTIONS, POST');
-      expect(calculateAllowHeader(['DELETE', 'GET', 'PUT'])).toBe('DELETE, GET, HEAD, OPTIONS, PUT');
+      expect(calculateAllowHeader(['DELETE', 'GET', 'PUT'])).toBe(
+        'DELETE, GET, HEAD, OPTIONS, PUT',
+      );
     });
 
     it('executes API GET and validates Response return', async () => {
@@ -340,7 +372,7 @@ describe('@ranu/runtime-node', () => {
 
     it('throws error when API handler returns a non-Response object', async () => {
       const mockModule = {
-        GET: async () => ({ bad: 'return' } as any),
+        GET: async () => ({ bad: 'return' }) as any,
       };
 
       const dispatcher = new NodeApiEndpointDispatcher({
@@ -456,7 +488,8 @@ describe('@ranu/runtime-node', () => {
 
     it('boots Node HTTP server and executes API request through RanuServerRuntime', async () => {
       const mockModule: ApiRouteModule = {
-        GET: async (req, ctx) => Response.json({ message: 'Hello from Node runtime!', id: ctx.params.id }),
+        GET: async (req, ctx) =>
+          Response.json({ message: 'Hello from Node runtime!', id: ctx.params.id }),
       };
 
       const apiDispatcher = new NodeApiEndpointDispatcher({
@@ -469,7 +502,13 @@ describe('@ranu/runtime-node', () => {
         {
           routeId: 'api:/api/items/[id]',
           kind: 'api',
-          pattern: { segments: [{ kind: 'static', value: 'api' }, { kind: 'static', value: 'items' }, { kind: 'dynamic', param: 'id' }] },
+          pattern: {
+            segments: [
+              { kind: 'static', value: 'api' },
+              { kind: 'static', value: 'items' },
+              { kind: 'dynamic', param: 'id' },
+            ],
+          },
           pathnameTemplate: '/api/items/[id]',
           params: ['id'],
           methods: ['GET'],
@@ -531,7 +570,12 @@ describe('@ranu/runtime-node', () => {
         {
           routeId: 'api:/api/slow',
           kind: 'api',
-          pattern: { segments: [{ kind: 'static', value: 'api' }, { kind: 'static', value: 'slow' }] },
+          pattern: {
+            segments: [
+              { kind: 'static', value: 'api' },
+              { kind: 'static', value: 'slow' },
+            ],
+          },
           pathnameTemplate: '/api/slow',
           params: [],
           methods: ['GET'],

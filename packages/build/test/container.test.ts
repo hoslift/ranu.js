@@ -2,11 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import {
-  generateDockerfile,
-  generateDockerignore,
-  writeContainerArtifacts,
-} from '../src/index.js';
+import { generateDockerfile, generateDockerignore, writeContainerArtifacts } from '../src/index.js';
 
 describe('@ranu/build — Container Deployment', () => {
   let tempDir: string;
@@ -60,7 +56,9 @@ describe('@ranu/build — Container Deployment', () => {
       expect(dockerfile).toContain('COPY package.json yarn.lock ./');
       expect(dockerfile).toContain('RUN yarn install --frozen-lockfile');
       expect(dockerfile).toContain('RUN yarn run build');
-      expect(dockerfile).toContain('RUN yarn install --production --ignore-scripts --prefer-offline');
+      expect(dockerfile).toContain(
+        'RUN yarn install --production --ignore-scripts --prefer-offline',
+      );
     });
 
     it('supports root user when nonRoot option is false', () => {
@@ -118,6 +116,22 @@ describe('@ranu/build — Container Deployment', () => {
 
     it('detects npm lockfiles when writing artifacts', () => {
       fs.writeFileSync(path.join(tempDir, 'package-lock.json'), '{}');
+
+      writeContainerArtifacts(tempDir);
+
+      expect(fs.readFileSync(path.join(tempDir, 'Dockerfile'), 'utf8')).toContain('RUN npm ci');
+    });
+
+    it('uses npm install when writing without an npm lockfile', () => {
+      writeContainerArtifacts(tempDir);
+
+      const dockerfile = fs.readFileSync(path.join(tempDir, 'Dockerfile'), 'utf8');
+      expect(dockerfile).toContain('RUN npm install');
+      expect(dockerfile).not.toContain('RUN npm ci');
+    });
+
+    it('detects npm-shrinkwrap.json as an npm lockfile', () => {
+      fs.writeFileSync(path.join(tempDir, 'npm-shrinkwrap.json'), '{}');
 
       writeContainerArtifacts(tempDir);
 

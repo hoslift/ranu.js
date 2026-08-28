@@ -211,4 +211,18 @@ describe('Development Static File Server', () => {
       fs.rmSync(outsideTarget, { force: true });
     }
   });
+
+  it('returns false when canonical path resolution fails', () => {
+    const filePath = path.join(tempDir, 'realpath-failure.txt');
+    fs.writeFileSync(filePath, 'data');
+    vi.spyOn(fs, 'realpathSync').mockImplementation(() => {
+      throw new Error('realpath failed');
+    });
+
+    const response = new MockWritableResponse('GET');
+    expect(serveStaticFile(filePath, tempDir, { method: 'GET' } as any, response as any)).toBe(
+      false,
+    );
+    expect(response.writableEnded).toBe(false);
+  });
 });

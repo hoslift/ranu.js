@@ -406,6 +406,12 @@ describe('@ranu/manifests', () => {
   });
 
   describe('ClientManifest validation', () => {
+    it.each([undefined, null])('returns diagnostics for a %s manifest', (manifest) => {
+      const result = validateClientManifest(manifest);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics.length).toBeGreaterThan(0);
+    });
+
     it('passes for valid ClientManifest', () => {
       const manifest: ClientManifest = {
         schemaVersion: 1,

@@ -222,6 +222,11 @@ describe('@ranu/adapter-vercel', () => {
     }, 15_000);
 
     it('generates Vercel Build Output API v3 structure', async () => {
+      expect(
+        fs.existsSync(
+          path.resolve(import.meta.dirname, '../../../packages/runtime-node/src/index.ts'),
+        ),
+      ).toBe(true);
       const adapter = createVercelAdapter({
         runtimeVersion: 'nodejs22.x',
         regions: ['iad1'],
@@ -316,6 +321,26 @@ describe('@ranu/adapter-vercel', () => {
       await expect(adapter2.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
         /output directory cannot be equal to project root or build directory/,
       );
+
+      const projectParent = path.dirname(tempDir);
+      await expect(
+        createVercelAdapter({ outputDir: projectParent }).adapt({
+          projectRoot: tempDir,
+          buildDir,
+        }),
+      ).rejects.toThrow(/output directory cannot contain the project root/);
+
+      const unrelatedProjectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-project-'));
+      try {
+        await expect(
+          createVercelAdapter({ outputDir: tempDir }).adapt({
+            projectRoot: unrelatedProjectRoot,
+            buildDir,
+          }),
+        ).rejects.toThrow(/output directory cannot contain the build directory/);
+      } finally {
+        fs.rmSync(unrelatedProjectRoot, { recursive: true, force: true });
+      }
     });
 
     it('does not copy through a retained symlinked static output directory', async () => {
