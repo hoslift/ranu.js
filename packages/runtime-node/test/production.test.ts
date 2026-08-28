@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { EventEmitter } from 'node:events';
+import * as routerModule from '@ranu/router';
 import {
   createProductionRuntime,
   createProductionRequestHandler,
@@ -190,6 +191,17 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(routes[2]).toMatchObject({ methods: [], layouts: [], errors: [] });
     });
 
+    it('rejects an invalid parsed route segment defensively', () => {
+      vi.spyOn(routerModule, 'parseSegment').mockReturnValue({ type: 'invalid' } as any);
+      expect(() =>
+        compileManifestRoutes({
+          schemaVersion: 2,
+          buildId: 'test',
+          routes: [{ id: 'page:invalid', kind: 'page', pattern: '/invalid', params: [] }],
+        } as any),
+      ).toThrow('Invalid deployable route segment');
+    });
+
     it('handles static-file traversal, absence, directories, HEAD, and custom caching', () => {
       const root = path.join(tempDir, 'public');
       const response = () =>
@@ -285,6 +297,17 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
 
       response.emit('close');
       expect(stream.destroy).toHaveBeenCalledOnce();
+    });
+
+    it('returns false when static-file canonicalization fails', () => {
+      const filePath = path.join(tempDir, 'public', 'robots.txt');
+      vi.spyOn(fs, 'realpathSync').mockImplementation(() => {
+        throw new Error('realpath unavailable');
+      });
+
+      expect(serveStaticFile(filePath, path.join(tempDir, 'public'), {} as any, {} as any)).toBe(
+        false,
+      );
     });
   });
 
@@ -384,6 +407,57 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
 
       runtime.dispose();
     });
+
+    it('caches modules and covers required and optional component loader fallbacks', async () => {
+      const componentPath = 'app/loading.tsx';
+      const notFoundPath = 'app/not-found.tsx';
+      const entryName = (value: string) =>
+        Buffer.from(value.replace(/\\/g, '/'), 'utf8').toString('base64url');
+      const layoutsDir = path.join(buildDir, 'server', 'layouts');
+      const notFoundDir = path.join(buildDir, 'server', 'not-found');
+      fs.mkdirSync(layoutsDir, { recursive: true });
+      fs.mkdirSync(notFoundDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(layoutsDir, `${entryName(componentPath)}.mjs`),
+        'export default function OptionalComponent() { return "optional"; }',
+      );
+      fs.writeFileSync(
+        path.join(notFoundDir, `${entryName(notFoundPath)}.mjs`),
+        'export default function NotFoundComponent() { return "not found"; }',
+      );
+
+      const runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      const options = (runtime as any).options;
+      const loader = options.renderer.options.loader;
+      const firstPage = await loader.loadPage('page:/');
+      expect(await loader.loadPage('page:/')).toBe(firstPage);
+      await expect(loader.loadPage('page:/missing')).rejects.toThrow('No server entry registered');
+      expect(await loader.loadLoading(componentPath)).toHaveProperty('default');
+      expect(await loader.loadError(componentPath)).toHaveProperty('default');
+      expect(await loader.loadNotFound(notFoundPath)).toHaveProperty('default');
+      await expect(loader.loadLoading('app/missing-loading.tsx')).resolves.toBeUndefined();
+      await expect(loader.loadError('app/missing-error.tsx')).resolves.toBeUndefined();
+      await expect(loader.loadNotFound('app/missing-not-found.tsx')).resolves.toBeUndefined();
+      await expect(options.apiDispatcher.options.loadModule('api:/missing')).rejects.toThrow(
+        'No API module found',
+      );
+
+      const context = {} as any;
+      await expect(
+        options.staticDispatcher.dispatch(new Request('http://localhost/missing'), context, {
+          pathname: '/missing',
+          routeId: 'page:/missing',
+        }),
+      ).resolves.toMatchObject({ status: 404 });
+      fs.rmSync(path.join(buildDir, 'static', 'pages', 'about.html'));
+      await expect(
+        options.staticDispatcher.dispatch(new Request('http://localhost/about'), context, {
+          pathname: '/about',
+          routeId: 'page:/about',
+        }),
+      ).resolves.toMatchObject({ status: 404 });
+      runtime.dispose();
+    });
   });
 
   describe('createProductionRequestHandler', () => {
@@ -431,6 +505,33 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
         socket: {},
       });
       await handler(missingReq as any, missing as any);
+      expect(runtime.handle).toHaveBeenCalledOnce();
+    });
+
+    it('serves public static assets and delegates when canonicalization fails', async () => {
+      const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
+      const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
+      const staticAsset = path.join(buildDir, 'static', 'assets', 'public.txt');
+      fs.writeFileSync(staticAsset, 'public asset');
+
+      const served = makeResponse();
+      await handler({ url: '/public.txt', method: 'HEAD', headers: {} } as any, served as any);
+      expect(served.writeHead).toHaveBeenCalledWith(
+        200,
+        expect.objectContaining({ 'Cache-Control': 'public, max-age=3600' }),
+      );
+
+      vi.spyOn(fs, 'realpathSync').mockImplementation(() => {
+        throw new Error('realpath unavailable');
+      });
+      const delegated = makeResponse();
+      const request = Object.assign(new EventEmitter(), {
+        url: '/public.txt',
+        method: 'GET',
+        headers: { host: 'localhost' },
+        socket: {},
+      });
+      await handler(request as any, delegated as any);
       expect(runtime.handle).toHaveBeenCalledOnce();
     });
   });
