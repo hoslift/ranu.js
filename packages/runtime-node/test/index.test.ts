@@ -92,6 +92,19 @@ describe('@ranu/runtime-node', () => {
       expect(buildRequestUrl(req, { trustProxy: true })).toBe('https://actual-domain.com/test');
     });
 
+    it('uses the first array-valued forwarded host when trustProxy is enabled', () => {
+      const req = {
+        url: '/test',
+        headers: {
+          host: 'direct.com',
+          'x-forwarded-host': ['first.example', 'second.example'],
+        },
+        socket: { encrypted: false },
+      };
+
+      expect(buildRequestUrl(req, { trustProxy: true })).toBe('http://first.example/test');
+    });
+
     it('uses a forwarded HTTPS protocol without a forwarded host', () => {
       const req = {
         url: '/secure',

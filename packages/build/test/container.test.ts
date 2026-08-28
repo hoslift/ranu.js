@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -100,10 +100,23 @@ describe('@ranu/build — Container Deployment', () => {
 
     it('does not overwrite existing files when overwrite is false', () => {
       const dockerfilePath = path.join(tempDir, 'Dockerfile');
+      const dockerignorePath = path.join(tempDir, '.dockerignore');
       fs.writeFileSync(dockerfilePath, '# Custom Dockerfile');
+      fs.writeFileSync(dockerignorePath, '# Custom .dockerignore');
 
       const res = writeContainerArtifacts(tempDir, {}, false);
+      expect(res.written).toBe(false);
       expect(fs.readFileSync(dockerfilePath, 'utf8')).toBe('# Custom Dockerfile');
+      expect(fs.readFileSync(dockerignorePath, 'utf8')).toBe('# Custom .dockerignore');
+    });
+
+    it('rethrows non-ENOENT errors while inspecting an artifact path', () => {
+      const error = Object.assign(new Error('I/O failure'), { code: 'EIO' });
+      vi.spyOn(fs, 'lstatSync').mockImplementationOnce(() => {
+        throw error;
+      });
+
+      expect(() => writeContainerArtifacts(tempDir)).toThrow(error);
     });
 
     it('overwrites existing regular files when requested', () => {

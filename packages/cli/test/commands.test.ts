@@ -174,6 +174,26 @@ describe('@ranu/cli commands comprehensive', () => {
       vi.doUnmock('@ranu/adapter-vercel');
     });
 
+    it('falls back to a Vercel default adapter object', async () => {
+      const adapt = vi.fn().mockResolvedValue({ success: true });
+      const defaultAdapter = { name: 'vercel-default', adapt };
+      vi.doMock('@ranu/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: defaultAdapter,
+      }));
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+
+      expect(
+        await runWithMock(
+          { args: [], root: tempDir, adapter: 'vercel' },
+          createCliLogger({ quiet: true }),
+        ),
+      ).toBe(0);
+      expect(adapt).toHaveBeenCalledOnce();
+      vi.doUnmock('@ranu/adapter-vercel');
+    });
+
     it('reports Vercel adapter load failures in text and JSON modes', async () => {
       vi.doMock('@ranu/adapter-vercel', () => ({
         createVercelAdapter: undefined,
