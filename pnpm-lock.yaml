@@ -189,6 +189,9 @@ importers:
         specifier: workspace:*
         version: link:../runtime-node
     devDependencies:
+      '@ranu/adapter-vercel':
+        specifier: workspace:*
+        version: link:../../adapters/vercel
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1
