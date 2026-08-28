@@ -18,13 +18,20 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
     if (adapterName === 'vercel' || adapterName === '@ranu/adapter-vercel') {
       try {
         const vercelMod = await import('@ranu/adapter-vercel');
-        adapter = typeof vercelMod.createVercelAdapter === 'function'
-          ? vercelMod.createVercelAdapter()
-          : (typeof vercelMod.default === 'function' ? vercelMod.default() : vercelMod.default);
+        const loadedAdapter =
+          typeof vercelMod.createVercelAdapter === 'function'
+            ? vercelMod.createVercelAdapter()
+            : typeof vercelMod.default === 'function'
+              ? vercelMod.default()
+              : vercelMod.default;
+        adapter = loadedAdapter as typeof adapter;
       } catch (err: unknown) {
         const msg = (err as Error).message ?? String(err);
         if (args.json) {
-          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
+          logger.json({
+            success: false,
+            error: `Failed to load adapter "${args.adapter}": ${msg}`,
+          });
         } else {
           logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
         }
@@ -50,7 +57,9 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
       return 1;
     }
     logger.warn('No deployment adapter configured in ranu.config.ts.');
-    logger.log('To deploy to a cloud provider, configure an adapter (e.g. @ranu/adapter-vercel) in your ranu.config.ts:');
+    logger.log(
+      'To deploy to a cloud provider, configure an adapter (e.g. @ranu/adapter-vercel) in your ranu.config.ts:',
+    );
     logger.log(`
 import { defineConfig } from 'ranu/config';
 import vercelAdapter from '@ranu/adapter-vercel';

@@ -41,13 +41,13 @@ export function runManifestStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
   clientAssets: Record<string, ClientAssetGroup> = {},
-  staticRoutes: readonly StaticManifestEntry[] = []
+  staticRoutes: readonly StaticManifestEntry[] = [],
 ): ManifestStageResult {
   const diagnostics: RanuDiagnostic[] = [];
   const buildId = ctx.buildId;
 
   // 1. Build RouteManifest entries (sorted deterministically by pattern)
-  const routeEntries: RouteManifestEntry[] = routes.map(r => {
+  const routeEntries: RouteManifestEntry[] = routes.map((r) => {
     if (r.kind === 'api') {
       return {
         id: r.routeId,
@@ -63,6 +63,10 @@ export function runManifestStage(
         pattern: r.pathnameTemplate,
         params: r.params,
         renderMode: r.renderMode,
+        layouts: r.layouts,
+        ...(r.loading !== undefined ? { loading: r.loading } : {}),
+        errors: r.errors,
+        ...(r.notFound !== undefined ? { notFound: r.notFound } : {}),
       };
     }
   });
@@ -77,7 +81,7 @@ export function runManifestStage(
   };
 
   // 2. Build ServerManifest entries (sorted deterministically by routeId)
-  const serverEntries: ServerManifestEntry[] = routes.map(r => ({
+  const serverEntries: ServerManifestEntry[] = routes.map((r) => ({
     routeId: r.routeId,
     serverEntry: normalizePath(r.outputRelativePath),
   }));

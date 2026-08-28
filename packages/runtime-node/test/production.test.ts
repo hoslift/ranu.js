@@ -137,9 +137,8 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
     // Compiled modules
     fs.writeFileSync(
       path.join(serverDir, 'page-home.mjs'),
-      `import React from 'react';
-export default function HomePage() {
-  return React.createElement('h1', { id: 'home' }, 'Production Home Page');
+      `export default function HomePage() {
+  return 'Production Home Page';
 }`,
     );
 
@@ -156,15 +155,9 @@ export default function HomePage() {
     );
 
     // Static assets
-    fs.writeFileSync(
-      path.join(staticAssetsDir, 'main.css'),
-      `body { background: #fff; }`,
-    );
+    fs.writeFileSync(path.join(staticAssetsDir, 'main.css'), `body { background: #fff; }`);
 
-    fs.writeFileSync(
-      path.join(publicDir, 'robots.txt'),
-      `User-agent: *\nDisallow:`,
-    );
+    fs.writeFileSync(path.join(publicDir, 'robots.txt'), `User-agent: *\nDisallow:`);
   });
 
   afterEach(() => {

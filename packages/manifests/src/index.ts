@@ -34,7 +34,12 @@ export interface PageRouteManifestEntry {
   pattern: string;
   params: string[];
   renderMode?: RenderMode;
-  methods?: never;        // Forbidden for pages
+  /** Component paths inherited by the page, ordered from root to leaf. */
+  layouts?: string[];
+  loading?: string | undefined;
+  errors?: string[];
+  notFound?: string[] | undefined;
+  methods?: never; // Forbidden for pages
 }
 
 export type RouteManifestEntry = ApiRouteManifestEntry | PageRouteManifestEntry;
@@ -45,7 +50,6 @@ export interface RouteManifest {
   buildId: string;
   routes: RouteManifestEntry[];
 }
-
 
 /** Server Manifest Entry */
 export interface ServerManifestEntry {
@@ -101,7 +105,10 @@ export function isAbsolutePath(p: string): boolean {
 /**
  * Validator for BuildDescriptor
  */
-export function validateBuildDescriptor(descriptor: any): { success: boolean; diagnostics: RanuDiagnostic[] } {
+export function validateBuildDescriptor(descriptor: any): {
+  success: boolean;
+  diagnostics: RanuDiagnostic[];
+} {
   const diagnostics: RanuDiagnostic[] = [];
 
   if (!descriptor || typeof descriptor !== 'object') {
@@ -173,7 +180,7 @@ function validateBaseManifest(
   manifest: any,
   expectedBuildId?: string,
   manifestName = 'Manifest',
-  expectedVersion: number | number[] = MANIFEST_SCHEMA_VERSION
+  expectedVersion: number | number[] = MANIFEST_SCHEMA_VERSION,
 ): RanuDiagnostic[] {
   const diagnostics: RanuDiagnostic[] = [];
 
@@ -215,7 +222,10 @@ function validateBaseManifest(
 /**
  * Validator for RouteManifest (supports V1 and V2)
  */
-export function validateRouteManifest(manifest: any, expectedBuildId?: string): { success: boolean; diagnostics: RanuDiagnostic[] } {
+export function validateRouteManifest(
+  manifest: any,
+  expectedBuildId?: string,
+): { success: boolean; diagnostics: RanuDiagnostic[] } {
   const diagnostics = validateBaseManifest(manifest, expectedBuildId, 'RouteManifest', [1, 2]);
   if (diagnostics.length > 0 && !manifest) {
     return { success: false, diagnostics };
@@ -275,7 +285,13 @@ export function validateRouteManifest(manifest: any, expectedBuildId?: string): 
       prevPattern = route.pattern;
     }
 
-    if (route.kind === 'page' && route.renderMode && route.renderMode !== 'server' && route.renderMode !== 'static' && route.renderMode !== 'client') {
+    if (
+      route.kind === 'page' &&
+      route.renderMode &&
+      route.renderMode !== 'server' &&
+      route.renderMode !== 'static' &&
+      route.renderMode !== 'client'
+    ) {
       diagnostics.push({
         code: 'RANU_BUILD_MANIFEST_INVALID',
         severity: 'error',
@@ -372,7 +388,8 @@ export function validateRouteManifest(manifest: any, expectedBuildId?: string): 
     diagnostics.push({
       code: 'RANU_BUILD_MANIFEST_INVALID',
       severity: 'error',
-      message: 'RouteManifest routes are not ordered deterministically (alphabetically by pattern).',
+      message:
+        'RouteManifest routes are not ordered deterministically (alphabetically by pattern).',
     });
   }
 
@@ -382,7 +399,10 @@ export function validateRouteManifest(manifest: any, expectedBuildId?: string): 
 /**
  * Validator for ServerManifest
  */
-export function validateServerManifest(manifest: any, expectedBuildId?: string): { success: boolean; diagnostics: RanuDiagnostic[] } {
+export function validateServerManifest(
+  manifest: any,
+  expectedBuildId?: string,
+): { success: boolean; diagnostics: RanuDiagnostic[] } {
   const diagnostics = validateBaseManifest(manifest, expectedBuildId, 'ServerManifest');
   if (diagnostics.length > 0 && !manifest) {
     return { success: false, diagnostics };
@@ -442,7 +462,8 @@ export function validateServerManifest(manifest: any, expectedBuildId?: string):
     diagnostics.push({
       code: 'RANU_BUILD_MANIFEST_INVALID',
       severity: 'error',
-      message: 'ServerManifest routes are not ordered deterministically (alphabetically by routeId).',
+      message:
+        'ServerManifest routes are not ordered deterministically (alphabetically by routeId).',
     });
   }
 
@@ -452,7 +473,10 @@ export function validateServerManifest(manifest: any, expectedBuildId?: string):
 /**
  * Validator for ClientManifest
  */
-export function validateClientManifest(manifest: any, expectedBuildId?: string): { success: boolean; diagnostics: RanuDiagnostic[] } {
+export function validateClientManifest(
+  manifest: any,
+  expectedBuildId?: string,
+): { success: boolean; diagnostics: RanuDiagnostic[] } {
   const diagnostics = validateBaseManifest(manifest, expectedBuildId, 'ClientManifest');
   if (diagnostics.length > 0 && !manifest) {
     return { success: false, diagnostics };
@@ -535,7 +559,10 @@ export function validateClientManifest(manifest: any, expectedBuildId?: string):
 /**
  * Validator for StaticManifest
  */
-export function validateStaticManifest(manifest: any, expectedBuildId?: string): { success: boolean; diagnostics: RanuDiagnostic[] } {
+export function validateStaticManifest(
+  manifest: any,
+  expectedBuildId?: string,
+): { success: boolean; diagnostics: RanuDiagnostic[] } {
   const diagnostics = validateBaseManifest(manifest, expectedBuildId, 'StaticManifest');
   if (diagnostics.length > 0 && !manifest) {
     return { success: false, diagnostics };
@@ -603,7 +630,8 @@ export function validateStaticManifest(manifest: any, expectedBuildId?: string):
     diagnostics.push({
       code: 'RANU_BUILD_MANIFEST_INVALID',
       severity: 'error',
-      message: 'StaticManifest routes are not ordered deterministically (alphabetically by pathname).',
+      message:
+        'StaticManifest routes are not ordered deterministically (alphabetically by pathname).',
     });
   }
 

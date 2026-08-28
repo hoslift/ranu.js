@@ -140,7 +140,7 @@ describe('@ranu/cli commands comprehensive', () => {
               adapt: async () => {},
             },
           },
-        };`
+        };`,
       );
 
       const logger = createCliLogger({ quiet: true });
@@ -161,7 +161,7 @@ describe('@ranu/cli commands comprehensive', () => {
               name: 'invalid-adapter',
             },
           },
-        };`
+        };`,
       );
 
       const logger = createCliLogger({ quiet: true });
@@ -176,7 +176,9 @@ describe('@ranu/cli commands comprehensive', () => {
   describe('runDevCommand', () => {
     it('starts dev server and terminates gracefully on SIGINT', async () => {
       const devServerMock = {
-        start: vi.fn().mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
+        start: vi
+          .fn()
+          .mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
         close: vi.fn().mockResolvedValue(undefined),
       };
       const devSpy = vi.spyOn(devModule, 'createDevServer').mockReturnValue(devServerMock as any);
@@ -204,11 +206,11 @@ describe('@ranu/cli commands comprehensive', () => {
     it('throws when production build is missing', async () => {
       const logger = createCliLogger({ quiet: true });
       await expect(runStartCommand({ args: [], root: tempDir }, logger)).rejects.toThrow(
-        'No production build found'
+        'No valid production build found',
       );
     });
 
-    it('throws when server entry exports no valid runtime', async () => {
+    it('throws when a production build is incomplete', async () => {
       const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
       fs.mkdirSync(buildServerDir, { recursive: true });
       const entryFile = path.join(buildServerDir, 'entry.mjs');
@@ -216,7 +218,7 @@ describe('@ranu/cli commands comprehensive', () => {
 
       const logger = createCliLogger({ quiet: true });
       await expect(runStartCommand({ args: [], root: tempDir }, logger)).rejects.toThrow(
-        'did not export a valid runtime instance'
+        'No valid production build found',
       );
     });
 
@@ -225,12 +227,15 @@ describe('@ranu/cli commands comprehensive', () => {
       fs.mkdirSync(buildServerDir, { recursive: true });
       const entryFile = path.join(buildServerDir, 'entry.mjs');
       fs.writeFileSync(entryFile, 'export const runtime = { handle: () => {} };');
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
 
       const serverMock = {
         listen: vi.fn().mockResolvedValue({ host: '0.0.0.0', port: 3000 }),
         close: vi.fn().mockResolvedValue(undefined),
       };
-      const nodeServerSpy = vi.spyOn(nodeServerModule, 'createNodeServer').mockReturnValue(serverMock as any);
+      const nodeServerSpy = vi
+        .spyOn(nodeServerModule, 'createProductionServer')
+        .mockResolvedValue(serverMock as any);
 
       const logger = createCliLogger({ quiet: true });
       const promise = runStartCommand({ args: [], root: tempDir }, logger);
@@ -259,19 +264,25 @@ describe('@ranu/cli commands comprehensive', () => {
       });
 
       const devServerMock = {
-        start: vi.fn().mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
+        start: vi
+          .fn()
+          .mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
         close: vi.fn().mockResolvedValue(undefined),
       };
       vi.spyOn(devModule, 'createDevServer').mockReturnValue(devServerMock as any);
 
       const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
       fs.mkdirSync(buildServerDir, { recursive: true });
-      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default { handle: () => {} };');
+      fs.writeFileSync(
+        path.join(buildServerDir, 'entry.mjs'),
+        'export default { handle: () => {} };',
+      );
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
       const serverMock = {
         listen: vi.fn().mockResolvedValue({ host: '0.0.0.0', port: 3000 }),
         close: vi.fn().mockResolvedValue(undefined),
       };
-      vi.spyOn(nodeServerModule, 'createNodeServer').mockReturnValue(serverMock as any);
+      vi.spyOn(nodeServerModule, 'createProductionServer').mockResolvedValue(serverMock as any);
 
       // Default dispatch when no command provided
       expect(await runCli([])).toBe(0);
