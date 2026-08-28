@@ -500,6 +500,12 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../manifests
+      '@ranu/react':
+        specifier: workspace:*
+        version: link:../react
+      '@ranu/router':
+        specifier: workspace:*
+        version: link:../router
       '@ranu/runtime':
         specifier: workspace:*
         version: link:../runtime
