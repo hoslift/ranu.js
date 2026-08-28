@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -11,6 +11,22 @@ import {
   isPathContained,
   copyDirectorySafe,
 } from '../src/index.js';
+
+vi.mock('esbuild', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('esbuild')>();
+  const nodeFs = await import('node:fs');
+
+  return {
+    ...actual,
+    buildSync: (options: Parameters<typeof actual.buildSync>[0]) => {
+      if (!options.alias && options.outfile) {
+        nodeFs.writeFileSync(options.outfile, 'export default async function handler() {}\n');
+        return { errors: [], warnings: [] };
+      }
+      return actual.buildSync(options);
+    },
+  };
+});
 
 describe('@ranu/adapter-vercel', () => {
   let tempDir: string;
@@ -218,6 +234,44 @@ describe('@ranu/adapter-vercel', () => {
           path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
         ),
       ).toBe(true);
+    }, 15_000);
+
+    it('cleans the default output directory before adaptation', async () => {
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      const sentinelPath = path.join(outputDir, 'sentinel.txt');
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(sentinelPath, 'remove me');
+
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+      expect(result.success).toBe(true);
+      expect(fs.existsSync(sentinelPath)).toBe(false);
+    }, 15_000);
+
+    it('bundles the function without workspace runtime aliases', async () => {
+      const workspaceRuntimeEntry = path.resolve(
+        import.meta.dirname,
+        '../../../packages/runtime-node/src/index.ts',
+      );
+      const existsSync = fs.existsSync.bind(fs);
+      const existsSyncMock = vi
+        .spyOn(fs, 'existsSync')
+        .mockImplementation((filePath) =>
+          path.resolve(String(filePath)) === workspaceRuntimeEntry ? false : existsSync(filePath),
+        );
+
+      try {
+        const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+
+        expect(result.success).toBe(true);
+        expect(
+          existsSync(
+            path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
+          ),
+        ).toBe(true);
+      } finally {
+        existsSyncMock.mockRestore();
+      }
     }, 15_000);
 
     it('uses fallback manifests, preserves output, omits optional settings, and tolerates malformed package metadata', async () => {
