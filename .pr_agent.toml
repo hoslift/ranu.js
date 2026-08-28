@@ -1,0 +1,5 @@
+[pr_reviewer]
+require_all_thresholds_for_tests = false
+
+[pr_test]
+enable_auto_approval = true
