@@ -22,6 +22,7 @@ export interface ParsedCliArgs {
   readonly debug?: boolean | undefined;
   readonly quiet?: boolean | undefined;
   readonly json?: boolean | undefined;
+  readonly adapter?: string | undefined;
   readonly help?: boolean | undefined;
   readonly version?: boolean | undefined;
   readonly [key: string]: unknown;

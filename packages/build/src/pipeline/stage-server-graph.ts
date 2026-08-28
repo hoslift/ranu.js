@@ -57,6 +57,20 @@ export async function runServerGraphStage(
       }
     }
 
+    if (route.loading) {
+      const fullPath = resolveRouteComponentPath(ctx.projectRoot, route.loading);
+      if (fs.existsSync(fullPath)) {
+        entryPoints[`layouts/${getRouteComponentEntryName(route.loading)}`] = fullPath;
+      }
+    }
+
+    for (const errorPath of route.errors) {
+      const fullPath = resolveRouteComponentPath(ctx.projectRoot, errorPath);
+      if (fs.existsSync(fullPath)) {
+        entryPoints[`layouts/${getRouteComponentEntryName(errorPath)}`] = fullPath;
+      }
+    }
+
     // Compile notFound
     if (route.notFound) {
       for (const nfPath of route.notFound) {

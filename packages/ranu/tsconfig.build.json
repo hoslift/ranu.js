@@ -2,9 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": false,
-    "paths": {
-      "@ranu/server": ["../server/dist/index.d.ts"],
-      "@ranu/config": ["../config/dist/index.d.ts"]
-    }
+    "skipLibCheck": true
   }
 }

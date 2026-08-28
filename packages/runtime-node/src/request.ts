@@ -13,9 +13,9 @@ export interface ToWebRequestOptions {
   readonly bodyLimit?: number | string | undefined;
 }
 
-/** Narrow safe interface extending standard RequestInit with Node.js duplex property */
+/** Narrow safe interface for Node.js streamed Request construction. */
 export interface NodeRequestInit extends RequestInit {
-  duplex?: 'half' | 'full' | undefined;
+  duplex?: 'half';
 }
 
 export interface RequestUrlInput {
@@ -29,10 +29,7 @@ export interface RequestUrlInput {
  * Does NOT blindly trust forwarded headers (X-Forwarded-Proto, X-Forwarded-Host)
  * unless explicit trustProxy configuration is enabled.
  */
-export function buildRequestUrl(
-  req: RequestUrlInput,
-  options?: BuildRequestUrlOptions,
-): string {
+export function buildRequestUrl(req: RequestUrlInput, options?: BuildRequestUrlOptions): string {
   const trustProxy = options?.trustProxy ?? false;
   const defaultHost = options?.defaultHost ?? 'localhost';
 
@@ -56,7 +53,9 @@ export function buildRequestUrl(
     }
 
     const forwardedHostHeader = req.headers['x-forwarded-host'];
-    const forwardedHostVal = Array.isArray(forwardedHostHeader) ? forwardedHostHeader[0] : forwardedHostHeader;
+    const forwardedHostVal = Array.isArray(forwardedHostHeader)
+      ? forwardedHostHeader[0]
+      : forwardedHostHeader;
     if (typeof forwardedHostVal === 'string' && forwardedHostVal.trim().length > 0) {
       host = forwardedHostVal.split(',')[0]?.trim() ?? defaultHost;
     } else {
@@ -114,9 +113,14 @@ export function toWebRequest(
   // Early Content-Length check for fast 413 rejection before consuming stream
   const contentLengthStr = req.headers['content-length'];
   if (contentLengthStr !== undefined) {
-    const contentLength = parseInt(Array.isArray(contentLengthStr) ? contentLengthStr[0]! : contentLengthStr, 10);
+    const contentLength = parseInt(
+      Array.isArray(contentLengthStr) ? contentLengthStr[0]! : contentLengthStr,
+      10,
+    );
     if (!Number.isNaN(contentLength) && contentLength > maxBodyBytes) {
-      throw new PayloadTooLargeError(`Request body Content-Length of ${contentLength} bytes exceeds limit of ${maxBodyBytes} bytes.`);
+      throw new PayloadTooLargeError(
+        `Request body Content-Length of ${contentLength} bytes exceeds limit of ${maxBodyBytes} bytes.`,
+      );
     }
   }
 

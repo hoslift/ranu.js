@@ -24,7 +24,7 @@ describe('create-ranu git module', () => {
   });
 
   it('returns false when git command fails during isGitInstalled', () => {
-    vi.spyOn(childProcess, 'execSync').mockImplementationOnce(() => {
+    vi.spyOn(childProcess, 'execFileSync').mockImplementationOnce(() => {
       throw new Error('git not found');
     });
     expect(isGitInstalled()).toBe(false);
@@ -36,7 +36,7 @@ describe('create-ranu git module', () => {
   });
 
   it('returns false when git rev-parse fails in isInsideGitWorkTree', () => {
-    vi.spyOn(childProcess, 'execSync').mockImplementationOnce(() => {
+    vi.spyOn(childProcess, 'execFileSync').mockImplementationOnce(() => {
       throw new Error('not a git repo');
     });
     expect(isInsideGitWorkTree(tempDir)).toBe(false);
@@ -53,8 +53,8 @@ describe('create-ranu git module', () => {
   });
 
   it('returns false in initGit if git is not installed', () => {
-    vi.spyOn(childProcess, 'execSync').mockImplementation((cmd) => {
-      if (String(cmd).includes('--version')) {
+    vi.spyOn(childProcess, 'execFileSync').mockImplementation((_file, args) => {
+      if (String(args).includes('--version')) {
         throw new Error('command not found');
       }
       return Buffer.from('');
@@ -63,11 +63,11 @@ describe('create-ranu git module', () => {
   });
 
   it('returns false in initGit if target is already inside git worktree', () => {
-    vi.spyOn(childProcess, 'execSync').mockImplementation((cmd) => {
-      if (String(cmd).includes('--version')) {
+    vi.spyOn(childProcess, 'execFileSync').mockImplementation((_file, args) => {
+      if (String(args).includes('--version')) {
         return Buffer.from('git version 2.0');
       }
-      if (String(cmd).includes('--is-inside-work-tree')) {
+      if (String(args).includes('--is-inside-work-tree')) {
         return Buffer.from('true');
       }
       return Buffer.from('');
@@ -76,14 +76,14 @@ describe('create-ranu git module', () => {
   });
 
   it('returns false in initGit if git init throws', () => {
-    vi.spyOn(childProcess, 'execSync').mockImplementation((cmd) => {
-      if (String(cmd).includes('--version')) {
+    vi.spyOn(childProcess, 'execFileSync').mockImplementation((_file, args) => {
+      if (String(args).includes('--version')) {
         return Buffer.from('git version 2.0');
       }
-      if (String(cmd).includes('--is-inside-work-tree')) {
+      if (String(args).includes('--is-inside-work-tree')) {
         throw new Error('not in repo');
       }
-      if (String(cmd).includes('git init')) {
+      if (String(args).includes('init')) {
         throw new Error('permission denied');
       }
       return Buffer.from('');

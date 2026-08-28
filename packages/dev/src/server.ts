@@ -287,8 +287,15 @@ export class DevServer {
     res: http.ServerResponse,
   ): Promise<void> {
     const rawUrl = req.url ?? '/';
-    const parsedUrl = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
-    const pathname = decodeURIComponent(parsedUrl.pathname);
+    let pathname: string;
+    try {
+      const parsedUrl = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
+      pathname = decodeURIComponent(parsedUrl.pathname);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Bad Request');
+      return;
+    }
 
     // 1. Browser Reload Channel (SSE)
     if (pathname === '/_ranu/dev-reload' || pathname === '/_ranu/hmr') {

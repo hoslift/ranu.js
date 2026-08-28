@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { createNodeServer } from '@ranu/runtime-node';
+import { createProductionServer } from '@ranu/runtime-node';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
@@ -10,52 +9,59 @@ import { resolveProjectContext } from '../context.js';
  *
  * @param args - CLI options for configuring the server and output format
  * @returns `0` after the server shuts down
- * @throws Error if the production build is missing or does not export a valid runtime
+ * @throws Error if the production build is missing or invalid
  */
 export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'production');
 
   const buildDir = path.join(ctx.projectRoot, '.ranu', 'build');
   const serverEntry = path.join(buildDir, 'server', 'entry.mjs');
+  const buildJson = path.join(buildDir, 'build.json');
 
-  if (!fs.existsSync(serverEntry)) {
+  if (!fs.existsSync(serverEntry) || !fs.existsSync(buildJson)) {
     throw new Error(
-      `No production build found at "${buildDir}". Run "ranu build" first before starting the production server.`
+      `No valid production build found at "${buildDir}". Run "ranu build" first before starting the production server.`,
     );
   }
 
-  const port = args.port ?? ctx.config.server.port ?? 3000;
-  const host = args.host ?? ctx.config.server.host ?? '0.0.0.0';
-
-  // Import the production entry module
-  const entryUrl = pathToFileURL(serverEntry).href;
-  const entryModule = await import(entryUrl);
-  const runtime = entryModule.runtime ?? entryModule.default;
-
-  if (!runtime) {
-    throw new Error(`Production server entry at "${serverEntry}" did not export a valid runtime instance.`);
+  // Precedence: CLI flag -> Environment variable -> Config -> Default
+  let envPort: number | undefined;
+  if (process.env.PORT !== undefined && process.env.PORT.trim() !== '') {
+    const parsed = Number(process.env.PORT.trim());
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) {
+      envPort = parsed;
+    }
   }
+  const envHost = process.env.HOST?.trim() || undefined;
 
-  const server = createNodeServer({
-    runtime,
+  const port = args.port ?? envPort ?? ctx.config.server.port ?? 3000;
+  const host = args.host ?? envHost ?? ctx.config.server.host ?? '0.0.0.0';
+
+  const server = await createProductionServer({
+    projectRoot: ctx.projectRoot,
+    buildDir,
     port,
     host,
     trustProxy: ctx.config.server.trustProxy,
   });
 
   const address = await server.listen(port, host);
+  const displayHost =
+    address.host === '::' || address.host === '0.0.0.0' || address.host === ''
+      ? '127.0.0.1'
+      : address.host;
 
   if (args.json) {
     logger.json({
       status: 'ready',
-      url: `http://${address.host}:${address.port}`,
+      url: `http://${displayHost}:${address.port}`,
       mode: 'production',
       root: ctx.projectRoot,
     });
   } else {
     logger.log('');
     logger.success(`Ranu.js production server listening`);
-    logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${address.host}:${address.port}\x1b[0m`);
+    logger.log(`  \x1b[1mURL:\x1b[0m     \x1b[36mhttp://${displayHost}:${address.port}\x1b[0m`);
     logger.log(`  \x1b[1mMode:\x1b[0m    production`);
     logger.log(`  \x1b[1mRoot:\x1b[0m    ${ctx.projectRoot}`);
     logger.log('');
