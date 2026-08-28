@@ -120,6 +120,23 @@ describe('@ranu/cli commands comprehensive', () => {
   });
 
   describe('runDeployCommand', () => {
+    it('rejects unsupported CLI adapters in text and JSON modes', async () => {
+      const logger = createCliLogger({ quiet: true });
+      const error = vi.spyOn(logger, 'error');
+      const json = vi.spyOn(logger, 'json');
+
+      expect(await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown' }, logger)).toBe(
+        1,
+      );
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported deployment adapter'));
+      expect(
+        await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown', json: true }, logger),
+      ).toBe(1);
+      expect(json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, error: expect.stringContaining('Unsupported') }),
+      );
+    });
+
     it('warns when no adapter is configured in text and JSON mode', async () => {
       const logger = createCliLogger({ quiet: true });
       const code1 = await runDeployCommand({ args: [], root: tempDir }, logger);
@@ -149,6 +166,43 @@ describe('@ranu/cli commands comprehensive', () => {
 
       const code2 = await runDeployCommand({ args: [], root: tempDir, json: true }, logger);
       expect(code2).toBe(0);
+    });
+
+    it('reports adapter success details, explicit failure, and thrown errors', async () => {
+      const logger = createCliLogger({ quiet: true });
+      const json = vi.spyOn(logger, 'json');
+      const configFile = path.join(tempDir, 'ranu.config.ts');
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'result-adapter',
+          adapt: async () => ({ success: true, outputDirectory: '/output', files: ['one.js'] })
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir, json: true }, logger)).toBe(0);
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({ outputDirectory: '/output', files: ['one.js'] }),
+      );
+
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'failed-adapter', adapt: async () => ({ success: false })
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir }, logger)).toBe(1);
+
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'throwing-adapter', adapt: async () => { throw new Error('adapt exploded') }
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir }, logger)).toBe(1);
+      expect(await runDeployCommand({ args: [], root: tempDir, json: true }, logger)).toBe(1);
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({ success: false, error: 'adapt exploded' }),
+      );
     });
 
     it('returns error when adapter lacks adapt method', async () => {
@@ -254,6 +308,52 @@ describe('@ranu/cli commands comprehensive', () => {
       );
 
       nodeServerSpy.mockRestore();
+    });
+
+    it('uses environment values, ignores invalid ports, and gives CLI values precedence', async () => {
+      const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
+      fs.mkdirSync(buildServerDir, { recursive: true });
+      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default {};');
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
+      const serverMock = {
+        listen: vi.fn().mockResolvedValue({ host: '', port: 4321 }),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      const createServer = vi
+        .spyOn(nodeServerModule, 'createProductionServer')
+        .mockResolvedValue(serverMock as any);
+      const previousPort = process.env.PORT;
+      const previousHost = process.env.HOST;
+      process.env.PORT = '4100';
+      process.env.HOST = 'env-host';
+
+      try {
+        let promise = runStartCommand(
+          { args: [], root: tempDir },
+          createCliLogger({ quiet: true }),
+        );
+        setTimeout(() => process.emit('SIGINT'), 10);
+        await promise;
+        expect(createServer).toHaveBeenLastCalledWith(
+          expect.objectContaining({ port: 4100, host: 'env-host' }),
+        );
+
+        process.env.PORT = 'invalid';
+        promise = runStartCommand(
+          { args: [], root: tempDir, port: 4200, host: 'cli-host' },
+          createCliLogger({ quiet: true }),
+        );
+        setTimeout(() => process.emit('SIGINT'), 10);
+        await promise;
+        expect(createServer).toHaveBeenLastCalledWith(
+          expect.objectContaining({ port: 4200, host: 'cli-host' }),
+        );
+      } finally {
+        if (previousPort === undefined) delete process.env.PORT;
+        else process.env.PORT = previousPort;
+        if (previousHost === undefined) delete process.env.HOST;
+        else process.env.HOST = previousHost;
+      }
     });
   });
 

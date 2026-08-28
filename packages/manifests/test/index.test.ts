@@ -11,7 +11,7 @@ import {
   type RouteManifest,
   type ServerManifest,
   type ClientManifest,
-  type StaticManifest
+  type StaticManifest,
 } from '../src/index.js';
 
 describe('@ranu/manifests', () => {
@@ -111,8 +111,20 @@ describe('@ranu/manifests', () => {
         buildId: 'build_123',
         routes: [
           { id: 'page:/about', kind: 'page', pattern: '/about', renderMode: 'static', params: [] },
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [], methods: ['GET', 'POST'] },
-          { id: 'page:/products/[id]', kind: 'page', pattern: '/products/[id]', renderMode: 'server', params: ['id'] },
+          {
+            id: 'api:/api/users',
+            kind: 'api',
+            pattern: '/api/users',
+            params: [],
+            methods: ['GET', 'POST'],
+          },
+          {
+            id: 'page:/products/[id]',
+            kind: 'page',
+            pattern: '/products/[id]',
+            renderMode: 'server',
+            params: ['id'],
+          },
         ],
       };
       const result = validateRouteManifest(manifest);
@@ -135,9 +147,7 @@ describe('@ranu/manifests', () => {
       const manifest = {
         schemaVersion: 1,
         buildId: 'build_123',
-        routes: [
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [] },
-        ],
+        routes: [{ id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [] }],
       };
       const result = validateRouteManifest(manifest);
       expect(result.success).toBe(true);
@@ -161,7 +171,13 @@ describe('@ranu/manifests', () => {
         schemaVersion: 2,
         buildId: 'build_123',
         routes: [
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [], methods: ['DELETE', 'GET', 'POST'] },
+          {
+            id: 'api:/api/users',
+            kind: 'api',
+            pattern: '/api/users',
+            params: [],
+            methods: ['DELETE', 'GET', 'POST'],
+          },
         ],
       };
       const result = validateRouteManifest(manifest);
@@ -186,7 +202,13 @@ describe('@ranu/manifests', () => {
         schemaVersion: 2,
         buildId: 'build_123',
         routes: [
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [], methods: ['GET', 'GET'] },
+          {
+            id: 'api:/api/users',
+            kind: 'api',
+            pattern: '/api/users',
+            params: [],
+            methods: ['GET', 'GET'],
+          },
         ],
       };
       const result = validateRouteManifest(manifest);
@@ -199,7 +221,13 @@ describe('@ranu/manifests', () => {
         schemaVersion: 2,
         buildId: 'build_123',
         routes: [
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [], methods: ['POST', 'GET'] },
+          {
+            id: 'api:/api/users',
+            kind: 'api',
+            pattern: '/api/users',
+            params: [],
+            methods: ['POST', 'GET'],
+          },
         ],
       };
       const result = validateRouteManifest(manifest);
@@ -217,7 +245,30 @@ describe('@ranu/manifests', () => {
       };
       const result = validateRouteManifest(manifest);
       expect(result.success).toBe(false);
-      expect(result.diagnostics[0].message).toContain('contains forbidden "methods" property in V2');
+      expect(result.diagnostics[0].message).toContain(
+        'contains forbidden "methods" property in V2',
+      );
+    });
+
+    it('accepts valid page component metadata', () => {
+      const manifest = {
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [
+          {
+            id: 'page:/about',
+            kind: 'page',
+            pattern: '/about',
+            params: [],
+            layouts: ['app/layout.tsx'],
+            loading: 'app/loading.tsx',
+            errors: ['app/error.tsx'],
+            notFound: ['app/not-found.tsx'],
+          },
+        ],
+      };
+
+      expect(validateRouteManifest(manifest)).toEqual({ success: true, diagnostics: [] });
     });
 
     it.each([
@@ -291,7 +342,13 @@ describe('@ranu/manifests', () => {
         schemaVersion: 2,
         buildId: 'build_123',
         routes: [
-          { id: 'page:/products/[id]', kind: 'page', pattern: '/products/[id]', renderMode: 'server', params: ['id'] },
+          {
+            id: 'page:/products/[id]',
+            kind: 'page',
+            pattern: '/products/[id]',
+            renderMode: 'server',
+            params: ['id'],
+          },
           { id: 'page:/about', kind: 'page', pattern: '/about', renderMode: 'static', params: [] },
         ],
       };
@@ -305,8 +362,14 @@ describe('@ranu/manifests', () => {
         schemaVersion: 2,
         buildId: 'build_123',
         routes: [
-          { id: 'api:/api/users', kind: 'api', pattern: '/api/users', params: [], methods: ['GET', 'POST'] }
-        ]
+          {
+            id: 'api:/api/users',
+            kind: 'api',
+            pattern: '/api/users',
+            params: [],
+            methods: ['GET', 'POST'],
+          },
+        ],
       };
       const serialized = JSON.stringify(manifest);
       const parsed = JSON.parse(serialized);
@@ -334,9 +397,7 @@ describe('@ranu/manifests', () => {
       const manifest: ServerManifest = {
         schemaVersion: 1,
         buildId: 'build_123',
-        routes: [
-          { routeId: 'page:/about', serverEntry: '/absolute/dist/about.js' },
-        ],
+        routes: [{ routeId: 'page:/about', serverEntry: '/absolute/dist/about.js' }],
       };
       const result = validateServerManifest(manifest);
       expect(result.success).toBe(false);
@@ -384,7 +445,11 @@ describe('@ranu/manifests', () => {
         buildId: 'build_123',
         routes: [
           { pathname: '/about', routeId: 'page:/about', file: './static/pages/about.html' },
-          { pathname: '/docs/routing', routeId: 'page:/docs/[slug]', file: './static/pages/routing.html' },
+          {
+            pathname: '/docs/routing',
+            routeId: 'page:/docs/[slug]',
+            file: './static/pages/routing.html',
+          },
         ],
       };
       const result = validateStaticManifest(manifest);
@@ -396,7 +461,11 @@ describe('@ranu/manifests', () => {
         schemaVersion: 1,
         buildId: 'build_123',
         routes: [
-          { pathname: '/docs/routing', routeId: 'page:/docs/[slug]', file: './static/pages/routing.html' },
+          {
+            pathname: '/docs/routing',
+            routeId: 'page:/docs/[slug]',
+            file: './static/pages/routing.html',
+          },
           { pathname: '/about', routeId: 'page:/about', file: './static/pages/about.html' },
         ],
       };

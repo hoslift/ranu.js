@@ -7,6 +7,7 @@ import {
   createProductionRuntime,
   createProductionRequestHandler,
   createProductionServer,
+  compileManifestRoutes,
   getMimeType,
   isPathContained,
   serveStaticFile,
@@ -167,6 +168,75 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
   });
 
   describe('Static Path & Mime Type Utilities', () => {
+    it('compiles static, dynamic, catch-all, and optional catch-all manifest routes', () => {
+      const routes = compileManifestRoutes({
+        schemaVersion: 2,
+        buildId: 'test',
+        routes: [
+          { id: 'page:s', kind: 'page', pattern: '/docs', params: [] },
+          { id: 'page:d', kind: 'page', pattern: '/blog/[slug]', params: ['slug'] },
+          { id: 'api:c', kind: 'api', pattern: '/api/[...parts]', params: ['parts'] },
+          { id: 'page:o', kind: 'page', pattern: '/shop/[[...parts]]', params: ['parts'] },
+        ],
+      } as any);
+
+      expect(routes.map((route) => route.pattern.segments.at(-1)?.kind)).toEqual([
+        'static',
+        'dynamic',
+        'catch-all',
+        'optional-catch-all',
+      ]);
+      expect(routes[0]).toMatchObject({ layouts: [], errors: [] });
+      expect(routes[2]).toMatchObject({ methods: [], layouts: [], errors: [] });
+    });
+
+    it('handles static-file traversal, absence, directories, HEAD, and custom caching', () => {
+      const root = path.join(tempDir, 'public');
+      const response = () =>
+        Object.assign(new EventEmitter(), {
+          destroyed: false,
+          writeHead: vi.fn(),
+          end: vi.fn(),
+          destroy: vi.fn(),
+        });
+
+      const forbidden = response();
+      expect(
+        serveStaticFile(path.join(root, '..', 'secret'), root, {} as any, forbidden as any),
+      ).toBe(true);
+      expect(forbidden.writeHead).toHaveBeenCalledWith(403, expect.anything());
+      expect(serveStaticFile(path.join(root, 'missing'), root, {} as any, response() as any)).toBe(
+        false,
+      );
+      expect(serveStaticFile(root, root, {} as any, response() as any)).toBe(false);
+
+      const head = response();
+      expect(
+        serveStaticFile(
+          path.join(root, 'robots.txt'),
+          root,
+          { method: 'HEAD' } as any,
+          head as any,
+          'private',
+        ),
+      ).toBe(true);
+      expect(head.writeHead).toHaveBeenCalledWith(
+        200,
+        expect.objectContaining({ 'Cache-Control': 'private' }),
+      );
+      expect(head.end).toHaveBeenCalledOnce();
+    });
+
+    it('rejects static-file symlinks outside the authorized root', () => {
+      const root = path.join(tempDir, 'public');
+      const outside = path.join(tempDir, 'outside.txt');
+      const link = path.join(root, 'outside.txt');
+      fs.writeFileSync(outside, 'secret');
+      fs.symlinkSync(outside, link);
+      const res = Object.assign(new EventEmitter(), { writeHead: vi.fn(), end: vi.fn() });
+      expect(serveStaticFile(link, root, {} as any, res as any)).toBe(true);
+      expect(res.writeHead).toHaveBeenCalledWith(403, expect.anything());
+    });
     it('determines correct MIME types', () => {
       expect(getMimeType('style.css')).toBe('text/css; charset=utf-8');
       expect(getMimeType('app.js')).toBe('text/javascript; charset=utf-8');
@@ -238,6 +308,52 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       );
     });
 
+    it.each(['routes.json', 'server.json'])(
+      'rejects a missing required %s manifest',
+      async (name) => {
+        fs.rmSync(path.join(buildDir, 'manifest', name));
+        await expect(createProductionRuntime({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+          /missing required route or server manifests/,
+        );
+      },
+    );
+
+    it('uses empty client and static manifest fallbacks', async () => {
+      fs.rmSync(path.join(buildDir, 'manifest', 'client.json'));
+      fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
+      const runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      expect((await runtime.handle(new Request('http://localhost/about'))).status).toBe(404);
+      expect((await runtime.handle(new Request('http://localhost/'))).status).toBe(200);
+      runtime.dispose();
+    });
+
+    it('honors non-default static status and rejects escaping static files', async () => {
+      const manifestPath = path.join(buildDir, 'manifest', 'static.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest.routes[0].status = 203;
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+      let runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      expect((await runtime.handle(new Request('http://localhost/about'))).status).toBe(203);
+      runtime.dispose();
+
+      manifest.routes[0].file = '../outside.html';
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+      runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      expect((await runtime.handle(new Request('http://localhost/about'))).status).toBe(404);
+      runtime.dispose();
+    });
+
+    it('rejects server module paths that escape the build directory', async () => {
+      const manifestPath = path.join(buildDir, 'manifest', 'server.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest.routes[0].serverEntry = '../outside.mjs';
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+      const runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      const response = await runtime.handle(new Request('http://localhost/'));
+      expect(response.status).toBe(500);
+      runtime.dispose();
+    });
+
     it('creates working production runtime for SSR, SSG, and API endpoints', async () => {
       const runtime = await createProductionRuntime({
         projectRoot: tempDir,
@@ -267,6 +383,55 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(res404.status).toBe(404);
 
       runtime.dispose();
+    });
+  });
+
+  describe('createProductionRequestHandler', () => {
+    const makeResponse = () =>
+      Object.assign(new EventEmitter(), {
+        writableEnded: false,
+        destroyed: false,
+        writeHead: vi.fn(),
+        setHeader: vi.fn(),
+        headersSent: false,
+        statusCode: 200,
+        write: vi.fn(() => true),
+        end: vi.fn(),
+        destroy: vi.fn(),
+      });
+
+    it('ignores ended responses and rejects malformed URI encoding', async () => {
+      const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
+      const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
+      const ended = makeResponse();
+      ended.writableEnded = true;
+      await handler({ url: '/' } as any, ended as any);
+      expect(runtime.handle).not.toHaveBeenCalled();
+
+      const malformed = makeResponse();
+      await handler({ url: '/bad%E0%A4%A', headers: {} } as any, malformed as any);
+      expect(malformed.writeHead).toHaveBeenCalledWith(400, expect.anything());
+      expect(malformed.end).toHaveBeenCalledWith('Bad Request');
+    }, 15_000);
+
+    it('serves framework and public assets and falls back when framework assets are absent', async () => {
+      const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
+      const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
+      for (const url of ['/_ranu/assets/main.css', '/robots.txt']) {
+        const res = makeResponse();
+        await handler({ url, method: 'HEAD', headers: {} } as any, res as any);
+        expect(res.writeHead).toHaveBeenCalledWith(200, expect.anything());
+      }
+
+      const missing = makeResponse();
+      const missingReq = Object.assign(new EventEmitter(), {
+        url: '/_ranu/assets/missing.css',
+        method: 'GET',
+        headers: {},
+        socket: {},
+      });
+      await handler(missingReq as any, missing as any);
+      expect(runtime.handle).toHaveBeenCalledOnce();
     });
   });
 

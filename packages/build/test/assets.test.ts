@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { isStaticAssetFile, emitStaticAsset, rewriteCssUrls } from '../src/assets/asset-emitter.js';
 import { copyPublicDirectory } from '../src/assets/public-dir.js';
 
@@ -78,6 +78,50 @@ describe('Static Asset Handling and public/ Directory', () => {
     } finally {
       fs.rmSync(outsideDir, { recursive: true, force: true });
     }
+  });
+
+  it('rejects asset and CSS URL symlinks that resolve outside projectRoot', () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-asset-outside-'));
+    const outsideAsset = path.join(outsideDir, 'secret.png');
+    const linkedAsset = path.join(tempDir, 'linked.png');
+    fs.writeFileSync(outsideAsset, 'secret');
+    try {
+      fs.symlinkSync(outsideAsset, linkedAsset);
+      expect(() => emitStaticAsset(linkedAsset, staticOutDir, tempDir)).toThrow(
+        /resolves outside project root/,
+      );
+      expect(() =>
+        rewriteCssUrls(
+          `.x { background: url('./linked.png') }`,
+          path.join(tempDir, 'styles.css'),
+          staticOutDir,
+          tempDir,
+        ),
+      ).toThrow(/Traversal outside project root/);
+    } finally {
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back to normalized paths when realpath resolution fails', () => {
+    const assetPath = path.join(tempDir, 'fallback.png');
+    fs.writeFileSync(assetPath, 'asset');
+    const realpath = vi.spyOn(fs, 'realpathSync').mockImplementation(() => {
+      throw new Error('realpath unavailable');
+    });
+
+    expect(emitStaticAsset(assetPath, staticOutDir, tempDir).publicUrl).toMatch(
+      /^\/_ranu\/assets\/fallback-/,
+    );
+    expect(
+      rewriteCssUrls(
+        `.x { background: url('./fallback.png') }`,
+        path.join(tempDir, 'styles.css'),
+        staticOutDir,
+        tempDir,
+      ).code,
+    ).toContain('/_ranu/assets/fallback-');
+    realpath.mockRestore();
   });
 
   it('rewrites relative url(...) paths in CSS', () => {

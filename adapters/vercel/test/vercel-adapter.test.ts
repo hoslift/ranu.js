@@ -9,6 +9,7 @@ import {
   ADAPTER_API_VERSION,
   VERCEL_CAPABILITIES,
   isPathContained,
+  copyDirectorySafe,
 } from '../src/index.js';
 
 describe('@ranu/adapter-vercel', () => {
@@ -102,7 +103,10 @@ describe('@ranu/adapter-vercel', () => {
 
     // files
     fs.writeFileSync(path.join(serverDir, 'page-home.mjs'), 'export default () => "Home";');
-    fs.writeFileSync(path.join(serverDir, 'api-data.mjs'), 'export const GET = () => Response.json({ ok: true });');
+    fs.writeFileSync(
+      path.join(serverDir, 'api-data.mjs'),
+      'export const GET = () => Response.json({ ok: true });',
+    );
     fs.writeFileSync(path.join(staticPagesDir, 'terms.html'), '<html><body>Terms</body></html>');
     fs.writeFileSync(path.join(staticPagesDir, 'index.html'), '<html><body>Home</body></html>');
     fs.writeFileSync(path.join(staticAssetsDir, 'style.123.css'), 'body { margin: 0; }');
@@ -130,6 +134,41 @@ describe('@ranu/adapter-vercel', () => {
       expect(isPathContained('/root/a/b', '/root')).toBe(true);
       expect(isPathContained('/outside/a', '/root')).toBe(false);
     });
+
+    it('copies nested files and skips every forbidden-name form', () => {
+      const source = path.join(tempDir, 'copy-source');
+      const destination = path.join(tempDir, 'copy-destination');
+      fs.mkdirSync(path.join(source, 'nested'), { recursive: true });
+      fs.writeFileSync(path.join(source, 'nested', 'ok.txt'), 'ok');
+      for (const name of ['.env', '.env.local', 'app.map', 'server', 'server-entry.js']) {
+        fs.writeFileSync(path.join(source, name), 'forbidden');
+      }
+
+      expect(copyDirectorySafe(path.join(tempDir, 'absent'), destination, tempDir)).toEqual([]);
+      const copied = copyDirectorySafe(source, destination, tempDir, ['.env', '.map', 'server']);
+      expect(copied).toEqual([path.join(destination, 'nested', 'ok.txt')]);
+      expect(fs.readFileSync(copied[0], 'utf8')).toBe('ok');
+    });
+
+    it('rejects destinations outside the root and destination symlinks', () => {
+      const source = path.join(tempDir, 'copy-source');
+      fs.mkdirSync(source);
+      fs.writeFileSync(path.join(source, 'file.txt'), 'data');
+      expect(() => copyDirectorySafe(source, path.join(tempDir, '..', 'escape'), tempDir)).toThrow(
+        /Path traversal|symbolic link/,
+      );
+
+      const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-copy-outside-'));
+      const linkedDestination = path.join(tempDir, 'linked-destination');
+      fs.symlinkSync(outside, linkedDestination, 'dir');
+      try {
+        expect(() => copyDirectorySafe(source, linkedDestination, tempDir)).toThrow(
+          /symbolic link/,
+        );
+      } finally {
+        fs.rmSync(outside, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('adapt() execution', () => {
@@ -141,6 +180,46 @@ describe('@ranu/adapter-vercel', () => {
       );
       fs.rmSync(emptyDir, { recursive: true, force: true });
     });
+
+    it('rejects a non-Node build runtime', async () => {
+      const descriptorPath = path.join(buildDir, 'build.json');
+      const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+      descriptor.runtime = 'edge';
+      fs.writeFileSync(descriptorPath, JSON.stringify(descriptor));
+      await expect(createVercelAdapter().adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+        /requires build runtime target "node"/,
+      );
+    });
+
+    it('uses fallback manifests, preserves output, omits optional settings, and tolerates malformed package metadata', async () => {
+      fs.rmSync(path.join(buildDir, 'manifest', 'static.json'));
+      fs.rmSync(path.join(buildDir, 'BUILD_ID'));
+      fs.writeFileSync(path.join(tempDir, 'package.json'), '{malformed');
+      const outputDir = path.join(tempDir, '.vercel', 'output');
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(path.join(outputDir, 'retained.txt'), 'retained');
+
+      await createVercelAdapter({ clean: false, maxDuration: 15 }).adapt({
+        projectRoot: tempDir,
+        buildDir,
+      });
+
+      expect(fs.readFileSync(path.join(outputDir, 'retained.txt'), 'utf8')).toBe('retained');
+      const functionDir = path.join(outputDir, 'functions', 'index.func');
+      const vcConfig = JSON.parse(
+        fs.readFileSync(path.join(functionDir, '.vc-config.json'), 'utf8'),
+      );
+      expect(vcConfig).toMatchObject({ maxDuration: 15 });
+      expect(vcConfig).not.toHaveProperty('regions');
+      expect(vcConfig).not.toHaveProperty('memory');
+      expect(fs.existsSync(path.join(functionDir, 'BUILD_ID'))).toBe(false);
+      expect(
+        JSON.parse(fs.readFileSync(path.join(functionDir, 'package.json'), 'utf8')).dependencies,
+      ).toEqual({});
+      expect(
+        JSON.parse(fs.readFileSync(path.join(outputDir, 'config.json'), 'utf8')),
+      ).not.toHaveProperty('overrides');
+    }, 15_000);
 
     it('generates Vercel Build Output API v3 structure', async () => {
       const adapter = createVercelAdapter({
