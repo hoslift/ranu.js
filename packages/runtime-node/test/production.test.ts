@@ -239,7 +239,7 @@ export default function HomePage() {
         host: '127.0.0.1',
       });
 
-      const addr = await server.listen();
+      const addr = await server.listen(0, '127.0.0.1');
       expect(addr.port).toBeGreaterThan(0);
 
       try {
