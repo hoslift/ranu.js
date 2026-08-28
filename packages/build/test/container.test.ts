@@ -20,12 +20,13 @@ describe('@ranu/build — Container Deployment', () => {
   });
 
   describe('generateDockerfile', () => {
-    it('generates a multi-stage Dockerfile with default npm setup', () => {
+    it('generates a multi-stage Dockerfile with default npm setup and dependency pruning', () => {
       const dockerfile = generateDockerfile();
 
       expect(dockerfile).toContain('FROM node:22-alpine AS build');
       expect(dockerfile).toContain('RUN npm ci');
       expect(dockerfile).toContain('RUN npm run build');
+      expect(dockerfile).toContain('RUN npm prune --production');
       expect(dockerfile).toContain('FROM node:22-alpine AS runtime');
       expect(dockerfile).toContain('ENV NODE_ENV=production');
       expect(dockerfile).toContain('USER node');
@@ -44,8 +45,21 @@ describe('@ranu/build — Container Deployment', () => {
       expect(dockerfile).toContain('COPY package.json pnpm-lock.yaml ./');
       expect(dockerfile).toContain('RUN corepack enable && pnpm install --frozen-lockfile');
       expect(dockerfile).toContain('RUN pnpm run build');
+      expect(dockerfile).toContain('RUN pnpm prune --prod');
       expect(dockerfile).toContain('ENV PORT=8080');
       expect(dockerfile).toContain('EXPOSE 8080');
+    });
+
+    it('generates yarn multi-stage Dockerfile when requested', () => {
+      const dockerfile = generateDockerfile({
+        packageManager: 'yarn',
+        port: 4000,
+      });
+
+      expect(dockerfile).toContain('COPY package.json yarn.lock ./');
+      expect(dockerfile).toContain('RUN yarn install --frozen-lockfile');
+      expect(dockerfile).toContain('RUN yarn run build');
+      expect(dockerfile).toContain('RUN yarn install --production --ignore-scripts --prefer-offline');
     });
 
     it('supports root user when nonRoot option is false', () => {
@@ -55,12 +69,13 @@ describe('@ranu/build — Container Deployment', () => {
   });
 
   describe('generateDockerignore', () => {
-    it('generates standard ignore rules', () => {
+    it('generates standard ignore rules including base and local .env files', () => {
       const ignore = generateDockerignore();
       expect(ignore).toContain('.git');
       expect(ignore).toContain('node_modules');
       expect(ignore).toContain('.ranu/dev');
-      expect(ignore).toContain('.env*.local');
+      expect(ignore).toContain('.env');
+      expect(ignore).toContain('.env.*');
     });
   });
 

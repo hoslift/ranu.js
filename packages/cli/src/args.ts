@@ -168,10 +168,10 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     if (arg === '--adapter') {
       i++;
       const val = argv[i];
-      if (val === undefined || val.startsWith('-')) {
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
         throw new Error('Flag "--adapter" requires a valid adapter name.');
       }
-      adapter = val;
+      adapter = val.trim();
       continue;
     }
 

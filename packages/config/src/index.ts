@@ -25,7 +25,7 @@ export interface RanuUserConfig {
     defaultMode?: RenderMode;
   };
   deployment?: {
-    adapter?: RanuDeploymentAdapter | any;
+    adapter?: RanuDeploymentAdapter;
   };
   env?: {
     files?: boolean;
@@ -54,7 +54,7 @@ export interface ResolvedRanuConfig {
     readonly defaultMode: RenderMode;
   };
   readonly deployment: {
-    readonly adapter?: any;
+    readonly adapter?: RanuDeploymentAdapter;
   };
 }
 

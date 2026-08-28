@@ -30,6 +30,14 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
         }
         return 1;
       }
+    } else {
+      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel".`;
+      if (args.json) {
+        logger.json({ success: false, error: msg });
+      } else {
+        logger.error(msg);
+      }
+      return 1;
     }
   }
 
@@ -63,20 +71,25 @@ export default defineConfig({
         projectRoot: ctx.projectRoot,
         logger,
       });
+      const isSuccess = result?.success !== false;
       if (args.json) {
         logger.json({
-          success: result?.success !== false,
+          success: isSuccess,
           adapter: adapter.name ?? 'custom',
           outputDirectory: result?.outputDirectory,
           files: result?.files,
         });
       } else {
-        logger.success(`Deployment preparation complete for ${adapter.name ?? 'custom'}.`);
-        if (result?.outputDirectory) {
-          logger.log(`Output: ${result.outputDirectory}`);
+        if (isSuccess) {
+          logger.success(`Deployment preparation complete for ${adapter.name ?? 'custom'}.`);
+          if (result?.outputDirectory) {
+            logger.log(`Output: ${result.outputDirectory}`);
+          }
+        } else {
+          logger.error(`Deployment preparation failed for ${adapter.name ?? 'custom'}.`);
         }
       }
-      return result?.success === false ? 1 : 0;
+      return isSuccess ? 0 : 1;
     } catch (err: unknown) {
       const msg = (err as Error).message ?? String(err);
       if (args.json) {

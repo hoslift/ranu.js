@@ -101,15 +101,34 @@ export const createProductionRuntime = (options) => (${runtimeFactorySource})(op
  */
 export async function startServer(options = {}) {
   const { createProductionServer } = await import('@ranu/runtime-node');
-  const port = options.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
-  const host = options.host ?? process.env.HOST ?? '0.0.0.0';
+  let envPort;
+  if (process.env.PORT !== undefined && process.env.PORT.trim() !== '') {
+    const parsed = Number(process.env.PORT.trim());
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) {
+      envPort = parsed;
+    }
+  }
+  const port = options.port ?? envPort ?? 3000;
+  const host = options.host ?? (process.env.HOST ? process.env.HOST.trim() : undefined) ?? '0.0.0.0';
+  const trustProxy = options.trustProxy ?? (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1');
+
   const server = await createProductionServer({
     buildDir,
     port,
     host,
-    trustProxy: options.trustProxy,
+    trustProxy,
   });
-  return server.listen(port, host);
+
+  const address = await server.listen(port, host);
+
+  const shutdown = async () => {
+    await server.close();
+    process.exit(0);
+  };
+  process.once('SIGINT', () => void shutdown());
+  process.once('SIGTERM', () => void shutdown());
+
+  return address;
 }
 
 /** Direct execution guard */
@@ -124,24 +143,16 @@ const isDirectExecution = () => {
 };
 
 if (isDirectExecution()) {
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-  const host = process.env.HOST ?? '0.0.0.0';
-  const { createProductionServer } = await import('@ranu/runtime-node');
-  const server = await createProductionServer({
-    buildDir,
-    port,
-    host,
-  });
-  const address = await server.listen(port, host);
-  // eslint-disable-next-line no-console
-  console.log(\`Ranu.js production server listening at http://\${address.host}:\${address.port}\`);
-
-  const shutdown = async () => {
-    await server.close();
-    process.exit(0);
-  };
-  process.once('SIGINT', () => void shutdown());
-  process.once('SIGTERM', () => void shutdown());
+  startServer()
+    .then((address) => {
+      // eslint-disable-next-line no-console
+      console.log(\`Ranu.js production server listening at http://\${address.host}:\${address.port}\`);
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('Failed to start production server:', err);
+      process.exit(1);
+    });
 }
 
 /** Production entry info export */

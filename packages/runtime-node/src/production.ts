@@ -4,56 +4,65 @@ import { pathToFileURL } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   RanuServerRuntime,
-  createRuntimeMiddleware,
-  type ApiDispatchTarget,
   type RanuRequestContext,
-  type StaticDispatchTarget,
+  type StaticDispatcher,
+  type StaticRouteRecord,
+  type RouteComponentModule,
 } from '@ranu/runtime';
 import {
-  ReactRenderer,
-  type ComponentModuleLoader,
-  type PageModule,
-  type LayoutModule,
-  type LoadingModule,
-  type ErrorModule,
-  type NotFoundModule,
-} from '@ranu/react';
+  compileRoutes,
+  type CompiledRouteRecord,
+} from '@ranu/router';
+import { ReactRenderer } from '@ranu/react';
+import { createRuntimeMiddleware } from '@ranu/middleware';
 import type {
   BuildDescriptor,
   RouteManifest,
   ServerManifest,
-  ClientManifest,
   StaticManifest,
 } from '@ranu/manifests';
-import { parseRouteSegments, type CompiledRouteRecord } from '@ranu/router';
-import { NodeRequestContextStore } from './context.js';
-import { createNodeRequestHandler } from './handler.js';
-import { NodeServer, type NodeServerOptions } from './server.js';
-import { toWebRequest, type ToWebRequestOptions } from './request.js';
-import { writeWebResponse } from './response.js';
+import {
+  NodeRequestContextStore,
+  NodeApiEndpointDispatcher,
+  NodeServer,
+  createNodeRequestHandler,
+  type NodeServerOptions,
+} from './index.js';
 
-export const MIME_TYPES: Record<string, string> = {
+export interface ProductionRuntimeOptions {
+  projectRoot?: string | undefined;
+  buildDir?: string | undefined;
+  config?: Record<string, unknown> | undefined;
+}
+
+export interface ProductionRequestHandlerOptions extends Partial<NodeServerOptions> {
+  buildDir?: string | undefined;
+  projectRoot?: string | undefined;
+}
+
+export interface ProductionServerOptions extends Partial<NodeServerOptions> {
+  projectRoot?: string | undefined;
+  buildDir?: string | undefined;
+}
+
+const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.txt': 'text/plain; charset=utf-8',
+  '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
   '.gif': 'image/gif',
+  '.webp': 'image/webp',
   '.avif': 'image/avif',
   '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
   '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-  '.mp4': 'video/mp4',
-  '.webm': 'video/webm',
-  '.mp3': 'audio/mpeg',
+  '.txt': 'text/plain; charset=utf-8',
 };
 
 export function getMimeType(filePath: string): string {
@@ -86,12 +95,27 @@ export function serveStaticFile(
     return false;
   }
 
-  const stat = fs.statSync(normalizedFile);
+  let realFile: string;
+  let realRoot: string;
+  try {
+    realFile = fs.realpathSync(normalizedFile);
+    realRoot = fs.realpathSync(normalizedRoot);
+  } catch {
+    return false;
+  }
+
+  if (!isPathContained(realFile, realRoot)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Path traversal is prohibited');
+    return true;
+  }
+
+  const stat = fs.statSync(realFile);
   if (!stat.isFile()) {
     return false;
   }
 
-  const mimeType = getMimeType(normalizedFile);
+  const mimeType = getMimeType(realFile);
   const isHead = req.method?.toUpperCase() === 'HEAD';
 
   res.writeHead(200, {
@@ -105,23 +129,13 @@ export function serveStaticFile(
     return true;
   }
 
-  const stream = fs.createReadStream(normalizedFile);
-  stream.on('error', (error) => {
-    res.destroy(error);
-  });
+  const stream = fs.createReadStream(realFile);
   stream.pipe(res);
   return true;
 }
 
-export interface ProductionRuntimeOptions {
-  projectRoot?: string | undefined;
-  buildDir?: string | undefined;
-  config?: any;
-  contextStore?: NodeRequestContextStore | undefined;
-}
-
 /**
- * Creates an initialized RanuServerRuntime from a production build artifact (.ranu/build).
+ * Creates the production runtime instance from build manifests and compiled server modules.
  */
 export async function createProductionRuntime(
   options: ProductionRuntimeOptions = {},
@@ -139,197 +153,142 @@ export async function createProductionRuntime(
   const buildDescriptor: BuildDescriptor = JSON.parse(
     fs.readFileSync(buildDescriptorPath, 'utf8'),
   );
-  const buildId = buildDescriptor.buildId;
 
   const routesManifestPath = path.resolve(buildDir, buildDescriptor.manifests.routes);
   const serverManifestPath = path.resolve(buildDir, buildDescriptor.manifests.server);
   const clientManifestPath = path.resolve(buildDir, buildDescriptor.manifests.client);
   const staticManifestPath = path.resolve(buildDir, buildDescriptor.manifests.static);
 
+  if (!fs.existsSync(routesManifestPath) || !fs.existsSync(serverManifestPath)) {
+    throw new Error(`Corrupt build at "${buildDir}": missing required route or server manifests.`);
+  }
+
   const routeManifest: RouteManifest = JSON.parse(fs.readFileSync(routesManifestPath, 'utf8'));
   const serverManifest: ServerManifest = JSON.parse(fs.readFileSync(serverManifestPath, 'utf8'));
-  const clientManifest: ClientManifest = fs.existsSync(clientManifestPath)
-    ? JSON.parse(fs.readFileSync(clientManifestPath, 'utf8'))
-    : { schemaVersion: 1, buildId, assets: {} };
   const staticManifest: StaticManifest = fs.existsSync(staticManifestPath)
     ? JSON.parse(fs.readFileSync(staticManifestPath, 'utf8'))
-    : { schemaVersion: 1, buildId, routes: [] };
+    : { schemaVersion: 1, buildId: buildDescriptor.buildId, routes: [] };
 
-  const serverOutDir = path.join(buildDir, 'server');
-  const staticPagesDir = path.join(buildDir, 'static', 'pages');
-
-  // 1. Component Module Loader for compiled server components
-  const loader: ComponentModuleLoader = {
-    loadPage: async (routeId: string) => {
-      const entry = serverManifest.routes.find((r) => r.routeId === routeId);
-      if (!entry) {
-        throw new Error(`Route "${routeId}" not found in server manifest.`);
-      }
-      const fullPath = path.resolve(buildDir, entry.serverEntry);
-      return (await import(pathToFileURL(fullPath).href)) as PageModule;
-    },
-    loadLayout: async (layoutPath: string) => {
-      const entryName = Buffer.from(layoutPath.replace(/\\/g, '/'), 'utf8').toString('base64url');
-      const fullPath = path.join(serverOutDir, 'layouts', `${entryName}.mjs`);
-      if (fs.existsSync(fullPath)) {
-        return (await import(pathToFileURL(fullPath).href)) as LayoutModule;
-      }
-      const rawPath = path.resolve(projectRoot, layoutPath);
-      if (fs.existsSync(rawPath)) {
-        return (await import(pathToFileURL(rawPath).href)) as LayoutModule;
-      }
-      return undefined;
-    },
-    loadLoading: async (loadingPath: string) => {
-      const entryName = Buffer.from(loadingPath.replace(/\\/g, '/'), 'utf8').toString('base64url');
-      const fullPath = path.join(serverOutDir, 'layouts', `${entryName}.mjs`);
-      if (fs.existsSync(fullPath)) {
-        return (await import(pathToFileURL(fullPath).href)) as LoadingModule;
-      }
-      const rawPath = path.resolve(projectRoot, loadingPath);
-      if (fs.existsSync(rawPath)) {
-        return (await import(pathToFileURL(rawPath).href)) as LoadingModule;
-      }
-      return undefined;
-    },
-    loadError: async (errorPath: string) => {
-      const entryName = Buffer.from(errorPath.replace(/\\/g, '/'), 'utf8').toString('base64url');
-      const fullPath = path.join(serverOutDir, 'layouts', `${entryName}.mjs`);
-      if (fs.existsSync(fullPath)) {
-        return (await import(pathToFileURL(fullPath).href)) as ErrorModule;
-      }
-      const rawPath = path.resolve(projectRoot, errorPath);
-      if (fs.existsSync(rawPath)) {
-        return (await import(pathToFileURL(rawPath).href)) as ErrorModule;
-      }
-      return undefined;
-    },
-    loadNotFound: async (notFoundPath: string) => {
-      const entryName = Buffer.from(notFoundPath.replace(/\\/g, '/'), 'utf8').toString('base64url');
-      const fullPath = path.join(serverOutDir, 'not-found', `${entryName}.mjs`);
-      if (fs.existsSync(fullPath)) {
-        return (await import(pathToFileURL(fullPath).href)) as NotFoundModule;
-      }
-      const rawPath = path.resolve(projectRoot, notFoundPath);
-      if (fs.existsSync(rawPath)) {
-        return (await import(pathToFileURL(rawPath).href)) as NotFoundModule;
-      }
-      return undefined;
-    },
-  };
-
-  // 2. React Renderer
-  const renderer = new ReactRenderer({
-    loader,
-    mode: 'production',
-    buildId,
-    clientAssets: clientManifest.assets,
+  // 1. Compile Route Records
+  const compiledRouter = compileRoutes({
+    routes: routeManifest.routes as any,
   });
 
-  // 3. API Dispatcher
-  const apiDispatcher = {
-    dispatch: async (req: Request, ctx: RanuRequestContext, target: ApiDispatchTarget) => {
-      const entry = serverManifest.routes.find((r) => r.routeId === target.routeId);
-      if (!entry) {
-        return new Response('Not Found', { status: 404 });
-      }
-      const fullPath = path.resolve(buildDir, entry.serverEntry);
-      const mod = (await import(pathToFileURL(fullPath).href)) as Record<string, unknown>;
+  const routeRecords: CompiledRouteRecord[] = compiledRouter.records;
 
-      const method = req.method.toUpperCase();
-      const handler = mod[method] ?? mod.default;
-      if (typeof handler !== 'function') {
-        return new Response('Method Not Allowed', { status: 405 });
+  // 2. Server Component Module Loader
+  const serverRoutesMap = new Map<string, string>();
+  for (const sRoute of serverManifest.routes) {
+    serverRoutesMap.set(sRoute.routeId, sRoute.serverEntry);
+  }
+
+  const loadedModulesCache = new Map<string, unknown>();
+
+  const loadModuleByPath = async (relPath: string): Promise<unknown> => {
+    if (loadedModulesCache.has(relPath)) {
+      return loadedModulesCache.get(relPath);
+    }
+    const fullPath = path.resolve(buildDir, relPath);
+    const mod = await import(pathToFileURL(fullPath).href);
+    loadedModulesCache.set(relPath, mod);
+    return mod;
+  };
+
+  const componentModuleLoader = {
+    async loadComponent(entryKey: string): Promise<RouteComponentModule> {
+      const relPath = serverRoutesMap.get(entryKey);
+      if (!relPath) {
+        throw new Error(`No server entry registered for route "${entryKey}".`);
       }
-      return (handler as (request: Request, context: RanuRequestContext) => Promise<Response> | Response)(
-        req,
-        ctx,
-      );
+      const mod = (await loadModuleByPath(relPath)) as RouteComponentModule;
+      return mod;
     },
   };
 
-  // 4. Static Dispatcher (pre-rendered static HTML routes)
-  const staticDispatcher = {
-    dispatch: async (
-      _req: Request,
-      _ctx: RanuRequestContext,
-      target: StaticDispatchTarget,
-    ): Promise<Response> => {
-      const staticEntry = staticManifest.routes.find((r) => r.pathname === target.pathname);
-      if (!staticEntry) {
-        return new Response('Not Found', { status: 404 });
-      }
-      const staticFilePath = path.resolve(buildDir, staticEntry.file);
-      if (!fs.existsSync(staticFilePath)) {
-        // Fallback check in static/pages
-        const directPath = path.join(
-          staticPagesDir,
-          target.pathname === '/' ? 'index.html' : `${target.pathname.replace(/^\//, '')}.html`,
-        );
-        if (fs.existsSync(directPath)) {
-          const html = fs.readFileSync(directPath, 'utf8');
-          return new Response(html, {
-            status: staticEntry.status ?? 200,
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
-          });
-        }
-        return new Response('Not Found', { status: 404 });
-      }
+  // 3. SSR React Renderer
+  const renderer = new ReactRenderer({
+    componentLoader: componentModuleLoader,
+    clientManifestPath: fs.existsSync(clientManifestPath) ? clientManifestPath : undefined,
+    basePath: (options.config as any)?.routing?.basePath,
+  });
 
-      const html = fs.readFileSync(staticFilePath, 'utf8');
-      return new Response(html, {
-        status: staticEntry.status ?? 200,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  // 4. API Route Dispatcher
+  const apiDispatcher = new NodeApiEndpointDispatcher({
+    loadModule: async (routeId: string) => {
+      const relPath = serverRoutesMap.get(routeId);
+      if (!relPath) {
+        throw new Error(`No API module found for route "${routeId}".`);
+      }
+      return (await loadModuleByPath(relPath)) as any;
+    },
+  });
+
+  // 5. Pre-rendered Static Pages Dispatcher
+  const staticRoutesMap = new Map<string, StaticRouteRecord>();
+  for (const st of staticManifest.routes) {
+    staticRoutesMap.set(st.pathname, st);
+  }
+
+  const staticPagesDir = path.join(buildDir, 'static', 'pages');
+
+  const staticDispatcher: StaticDispatcher = {
+    async dispatch(
+      req: Request,
+      _ctx: RanuRequestContext,
+      match: { pathname: string; routeId: string; params: Record<string, string> },
+    ): Promise<Response | null> {
+      const record = staticRoutesMap.get(match.pathname);
+      if (!record) {
+        return null;
+      }
+      const htmlFile = path.resolve(buildDir, record.file);
+      if (!isPathContained(htmlFile, staticPagesDir) || !fs.existsSync(htmlFile)) {
+        return null;
+      }
+      const htmlContent = fs.readFileSync(htmlFile, 'utf8');
+      return new Response(htmlContent, {
+        status: record.status ?? 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=0, must-revalidate',
+        },
       });
     },
   };
 
-  // 5. Middleware loading
+  // 6. Request Context Store (AsyncLocalStorage)
+  const contextStore = new NodeRequestContextStore();
+
+  // 7. Middleware Loader
   let middleware: ReturnType<typeof createRuntimeMiddleware> | undefined;
-  const compiledMiddlewarePath = path.join(serverOutDir, 'middleware.mjs');
-  if (fs.existsSync(compiledMiddlewarePath)) {
-    const middlewareModule = await import(pathToFileURL(compiledMiddlewarePath).href);
-    middleware = createRuntimeMiddleware(middlewareModule);
+  const middlewarePath = path.resolve(buildDir, 'server/middleware.mjs');
+  if (fs.existsSync(middlewarePath)) {
+    try {
+      const mwModule = await import(pathToFileURL(middlewarePath).href);
+      middleware = createRuntimeMiddleware(mwModule);
+    } catch (err: unknown) {
+      // Failed to load compiled middleware
+    }
   }
-
-  // 6. Build route records from route manifest
-  const routeRecords: CompiledRouteRecord[] = routeManifest.routes.map((r) => {
-    const patternSegments = parseRouteSegments(r.pattern);
-    return {
-      routeId: r.id,
-      kind: r.kind,
-      pattern: patternSegments,
-      pathnameTemplate: r.pattern,
-      params: r.params,
-      methods: r.methods ?? (r.kind === 'page' ? ['GET', 'HEAD'] : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']),
-      layouts: [],
-      errors: [],
-      ...(r.kind === 'page' && r.renderMode ? { renderMode: r.renderMode } : {}),
-    };
-  });
-
-  const contextStore = options.contextStore ?? new NodeRequestContextStore();
 
   return new RanuServerRuntime({
     routeRecords,
-    renderer,
+    contextStore,
     apiDispatcher,
     staticDispatcher,
-    staticManifest,
-    contextStore,
+    renderer,
     middleware,
-    config: options.config ?? { mode: 'production' },
+    config: {
+      mode: 'production',
+      basePath: (options.config as any)?.routing?.basePath,
+      trailingSlash: (options.config as any)?.routing?.trailingSlash ?? 'ignore',
+    },
   });
 }
 
-export interface ProductionRequestHandlerOptions extends ToWebRequestOptions {
-  projectRoot?: string | undefined;
-  buildDir?: string | undefined;
-}
-
 /**
- * Creates a Node.js production request handler that serves static assets from .ranu/build/static
- * and dispatches all other requests to the RanuServerRuntime pipeline.
+ * Creates the production request handler for Node.js HTTP servers.
+ * Intercepts immutable static framework assets and static pages, delegating dynamic requests to RanuServerRuntime.
  */
 export function createProductionRequestHandler(
   runtime: RanuServerRuntime,
@@ -337,6 +296,7 @@ export function createProductionRequestHandler(
 ): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
   const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
   const buildDir = path.resolve(options.buildDir ?? path.join(projectRoot, '.ranu', 'build'));
+
   const staticDir = path.join(buildDir, 'static');
   const staticAssetsDir = path.join(staticDir, 'assets');
 
@@ -348,7 +308,7 @@ export function createProductionRequestHandler(
     }
 
     const rawUrl = req.url ?? '/';
-    const parsedUrl = new URL(rawUrl, `http://${req.headers.host ?? 'localhost'}`);
+    const parsedUrl = new URL(rawUrl, 'http://localhost');
     let pathname: string;
     try {
       pathname = decodeURIComponent(parsedUrl.pathname);
@@ -373,67 +333,63 @@ export function createProductionRequestHandler(
     }
 
     // 2. Public static assets in static/assets/
-    const assetTarget = path.join(staticAssetsDir, pathname.replace(/^\//, ''));
-    if (fs.existsSync(assetTarget) && fs.statSync(assetTarget).isFile()) {
-      if (serveStaticFile(assetTarget, staticAssetsDir, req, res)) {
-        return;
+    if (pathname !== '/') {
+      const relPath = pathname.replace(/^\//, '');
+      const targetFile = path.join(staticAssetsDir, relPath);
+      if (isPathContained(targetFile, staticAssetsDir) && fs.existsSync(targetFile)) {
+        const served = serveStaticFile(
+          targetFile,
+          staticAssetsDir,
+          req,
+          res,
+          'public, max-age=3600',
+        );
+        if (served) return;
       }
     }
 
-    // 3. Fallback check for files directly under project public/ directory
-    const publicTarget = path.join(projectRoot, 'public', pathname.replace(/^\//, ''));
-    if (fs.existsSync(publicTarget) && fs.statSync(publicTarget).isFile()) {
-      if (serveStaticFile(publicTarget, path.join(projectRoot, 'public'), req, res)) {
-        return;
+    // 3. Project-local public directory (fallback if present)
+    const publicDir = path.join(projectRoot, 'public');
+    if (fs.existsSync(publicDir) && pathname !== '/') {
+      const relPath = pathname.replace(/^\//, '');
+      const targetFile = path.join(publicDir, relPath);
+      if (isPathContained(targetFile, publicDir) && fs.existsSync(targetFile)) {
+        const served = serveStaticFile(
+          targetFile,
+          publicDir,
+          req,
+          res,
+          'public, max-age=3600',
+        );
+        if (served) return;
       }
     }
 
-    // 4. Delegate to RanuServerRuntime pipeline for dynamic SSR, SSG, and API route dispatch
+    // 4. Delegate to Ranu Node Server Runtime
     await nodeHandler(req, res);
   };
 }
 
-export interface ProductionServerOptions extends NodeServerOptions {
-  projectRoot?: string | undefined;
-  buildDir?: string | undefined;
-}
-
 /**
- * Creates a ready-to-run NodeServer for production deployment.
+ * Creates a ready-to-listen production NodeServer instance.
  */
 export async function createProductionServer(
   options: Partial<ProductionServerOptions> = {},
 ): Promise<NodeServer> {
-  const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
-  const buildDir = path.resolve(options.buildDir ?? path.join(projectRoot, '.ranu', 'build'));
-
-  const runtime = await createProductionRuntime({
-    projectRoot,
-    buildDir,
-  });
-
-  const handler = createProductionRequestHandler(runtime, {
-    projectRoot,
-    buildDir,
-    defaultHost: options.defaultHost,
-    trustProxy: options.trustProxy,
-    bodyLimit: options.bodyLimit,
-  });
+  const runtime = await createProductionRuntime(options);
+  const requestHandler = createProductionRequestHandler(runtime, options);
 
   const server = new NodeServer({
     runtime,
     port: options.port ?? 3000,
     host: options.host ?? '0.0.0.0',
-    trustProxy: options.trustProxy,
-    requestTimeout: options.requestTimeout,
-    shutdownTimeout: options.shutdownTimeout,
+    trustProxy: options.trustProxy ?? false,
+    shutdownTimeout: options.shutdownTimeout ?? 10000,
     bodyLimit: options.bodyLimit,
-    defaultHost: options.defaultHost,
   });
 
-  // Re-bind the request listener to use the production handler with static file support
-  server.httpServer.removeAllListeners('request');
-  server.httpServer.on('request', handler);
+  // Attach custom production request handler to the HTTP server
+  (server as any).requestHandler = requestHandler;
 
   return server;
 }

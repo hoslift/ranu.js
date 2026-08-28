@@ -26,12 +26,19 @@ export function generateDockerfile(options: DockerfileOptions = {}): string {
 
   let installCommand = 'RUN npm ci';
   let copyLock = 'COPY package*.json ./';
+  let buildCommand = 'RUN npm run build';
+  let pruneCommand = 'RUN npm prune --production';
+
   if (packageManager === 'pnpm') {
     copyLock = 'COPY package.json pnpm-lock.yaml ./';
     installCommand = 'RUN corepack enable && pnpm install --frozen-lockfile';
+    buildCommand = 'RUN pnpm run build';
+    pruneCommand = 'RUN pnpm prune --prod';
   } else if (packageManager === 'yarn') {
     copyLock = 'COPY package.json yarn.lock ./';
     installCommand = 'RUN yarn install --frozen-lockfile';
+    buildCommand = 'RUN yarn run build';
+    pruneCommand = 'RUN yarn install --production --ignore-scripts --prefer-offline';
   }
 
   const userDirective = nonRoot ? 'USER node\n' : '';
@@ -45,7 +52,8 @@ ${copyLock}
 ${installCommand}
 
 COPY . .
-RUN ${packageManager === 'pnpm' ? 'pnpm' : 'npm'} run build
+${buildCommand}
+${pruneCommand}
 
 # Stage 2: Minimal production runtime stage
 FROM node:${nodeVersion} AS runtime
@@ -75,7 +83,8 @@ export function generateDockerignore(): string {
 node_modules
 .ranu/dev
 .ranu/cache
-.env*.local
+.env
+.env.*
 *.log
 coverage
 dist

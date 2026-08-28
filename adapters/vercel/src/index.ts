@@ -73,7 +73,14 @@ export function copyDirectorySafe(
     const srcPath = path.join(srcDir, entry.name);
     const destPath = path.join(destDir, entry.name);
 
-    if (forbiddenNames.some((forbidden) => entry.name.startsWith(forbidden))) {
+    const isForbidden = forbiddenNames.some((forbidden) => {
+      if (forbidden.startsWith('.')) {
+        return entry.name.startsWith(forbidden) || entry.name.endsWith(forbidden);
+      }
+      return entry.name.startsWith(forbidden) || entry.name === forbidden;
+    });
+
+    if (isForbidden) {
       continue;
     }
 
@@ -108,6 +115,25 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       const outputDir = path.resolve(
         options.outputDir ?? context.outputDir ?? path.join(projectRoot, '.vercel', 'output'),
       );
+
+      // Validate outputDir safety
+      const relToRoot = path.relative(outputDir, projectRoot);
+      const relToBuild = path.relative(outputDir, buildDir);
+      if (outputDir === projectRoot || outputDir === buildDir || relToRoot === '' || relToBuild === '') {
+        throw new Error(
+          `Invalid output directory "${outputDir}": output directory cannot be equal to project root or build directory.`,
+        );
+      }
+      if (!relToRoot.startsWith('..') && !path.isAbsolute(relToRoot)) {
+        throw new Error(
+          `Invalid output directory "${outputDir}": output directory cannot contain the project root.`,
+        );
+      }
+      if (!relToBuild.startsWith('..') && !path.isAbsolute(relToBuild)) {
+        throw new Error(
+          `Invalid output directory "${outputDir}": output directory cannot contain the build directory.`,
+        );
+      }
 
       // 1. Validate production build exists
       const buildDescriptorPath = path.join(buildDir, 'build.json');
@@ -193,7 +219,7 @@ export function createVercelAdapter(options: VercelAdapterOptions = {}): RanuDep
       emittedFiles.push(configPath);
 
       // 6. Copy static files to .vercel/output/static
-      // Security guard: Never copy secrets, environment files, or private server maps
+      // Security guard: Never copy secrets, environment files, source maps, or server chunks
       const forbiddenStaticPatterns = ['.env', '.git', '.DS_Store', '.map', 'server'];
 
       // 6a. Copy static assets from .ranu/build/static/assets -> .vercel/output/static/_ranu/assets and root
@@ -335,9 +361,24 @@ export default async function handler(req, res) {
       emittedFiles.push(funcEntryPath);
 
       // 7d. Package descriptor for the serverless function
+      const projectPackageJsonPath = path.join(projectRoot, 'package.json');
+      let projectDeps: Record<string, string> = {};
+      if (fs.existsSync(projectPackageJsonPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(projectPackageJsonPath, 'utf8'));
+          projectDeps = pkg.dependencies ?? {};
+        } catch {
+          // ignore
+        }
+      }
+
       const funcPackageJson = {
         type: 'module',
         main: 'index.mjs',
+        dependencies: {
+          '@ranu/runtime-node': 'workspace:*',
+          ...projectDeps,
+        },
       };
       const funcPackagePath = path.join(mainFuncDir, 'package.json');
       fs.writeFileSync(funcPackagePath, JSON.stringify(funcPackageJson, null, 2), 'utf8');

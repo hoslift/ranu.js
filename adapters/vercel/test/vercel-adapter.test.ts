@@ -194,10 +194,11 @@ describe('@ranu/adapter-vercel', () => {
       expect(deployMarker.buildId).toBe('vercel-build-456');
     });
 
-    it('protects against secret leakage in static assets', async () => {
-      // Create a sensitive file in the build static directory (simulation)
+    it('protects against secret leakage and source map exposure in static assets', async () => {
+      // Create sensitive files in the public directory
       fs.writeFileSync(path.join(tempDir, 'public', '.env.local'), 'SECRET_KEY=12345');
       fs.writeFileSync(path.join(tempDir, 'public', 'server.map'), 'sourcemap-data');
+      fs.writeFileSync(path.join(tempDir, 'public', 'app.js.map'), 'sourcemap-data-js');
 
       const adapter = createVercelAdapter();
       await adapter.adapt({ projectRoot: tempDir, buildDir });
@@ -205,6 +206,19 @@ describe('@ranu/adapter-vercel', () => {
       const staticDir = path.join(tempDir, '.vercel', 'output', 'static');
       expect(fs.existsSync(path.join(staticDir, '.env.local'))).toBe(false);
       expect(fs.existsSync(path.join(staticDir, 'server.map'))).toBe(false);
+      expect(fs.existsSync(path.join(staticDir, 'app.js.map'))).toBe(false);
+    });
+
+    it('rejects outputDir if it is identical to or contains projectRoot or buildDir', async () => {
+      const adapter1 = createVercelAdapter({ outputDir: tempDir });
+      await expect(adapter1.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+        /output directory cannot be equal to project root/,
+      );
+
+      const adapter2 = createVercelAdapter({ outputDir: buildDir });
+      await expect(adapter2.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
+        /output directory cannot be equal to project root or build directory/,
+      );
     });
   });
 });

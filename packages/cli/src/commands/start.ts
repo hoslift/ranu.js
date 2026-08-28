@@ -25,8 +25,14 @@ export async function runStartCommand(args: ParsedCliArgs, logger: CliLogger): P
   }
 
   // Precedence: CLI flag -> Environment variable -> Config -> Default
-  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
-  const envHost = process.env.HOST;
+  let envPort: number | undefined;
+  if (process.env.PORT !== undefined && process.env.PORT.trim() !== '') {
+    const parsed = Number(process.env.PORT.trim());
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) {
+      envPort = parsed;
+    }
+  }
+  const envHost = process.env.HOST?.trim() || undefined;
 
   const port = args.port ?? envPort ?? ctx.config.server.port ?? 3000;
   const host = args.host ?? envHost ?? ctx.config.server.host ?? '0.0.0.0';
