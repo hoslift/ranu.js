@@ -35,26 +35,8 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Typecheck
-      run: pnpm typecheck
-
-    - name: Build
-      run: pnpm build
-
-    - name: Lint
-      run: pnpm lint
-
-    - name: Unit Tests
-      run: pnpm test
-
-    - name: Integration Tests
-      run: pnpm test:integration
-
-    - name: Check Cycles
-      run: pnpm check-cycles
-
-    - name: Check Exports
-      run: pnpm check-exports
+    - name: Validate (typecheck, build, lint, test, test:integration, check-cycles, check-exports)
+      run: pnpm ci:verify
 
     - name: Generate test coverage
       run: pnpm test:coverage
