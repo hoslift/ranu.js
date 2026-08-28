@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { PassThrough } from 'node:stream';
 import {
   createProductionRuntime,
   createProductionRequestHandler,
@@ -161,6 +162,7 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -172,6 +174,10 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(getMimeType('data.json')).toBe('application/json; charset=utf-8');
       expect(getMimeType('logo.svg')).toBe('image/svg+xml');
       expect(getMimeType('image.png')).toBe('image/png');
+      expect(getMimeType('font.otf')).toBe('font/otf');
+      expect(getMimeType('video.mp4')).toBe('video/mp4');
+      expect(getMimeType('video.webm')).toBe('video/webm');
+      expect(getMimeType('audio.mp3')).toBe('audio/mpeg');
       expect(getMimeType('unknown.xyz')).toBe('application/octet-stream');
     });
 
@@ -179,6 +185,28 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       const root = path.join(tempDir, 'root');
       expect(isPathContained(path.join(root, 'a', 'b.txt'), root)).toBe(true);
       expect(isPathContained(path.join(root, '..', 'escape.txt'), root)).toBe(false);
+    });
+
+    it('destroys the response when a static file stream fails', () => {
+      const source = new PassThrough();
+      vi.spyOn(fs, 'createReadStream').mockReturnValue(source as fs.ReadStream);
+      const response = new PassThrough() as PassThrough & {
+        writeHead: ReturnType<typeof vi.fn>;
+      };
+      response.writeHead = vi.fn();
+      const destroy = vi.spyOn(response, 'destroy');
+
+      expect(
+        serveStaticFile(
+          path.join(buildDir, 'static', 'assets', 'main.css'),
+          path.join(buildDir, 'static', 'assets'),
+          { method: 'GET' } as any,
+          response as any,
+        ),
+      ).toBe(true);
+
+      source.emit('error', new Error('read failed'));
+      expect(destroy).toHaveBeenCalledOnce();
     });
   });
 
@@ -220,6 +248,19 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(res404.status).toBe(404);
 
       runtime.dispose();
+    });
+
+    it('fails startup with the import error as cause when compiled middleware is invalid', async () => {
+      fs.writeFileSync(path.join(buildDir, 'server', 'middleware.mjs'), 'not valid javascript {');
+
+      try {
+        await createProductionRuntime({ projectRoot: tempDir, buildDir });
+        expect.fail('Expected createProductionRuntime to reject');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toContain('Failed to load compiled middleware');
+        expect((error as Error).cause).toMatchObject({ name: 'Error' });
+      }
     });
   });
 

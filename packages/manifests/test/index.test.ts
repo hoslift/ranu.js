@@ -119,6 +119,44 @@ describe('@ranu/manifests', () => {
       expect(result.success).toBe(true);
     });
 
+    it('validates page component metadata paths', () => {
+      const valid = validateRouteManifest({
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [{
+          id: 'page:/about',
+          kind: 'page',
+          pattern: '/about',
+          params: [],
+          layouts: ['app/layout.tsx'],
+          loading: 'app/loading.tsx',
+          errors: ['app/error.tsx'],
+          notFound: ['app/not-found.tsx'],
+        }],
+      });
+      expect(valid.success).toBe(true);
+
+      const invalid = validateRouteManifest({
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [{
+          id: 'page:/about',
+          kind: 'page',
+          pattern: '/about',
+          params: [],
+          layouts: ['../outside-layout.tsx'],
+          loading: '/absolute/loading.tsx',
+          errors: 'app/error.tsx',
+          notFound: [42],
+        }],
+      });
+      expect(invalid.success).toBe(false);
+      expect(invalid.diagnostics).toHaveLength(4);
+      expect(invalid.diagnostics.map((diagnostic) => diagnostic.message).join('\n')).toContain(
+        'invalid or uncontained',
+      );
+    });
+
     it('legacy V1 page manifest accepted', () => {
       const manifest = {
         schemaVersion: 1,

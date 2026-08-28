@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo ready",
-    "test": "echo ready"
+    "build": "node --check ../../eslint.config.js",
+    "test": "node --input-type=module --eval \"const { default: config } = await import('../../eslint.config.js'); if (!Array.isArray(config) || config.length === 0) throw new Error('Invalid ESLint config export');\""
   }
 }

@@ -24,7 +24,9 @@
   },
   "dependencies": {
     "@ranu/core": "workspace:*",
-    "@ranu/manifests": "workspace:*"
+    "@ranu/manifests": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
+    "esbuild": "^0.28.2"
   },
   "devDependencies": {
     "rimraf": "^6.0.1",

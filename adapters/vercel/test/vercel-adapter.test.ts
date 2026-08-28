@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { pathToFileURL } from 'node:url';
 import {
   createVercelAdapter,
   adapterName,
@@ -185,6 +186,10 @@ describe('@ranu/adapter-vercel', () => {
       const entryCode = fs.readFileSync(funcEntryPath, 'utf8');
       expect(entryCode).toContain('createProductionRequestHandler');
       expect(entryCode).toContain('createProductionRuntime');
+      expect(entryCode).not.toContain("from '@ranu/runtime-node'");
+
+      const funcModule = await import(pathToFileURL(funcEntryPath).href);
+      expect(funcModule.default).toBeTypeOf('function');
 
       // 4. deployment.json completion marker
       const deployMarkerPath = path.join(tempDir, '.ranu', 'deploy', 'vercel', 'deployment.json');
@@ -219,6 +224,25 @@ describe('@ranu/adapter-vercel', () => {
       await expect(adapter2.adapt({ projectRoot: tempDir, buildDir })).rejects.toThrow(
         /output directory cannot be equal to project root or build directory/,
       );
+    });
+
+    it('rejects outputDir inside buildDir or publicDir before removing files', async () => {
+      const buildOutput = path.join(buildDir, 'vercel-output');
+      const publicOutput = path.join(tempDir, 'public', 'vercel-output');
+      fs.mkdirSync(buildOutput, { recursive: true });
+      fs.mkdirSync(publicOutput, { recursive: true });
+      fs.writeFileSync(path.join(buildOutput, 'keep.txt'), 'keep');
+      fs.writeFileSync(path.join(publicOutput, 'keep.txt'), 'keep');
+
+      await expect(
+        createVercelAdapter({ outputDir: buildOutput }).adapt({ projectRoot: tempDir, buildDir }),
+      ).rejects.toThrow(/cannot be inside the build directory/);
+      await expect(
+        createVercelAdapter({ outputDir: publicOutput }).adapt({ projectRoot: tempDir, buildDir }),
+      ).rejects.toThrow(/cannot be equal to or inside the public directory/);
+
+      expect(fs.existsSync(path.join(buildOutput, 'keep.txt'))).toBe(true);
+      expect(fs.existsSync(path.join(publicOutput, 'keep.txt'))).toBe(true);
     });
   });
 });
