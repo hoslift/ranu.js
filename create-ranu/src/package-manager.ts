@@ -53,9 +53,10 @@ export function getInstallCommand(pm: PackageManager): { command: string; args: 
 export function runInstall(pm: PackageManager, projectPath: string, quiet?: boolean): boolean {
   try {
     const { command, args } = getInstallCommand(pm);
-    childProcess.execSync(`${command} ${args.join(' ')}`, {
+    childProcess.execFileSync(command, args, {
       cwd: projectPath,
       stdio: quiet ? 'ignore' : 'inherit',
+      shell: process.platform === 'win32',
     });
     return true;
   } catch {

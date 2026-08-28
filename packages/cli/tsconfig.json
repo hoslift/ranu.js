@@ -11,7 +11,8 @@
     { "path": "../diagnostics" },
     { "path": "../build" },
     { "path": "../dev" },
-    { "path": "../runtime-node" }
+    { "path": "../runtime-node" },
+    { "path": "../../adapters/vercel" }
   ],
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]

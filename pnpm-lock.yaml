@@ -59,6 +59,12 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../../packages/manifests
+      '@ranu/runtime-node':
+        specifier: workspace:*
+        version: link:../../packages/runtime-node
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
     devDependencies:
       rimraf:
         specifier: ^6.0.1
@@ -170,6 +176,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@ranu/adapter-vercel':
+        specifier: workspace:*
+        version: link:../../adapters/vercel
       '@ranu/build':
         specifier: workspace:*
         version: link:../build
@@ -367,6 +376,9 @@ importers:
       '@ranu/react':
         specifier: workspace:*
         version: link:../react
+      '@ranu/runtime-node':
+        specifier: workspace:*
+        version: link:../runtime-node
       '@ranu/server':
         specifier: workspace:*
         version: link:../server
@@ -500,6 +512,12 @@ importers:
       '@ranu/manifests':
         specifier: workspace:*
         version: link:../manifests
+      '@ranu/react':
+        specifier: workspace:*
+        version: link:../react
+      '@ranu/router':
+        specifier: workspace:*
+        version: link:../router
       '@ranu/runtime':
         specifier: workspace:*
         version: link:../runtime

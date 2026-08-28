@@ -9,6 +9,7 @@ export default defineConfig({
     '@ranu/build',
     '@ranu/config',
     '@ranu/diagnostics',
+    '@ranu/plugin',
     '@ranu/runtime',
     '@ranu/runtime-node',
     '@ranu/router',

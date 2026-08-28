@@ -171,4 +171,58 @@ describe('Development Static File Server', () => {
     expect(res.destroy).toHaveBeenCalledWith(error);
     expect(res.end).not.toHaveBeenCalled();
   });
+
+  it('rejects symlinks pointing outside authorized root with 403', () => {
+    const outsideTarget = path.join(os.tmpdir(), `outside-${Date.now()}.txt`);
+    fs.writeFileSync(outsideTarget, 'secret content');
+    const symlinkPath = path.join(tempDir, 'symlink.txt');
+    try {
+      fs.symlinkSync(outsideTarget, symlinkPath);
+    } catch (error: unknown) {
+      fs.rmSync(outsideTarget, { force: true });
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error.code === 'EPERM' || error.code === 'EACCES')
+      ) {
+        return;
+      }
+      throw error;
+    }
+
+    let responseCode = 0;
+    let responseBody = '';
+    const mockReq: any = { method: 'GET' };
+    const mockRes: any = {
+      writeHead(code: number) {
+        responseCode = code;
+      },
+      end(body: string) {
+        responseBody = body;
+      },
+    };
+
+    try {
+      const served = serveStaticFile(symlinkPath, tempDir, mockReq, mockRes);
+      expect(served).toBe(true);
+      expect(responseCode).toBe(403);
+      expect(responseBody).toContain('Forbidden');
+    } finally {
+      fs.rmSync(outsideTarget, { force: true });
+    }
+  });
+
+  it('returns false when canonical path resolution fails', () => {
+    const filePath = path.join(tempDir, 'realpath-failure.txt');
+    fs.writeFileSync(filePath, 'data');
+    vi.spyOn(fs, 'realpathSync').mockImplementation(() => {
+      throw new Error('realpath failed');
+    });
+
+    const response = new MockWritableResponse('GET');
+    expect(serveStaticFile(filePath, tempDir, { method: 'GET' } as any, response as any)).toBe(
+      false,
+    );
+    expect(response.writableEnded).toBe(false);
+  });
 });

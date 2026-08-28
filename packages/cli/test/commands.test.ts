@@ -120,6 +120,122 @@ describe('@ranu/cli commands comprehensive', () => {
   });
 
   describe('runDeployCommand', () => {
+    it('loads the Vercel adapter factory and reports text and JSON success', async () => {
+      const adapt = vi
+        .fn()
+        .mockResolvedValue({ outputDirectory: '/vercel-output', files: ['config.json'] });
+      const createVercelAdapter = vi.fn(() => ({ name: 'vercel', adapt }));
+      vi.doMock('@ranu/adapter-vercel', () => ({ createVercelAdapter }));
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+      const logger = createCliLogger({ quiet: true });
+      const log = vi.spyOn(logger, 'log');
+      const json = vi.spyOn(logger, 'json');
+
+      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(0);
+      expect(createVercelAdapter).toHaveBeenCalledOnce();
+      expect(log).toHaveBeenCalledWith('Output: /vercel-output');
+
+      expect(
+        await runWithMock(
+          { args: [], root: tempDir, adapter: '@ranu/adapter-vercel', json: true },
+          logger,
+        ),
+      ).toBe(0);
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          success: true,
+          adapter: 'vercel',
+          outputDirectory: '/vercel-output',
+          files: ['config.json'],
+        }),
+      );
+      vi.doUnmock('@ranu/adapter-vercel');
+    });
+
+    it('falls back to the Vercel default factory', async () => {
+      const adapt = vi.fn().mockResolvedValue({ success: true });
+      const defaultFactory = vi.fn(() => ({ name: 'vercel-default', adapt }));
+      vi.doMock('@ranu/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: defaultFactory,
+      }));
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+
+      expect(
+        await runWithMock(
+          { args: [], root: tempDir, adapter: 'vercel' },
+          createCliLogger({ quiet: true }),
+        ),
+      ).toBe(0);
+      expect(defaultFactory).toHaveBeenCalledOnce();
+      expect(adapt).toHaveBeenCalledOnce();
+      vi.doUnmock('@ranu/adapter-vercel');
+    });
+
+    it('falls back to a Vercel default adapter object', async () => {
+      const adapt = vi.fn().mockResolvedValue({ success: true });
+      const defaultAdapter = { name: 'vercel-default', adapt };
+      vi.doMock('@ranu/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: defaultAdapter,
+      }));
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+
+      expect(
+        await runWithMock(
+          { args: [], root: tempDir, adapter: 'vercel' },
+          createCliLogger({ quiet: true }),
+        ),
+      ).toBe(0);
+      expect(adapt).toHaveBeenCalledOnce();
+      vi.doUnmock('@ranu/adapter-vercel');
+    });
+
+    it('reports Vercel adapter load failures in text and JSON modes', async () => {
+      vi.doMock('@ranu/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: () => {
+          throw new Error('adapter unavailable');
+        },
+      }));
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+      const logger = createCliLogger({ quiet: true });
+      const error = vi.spyOn(logger, 'error');
+      const json = vi.spyOn(logger, 'json');
+
+      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(1);
+      expect(error).toHaveBeenCalledWith('Failed to load adapter "vercel": adapter unavailable');
+      expect(
+        await runWithMock({ args: [], root: tempDir, adapter: 'vercel', json: true }, logger),
+      ).toBe(1);
+      expect(json).toHaveBeenLastCalledWith({
+        success: false,
+        error: 'Failed to load adapter "vercel": adapter unavailable',
+      });
+      vi.doUnmock('@ranu/adapter-vercel');
+    });
+
+    it('rejects unsupported CLI adapters in text and JSON modes', async () => {
+      const logger = createCliLogger({ quiet: true });
+      const error = vi.spyOn(logger, 'error');
+      const json = vi.spyOn(logger, 'json');
+
+      expect(await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown' }, logger)).toBe(
+        1,
+      );
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported deployment adapter'));
+      expect(
+        await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown', json: true }, logger),
+      ).toBe(1);
+      expect(json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, error: expect.stringContaining('Unsupported') }),
+      );
+    });
+
     it('warns when no adapter is configured in text and JSON mode', async () => {
       const logger = createCliLogger({ quiet: true });
       const code1 = await runDeployCommand({ args: [], root: tempDir }, logger);
@@ -140,7 +256,7 @@ describe('@ranu/cli commands comprehensive', () => {
               adapt: async () => {},
             },
           },
-        };`
+        };`,
       );
 
       const logger = createCliLogger({ quiet: true });
@@ -149,6 +265,53 @@ describe('@ranu/cli commands comprehensive', () => {
 
       const code2 = await runDeployCommand({ args: [], root: tempDir, json: true }, logger);
       expect(code2).toBe(0);
+    });
+
+    it('reports adapter success details, explicit failure, and thrown errors', async () => {
+      const logger = createCliLogger({ quiet: true });
+      const json = vi.spyOn(logger, 'json');
+      const configFile = path.join(tempDir, 'ranu.config.ts');
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'result-adapter',
+          adapt: async () => ({ success: true, outputDirectory: '/output', files: ['one.js'] })
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir, json: true }, logger)).toBe(0);
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({ outputDirectory: '/output', files: ['one.js'] }),
+      );
+
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'implicit-success', adapt: async () => ({ outputDirectory: '/implicit-output' })
+        } } };`,
+      );
+      const log = vi.spyOn(logger, 'log');
+      expect(await runDeployCommand({ args: [], root: tempDir }, logger)).toBe(0);
+      expect(log).toHaveBeenCalledWith('Output: /implicit-output');
+
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'failed-adapter', adapt: async () => ({ success: false })
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir }, logger)).toBe(1);
+
+      fs.writeFileSync(
+        configFile,
+        `export default { deployment: { adapter: {
+          name: 'throwing-adapter', adapt: async () => { throw new Error('adapt exploded') }
+        } } };`,
+      );
+      expect(await runDeployCommand({ args: [], root: tempDir }, logger)).toBe(1);
+      expect(await runDeployCommand({ args: [], root: tempDir, json: true }, logger)).toBe(1);
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({ success: false, error: 'adapt exploded' }),
+      );
     });
 
     it('returns error when adapter lacks adapt method', async () => {
@@ -161,7 +324,7 @@ describe('@ranu/cli commands comprehensive', () => {
               name: 'invalid-adapter',
             },
           },
-        };`
+        };`,
       );
 
       const logger = createCliLogger({ quiet: true });
@@ -176,7 +339,9 @@ describe('@ranu/cli commands comprehensive', () => {
   describe('runDevCommand', () => {
     it('starts dev server and terminates gracefully on SIGINT', async () => {
       const devServerMock = {
-        start: vi.fn().mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
+        start: vi
+          .fn()
+          .mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
         close: vi.fn().mockResolvedValue(undefined),
       };
       const devSpy = vi.spyOn(devModule, 'createDevServer').mockReturnValue(devServerMock as any);
@@ -204,11 +369,11 @@ describe('@ranu/cli commands comprehensive', () => {
     it('throws when production build is missing', async () => {
       const logger = createCliLogger({ quiet: true });
       await expect(runStartCommand({ args: [], root: tempDir }, logger)).rejects.toThrow(
-        'No production build found'
+        'No valid production build found',
       );
     });
 
-    it('throws when server entry exports no valid runtime', async () => {
+    it('throws when a production build is incomplete', async () => {
       const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
       fs.mkdirSync(buildServerDir, { recursive: true });
       const entryFile = path.join(buildServerDir, 'entry.mjs');
@@ -216,7 +381,7 @@ describe('@ranu/cli commands comprehensive', () => {
 
       const logger = createCliLogger({ quiet: true });
       await expect(runStartCommand({ args: [], root: tempDir }, logger)).rejects.toThrow(
-        'did not export a valid runtime instance'
+        'No valid production build found',
       );
     });
 
@@ -225,12 +390,15 @@ describe('@ranu/cli commands comprehensive', () => {
       fs.mkdirSync(buildServerDir, { recursive: true });
       const entryFile = path.join(buildServerDir, 'entry.mjs');
       fs.writeFileSync(entryFile, 'export const runtime = { handle: () => {} };');
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
 
       const serverMock = {
         listen: vi.fn().mockResolvedValue({ host: '0.0.0.0', port: 3000 }),
         close: vi.fn().mockResolvedValue(undefined),
       };
-      const nodeServerSpy = vi.spyOn(nodeServerModule, 'createNodeServer').mockReturnValue(serverMock as any);
+      const nodeServerSpy = vi
+        .spyOn(nodeServerModule, 'createProductionServer')
+        .mockResolvedValue(serverMock as any);
 
       const logger = createCliLogger({ quiet: true });
       const promise = runStartCommand({ args: [], root: tempDir }, logger);
@@ -239,12 +407,80 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(code).toBe(0);
 
       // JSON mode with SIGTERM
+      const jsonSpy = vi.spyOn(logger, 'json');
       const promiseJson = runStartCommand({ args: [], root: tempDir, json: true }, logger);
       setTimeout(() => process.emit('SIGTERM'), 50);
       const codeJson = await promiseJson;
       expect(codeJson).toBe(0);
+      expect(jsonSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ url: 'http://127.0.0.1:3000' }),
+      );
 
       nodeServerSpy.mockRestore();
+    });
+
+    it('uses environment values, ignores invalid ports, and gives CLI values precedence', async () => {
+      const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
+      fs.mkdirSync(buildServerDir, { recursive: true });
+      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default {};');
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
+      const serverMock = {
+        listen: vi.fn().mockResolvedValue({ host: '', port: 4321 }),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      const createServer = vi
+        .spyOn(nodeServerModule, 'createProductionServer')
+        .mockResolvedValue(serverMock as any);
+      const previousPort = process.env.PORT;
+      const previousHost = process.env.HOST;
+      process.env.PORT = '4100';
+      process.env.HOST = 'env-host';
+
+      try {
+        let promise = runStartCommand(
+          { args: [], root: tempDir },
+          createCliLogger({ quiet: true }),
+        );
+        setTimeout(() => process.emit('SIGINT'), 10);
+        await promise;
+        expect(createServer).toHaveBeenLastCalledWith(
+          expect.objectContaining({ port: 4100, host: 'env-host' }),
+        );
+
+        process.env.PORT = 'invalid';
+        promise = runStartCommand(
+          { args: [], root: tempDir, port: 4200, host: 'cli-host' },
+          createCliLogger({ quiet: true }),
+        );
+        setTimeout(() => process.emit('SIGINT'), 10);
+        await promise;
+        expect(createServer).toHaveBeenLastCalledWith(
+          expect.objectContaining({ port: 4200, host: 'cli-host' }),
+        );
+      } finally {
+        if (previousPort === undefined) delete process.env.PORT;
+        else process.env.PORT = previousPort;
+        if (previousHost === undefined) delete process.env.HOST;
+        else process.env.HOST = previousHost;
+      }
+    });
+
+    it('uses the non-wildcard host returned by the production server', async () => {
+      const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
+      fs.mkdirSync(buildServerDir, { recursive: true });
+      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default {};');
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
+      vi.spyOn(nodeServerModule, 'createProductionServer').mockResolvedValue({
+        listen: vi.fn().mockResolvedValue({ host: 'localhost', port: 4321 }),
+        close: vi.fn().mockResolvedValue(undefined),
+      } as any);
+      const logger = createCliLogger({ quiet: true });
+      const json = vi.spyOn(logger, 'json');
+
+      const promise = runStartCommand({ args: [], root: tempDir, json: true }, logger);
+      setTimeout(() => process.emit('SIGINT'), 10);
+      expect(await promise).toBe(0);
+      expect(json).toHaveBeenCalledWith(expect.objectContaining({ url: 'http://localhost:4321' }));
     });
   });
 
@@ -259,19 +495,25 @@ describe('@ranu/cli commands comprehensive', () => {
       });
 
       const devServerMock = {
-        start: vi.fn().mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
+        start: vi
+          .fn()
+          .mockResolvedValue({ url: 'http://localhost:3000', port: 3000, host: '127.0.0.1' }),
         close: vi.fn().mockResolvedValue(undefined),
       };
       vi.spyOn(devModule, 'createDevServer').mockReturnValue(devServerMock as any);
 
       const buildServerDir = path.join(tempDir, '.ranu', 'build', 'server');
       fs.mkdirSync(buildServerDir, { recursive: true });
-      fs.writeFileSync(path.join(buildServerDir, 'entry.mjs'), 'export default { handle: () => {} };');
+      fs.writeFileSync(
+        path.join(buildServerDir, 'entry.mjs'),
+        'export default { handle: () => {} };',
+      );
+      fs.writeFileSync(path.join(tempDir, '.ranu', 'build', 'build.json'), '{}');
       const serverMock = {
         listen: vi.fn().mockResolvedValue({ host: '0.0.0.0', port: 3000 }),
         close: vi.fn().mockResolvedValue(undefined),
       };
-      vi.spyOn(nodeServerModule, 'createNodeServer').mockReturnValue(serverMock as any);
+      vi.spyOn(nodeServerModule, 'createProductionServer').mockResolvedValue(serverMock as any);
 
       // Default dispatch when no command provided
       expect(await runCli([])).toBe(0);

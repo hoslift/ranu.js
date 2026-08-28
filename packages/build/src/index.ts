@@ -102,3 +102,9 @@ export {
   copyPublicDirectory,
   type CopyPublicDirectoryResult,
 } from './assets/public-dir.js';
+export {
+  generateDockerfile,
+  generateDockerignore,
+  writeContainerArtifacts,
+  type DockerfileOptions,
+} from './container.js';
