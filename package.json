@@ -17,9 +17,9 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --if-present run build",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --if-present run test",
     "test:unit": "pnpm -r --filter './packages/*' --filter './adapters/*' --filter './create-ranu' test",
     "test:integration": "vitest run tests/integration",
     "test:coverage": "vitest run --coverage",
