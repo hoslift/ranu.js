@@ -98,6 +98,27 @@ describe('@ranu/build — Container Deployment', () => {
       expect(dockerfileContent).toContain('RUN npm install');
     });
 
+    it('writes a pnpm Dockerfile when requested', () => {
+      writeContainerArtifacts(tempDir, { packageManager: 'pnpm' });
+
+      expect(fs.readFileSync(path.join(tempDir, 'Dockerfile'), 'utf8')).toContain(
+        'RUN corepack enable && pnpm install --frozen-lockfile',
+      );
+    });
+
+    it('rethrows filesystem errors while opening an artifact', () => {
+      const error = Object.assign(new Error('permission denied'), { code: 'EACCES' });
+      const openSyncMock = vi.spyOn(fs, 'openSync').mockImplementationOnce(() => {
+        throw error;
+      });
+
+      try {
+        expect(() => writeContainerArtifacts(tempDir)).toThrow(error);
+      } finally {
+        openSyncMock.mockRestore();
+      }
+    });
+
     it('does not overwrite existing files when overwrite is false', () => {
       const dockerfilePath = path.join(tempDir, 'Dockerfile');
       const dockerignorePath = path.join(tempDir, '.dockerignore');
