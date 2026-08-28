@@ -7,4 +7,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: ['@ranu/core', '@ranu/manifests'],
+  tsconfig: 'tsconfig.build.json',
 });

@@ -13,6 +13,14 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@ranu/config', '@ranu/server'],
+  external: [
+    'react',
+    'react-dom',
+    '@ranu/config',
+    '@ranu/core',
+    '@ranu/plugin',
+    '@ranu/react',
+    '@ranu/server',
+  ],
   tsconfig: 'tsconfig.build.json',
 });
