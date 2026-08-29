@@ -256,6 +256,10 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(getMimeType('data.json')).toBe('application/json; charset=utf-8');
       expect(getMimeType('logo.svg')).toBe('image/svg+xml');
       expect(getMimeType('image.png')).toBe('image/png');
+      expect(getMimeType('font.otf')).toBe('font/otf');
+      expect(getMimeType('movie.mp4')).toBe('video/mp4');
+      expect(getMimeType('movie.webm')).toBe('video/webm');
+      expect(getMimeType('audio.mp3')).toBe('audio/mpeg');
       expect(getMimeType('unknown.xyz')).toBe('application/octet-stream');
     });
 
@@ -326,9 +330,16 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
         'throw new Error("broken middleware");',
       );
 
-      await expect(createProductionRuntime({ projectRoot: tempDir, buildDir })).rejects.toThrow(
-        /Failed to load compiled middleware/,
+      const error = await createProductionRuntime({ projectRoot: tempDir, buildDir }).catch(
+        (cause: unknown) => cause,
       );
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe(
+        `Failed to load compiled middleware at "${path.join(buildDir, 'server', 'middleware.mjs')}".`,
+      );
+      expect((error as Error & { cause?: unknown }).cause).toMatchObject({
+        message: 'broken middleware',
+      });
     });
 
     it.each(['routes.json', 'server.json'])(
@@ -576,6 +587,32 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
         const publicRes = await fetch(`http://127.0.0.1:${addr.port}/robots.txt`);
         expect(publicRes.status).toBe(200);
         expect(await publicRes.text()).toContain('User-agent: *');
+      } finally {
+        await server.close();
+      }
+    });
+  });
+
+  describe('createProductionServer', () => {
+    it('injects production routing without replacing the HTTP request listener', async () => {
+      const server = await createProductionServer({
+        projectRoot: tempDir,
+        buildDir,
+        port: 0,
+        host: '127.0.0.1',
+      });
+
+      expect(server.httpServer.listenerCount('request')).toBe(1);
+      const requestListener = server.httpServer.listeners('request')[0];
+      const address = await server.listen(0, '127.0.0.1');
+      try {
+        expect(server.httpServer.listeners('request')).toEqual([requestListener]);
+        const response = await fetch(`http://127.0.0.1:${address.port}/api/status`);
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+          status: 'healthy',
+          build: 'test-build-123',
+        });
       } finally {
         await server.close();
       }
