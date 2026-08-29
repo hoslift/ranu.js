@@ -1,43 +1,31 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/reference/configuration-reference/
 version: 2.1
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#jobs-overview & https://circleci.com/docs/reference/configuration-reference/#jobs
 jobs:
-  validate:
+  say-hello:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/guides/execution-managed/executor-intro/ & https://circleci.com/docs/reference/configuration-reference/#executor-job
     docker:
-      - image: cimg/node:22.22
+      # Specify the version you desire here
+      # See: https://circleci.com/developer/images/image/cimg/base
+      - image: cimg/base:current
 
+    # Add steps to the job
+    # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#steps-overview & https://circleci.com/docs/reference/configuration-reference/#steps
     steps:
+      # Checkout the code as the first step.
       - checkout
-
       - run:
-          name: Enable pnpm
-          command: |
-            sudo corepack enable
-            corepack prepare pnpm@11.7.0 --activate
-            pnpm --version
+          name: "Say hello"
+          command: "echo Hello, World!"
 
-      - run:
-          name: Configure pnpm store
-          command: pnpm config set store-dir ~/.pnpm-store
-
-      - restore_cache:
-          keys:
-            - pnpm-v1-{{ checksum "pnpm-lock.yaml" }}
-            - pnpm-v1-
-
-      - run:
-          name: Install dependencies
-          command: pnpm install --frozen-lockfile
-
-      - save_cache:
-          key: pnpm-v1-{{ checksum "pnpm-lock.yaml" }}
-          paths:
-            - ~/.pnpm-store
-
-      - run:
-          name: Validate Ranu.js
-          command: pnpm ci:verify
-
+# Orchestrate jobs using workflows
+# See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
-  build-and-test:
+  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - validate
+      - say-hello
