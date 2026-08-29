@@ -27,16 +27,25 @@ export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5000;
 export class NodeServer {
   readonly httpServer: http.Server;
   private readonly connections = new Set<Socket>();
+  private requestHandler: ReturnType<typeof createNodeRequestHandler>;
   private isShuttingDown = false;
+  private closePromise: Promise<void> | undefined;
 
   constructor(private readonly options: NodeServerOptions) {
-    const handler = createNodeRequestHandler(options.runtime, {
+    this.requestHandler = createNodeRequestHandler(options.runtime, {
       defaultHost: options.defaultHost,
       trustProxy: options.trustProxy,
       bodyLimit: options.bodyLimit,
     });
 
-    this.httpServer = http.createServer(handler);
+    this.httpServer = http.createServer((req, res) => {
+      res.once('finish', () => {
+        if (this.isShuttingDown) {
+          req.socket.destroySoon();
+        }
+      });
+      void this.requestHandler(req, res);
+    });
 
     if (typeof options.requestTimeout === 'number' && options.requestTimeout > 0) {
       this.httpServer.requestTimeout = options.requestTimeout;
@@ -49,6 +58,11 @@ export class NodeServer {
         this.connections.delete(socket);
       });
     });
+  }
+
+  /** Replaces the default runtime handler while preserving lifecycle tracking. */
+  setRequestHandler(handler: ReturnType<typeof createNodeRequestHandler>): void {
+    this.requestHandler = handler;
   }
 
   /**
@@ -72,7 +86,10 @@ export class NodeServer {
 
         if (addr && typeof addr === 'object') {
           boundPort = addr.port;
-          boundHost = addr.address;
+          boundHost =
+            addr.address === '::' || addr.address === '0.0.0.0' || addr.address === ''
+              ? '127.0.0.1'
+              : addr.address;
         }
 
         resolve({
@@ -96,20 +113,38 @@ export class NodeServer {
    * 4. Forcefully destroys any remaining sockets when the timeout expires.
    */
   async close(shutdownTimeoutMs?: number): Promise<void> {
-    if (this.isShuttingDown) {
-      return;
+    if (this.closePromise) {
+      return this.closePromise;
     }
     this.isShuttingDown = true;
 
-    const timeout = shutdownTimeoutMs ?? this.options.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const timeout =
+      shutdownTimeoutMs ?? this.options.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
 
-    return new Promise<void>((resolve, reject) => {
+    this.closePromise = new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        try {
+          if (typeof this.options.runtime.dispose === 'function') {
+            this.options.runtime.dispose();
+          }
+        } catch {
+          // Ignore disposal errors during teardown
+        }
+        if (err) reject(err);
+        else resolve();
+      };
+
       // 1. Forceful timeout timer
       const timer = setTimeout(() => {
         for (const socket of this.connections) {
           socket.destroy();
         }
         this.connections.clear();
+        this.httpServer.closeAllConnections();
+        finish();
       }, timeout);
 
       // Node.js timer unref to not prevent event loop exit if server closes early
@@ -120,20 +155,16 @@ export class NodeServer {
       // Stop server from accepting new incoming connections and drain in-flight requests
       this.httpServer.close((err) => {
         clearTimeout(timer);
-        try {
-          if (typeof this.options.runtime.dispose === 'function') {
-            this.options.runtime.dispose();
-          }
-        } catch {
-          // Ignore disposal errors during teardown
-        }
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+        finish(err);
       });
+
+      // A keep-alive client may leave an already-idle socket open after its
+      // response. It is safe to close those sockets immediately; sockets with
+      // active requests continue draining through the close callback above.
+      this.httpServer.closeIdleConnections();
     });
+
+    return this.closePromise;
   }
 }
 

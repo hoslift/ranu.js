@@ -27,6 +27,7 @@
     "@ranu/build": "workspace:*",
     "@ranu/adapter-vercel": "workspace:*",
     "@ranu/dev": "workspace:*",
+    "@ranu/adapter-vercel": "workspace:*",
     "@ranu/runtime-node": "workspace:*"
   },
   "devDependencies": {

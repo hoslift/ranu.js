@@ -131,6 +131,126 @@ describe('@ranu/manifests', () => {
       expect(result.success).toBe(true);
     });
 
+    it('validates page component metadata paths', () => {
+      const valid = validateRouteManifest({
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [
+          {
+            id: 'page:/about',
+            kind: 'page',
+            pattern: '/about',
+            params: [],
+            layouts: ['app/layout.tsx'],
+            loading: 'app/loading.tsx',
+            errors: ['app/error.tsx'],
+            notFound: ['app/not-found.tsx'],
+          },
+        ],
+      });
+      expect(valid.success).toBe(true);
+
+      const invalid = validateRouteManifest({
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [
+          {
+            id: 'page:/about',
+            kind: 'page',
+            pattern: '/about',
+            params: [],
+            layouts: ['../outside-layout.tsx'],
+            loading: '/absolute/loading.tsx',
+            errors: 'app/error.tsx',
+            notFound: [42],
+          },
+        ],
+      });
+      expect(invalid.success).toBe(false);
+      expect(invalid.diagnostics).toHaveLength(4);
+      expect(invalid.diagnostics.map((diagnostic) => diagnostic.message).join('\n')).toContain(
+        'invalid or uncontained',
+      );
+    });
+
+    it.each([
+      'app/layout.tsx',
+      'app/nested/layout.tsx',
+      'app\\nested\\layout.tsx',
+      'app/../layout.tsx',
+    ])('accepts contained component path %j', (componentPath) => {
+      const result = validateRouteManifest({
+        schemaVersion: 2,
+        buildId: 'build_123',
+        routes: [
+          {
+            id: 'page:/paths',
+            kind: 'page',
+            pattern: '/paths',
+            params: [],
+            layouts: [componentPath],
+            loading: componentPath,
+            errors: [componentPath],
+            notFound: [componentPath],
+          },
+        ],
+      });
+
+      expect(result).toEqual({ success: true, diagnostics: [] });
+    });
+
+    it.each([
+      '',
+      '\0hidden.tsx',
+      '/root.tsx',
+      '\\\\server\\share.tsx',
+      'C:\\root.tsx',
+      '../escape.tsx',
+    ])(
+      'rejects invalid or escaping component path %j and identifies its field and index',
+      (componentPath) => {
+        const result = validateRouteManifest({
+          schemaVersion: 2,
+          buildId: 'build_123',
+          routes: [
+            {
+              id: 'page:/paths',
+              kind: 'page',
+              pattern: '/paths',
+              params: [],
+              layouts: ['valid.tsx', componentPath],
+            },
+          ],
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.diagnostics).toHaveLength(1);
+        expect(result.diagnostics[0].message).toContain('"layouts" at index 1');
+      },
+    );
+
+    it.each([42, '', '/absolute.tsx', '../escape.tsx'])(
+      'rejects invalid loading component path %j with a field-specific diagnostic',
+      (loading) => {
+        const result = validateRouteManifest({
+          schemaVersion: 2,
+          buildId: 'build_123',
+          routes: [
+            {
+              id: 'page:/loading',
+              kind: 'page',
+              pattern: '/loading',
+              params: [],
+              loading,
+            },
+          ],
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.diagnostics[0].message).toContain('"loading" component path');
+      },
+    );
+
     it('legacy V1 page manifest accepted', () => {
       const manifest = {
         schemaVersion: 1,

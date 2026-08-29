@@ -102,6 +102,25 @@ export function isAbsolutePath(p: string): boolean {
   return false;
 }
 
+function isContainedComponentPath(componentPath: string): boolean {
+  if (!componentPath || componentPath.includes('\0') || isAbsolutePath(componentPath)) {
+    return false;
+  }
+
+  let depth = 0;
+  for (const segment of componentPath.replace(/\\/g, '/').split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') {
+      if (depth === 0) return false;
+      depth -= 1;
+    } else {
+      depth += 1;
+    }
+  }
+
+  return depth > 0;
+}
+
 /**
  * Validator for BuildDescriptor
  */
@@ -300,26 +319,39 @@ export function validateRouteManifest(
     }
 
     if (route.kind === 'page') {
-      if (route.loading !== undefined && typeof route.loading !== 'string') {
-        diagnostics.push({
-          code: 'RANU_BUILD_MANIFEST_INVALID',
-          severity: 'error',
-          message: `RouteManifest page entry "${route.id || idx}" has non-string "loading" property.`,
-        });
-      }
-
       for (const field of ['layouts', 'errors', 'notFound'] as const) {
-        const value = route[field];
-        if (
-          value !== undefined &&
-          (!Array.isArray(value) || value.some((item) => typeof item !== 'string'))
-        ) {
+        const componentPaths = route[field];
+        if (componentPaths === undefined) continue;
+
+        if (!Array.isArray(componentPaths)) {
           diagnostics.push({
             code: 'RANU_BUILD_MANIFEST_INVALID',
             severity: 'error',
-            message: `RouteManifest page entry "${route.id || idx}" "${field}" must be an array of strings.`,
+            message: `RouteManifest page entry "${route.id || idx}" "${field}" must be an array of component paths.`,
           });
+          continue;
         }
+
+        componentPaths.forEach((componentPath: unknown, componentIdx: number) => {
+          if (typeof componentPath !== 'string' || !isContainedComponentPath(componentPath)) {
+            diagnostics.push({
+              code: 'RANU_BUILD_MANIFEST_INVALID',
+              severity: 'error',
+              message: `RouteManifest page entry "${route.id || idx}" has an invalid or uncontained component path in "${field}" at index ${componentIdx}.`,
+            });
+          }
+        });
+      }
+
+      if (
+        route.loading !== undefined &&
+        (typeof route.loading !== 'string' || !isContainedComponentPath(route.loading))
+      ) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `RouteManifest page entry "${route.id || idx}" has an invalid or uncontained "loading" component path.`,
+        });
       }
     }
 

@@ -57,6 +57,10 @@ const MIME_TYPES: Record<string, string> = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg',
   '.txt': 'text/plain; charset=utf-8',
 };
 
@@ -182,10 +186,8 @@ export function serveStaticFile(
   }
 
   const stream = fs.createReadStream(realFile);
-  stream.once('error', (error) => {
-    if (!res.destroyed) res.destroy(error);
-  });
-  res.once('close', () => stream.destroy());
+  stream.on('error', (err) => res.destroy(err));
+  res.on('close', () => stream.destroy());
   stream.pipe(res);
   return true;
 }
@@ -354,9 +356,9 @@ export async function createProductionRuntime(
     try {
       const mwModule = await import(pathToFileURL(middlewarePath).href);
       middleware = createRuntimeMiddleware(mwModule);
-    } catch (error: unknown) {
-      throw new Error(`Failed to load compiled middleware from "${middlewarePath}".`, {
-        cause: error,
+    } catch (err: unknown) {
+      throw new Error(`Failed to load compiled middleware at "${middlewarePath}".`, {
+        cause: err,
       });
     }
   }
@@ -469,12 +471,7 @@ export async function createProductionServer(
     bodyLimit: options.bodyLimit,
   });
 
-  // Attach custom production request handler to the underlying HTTP server
-  const httpServer = (server as any).httpServer;
-  if (httpServer) {
-    httpServer.removeAllListeners('request');
-    httpServer.on('request', requestHandler);
-  }
+  server.setRequestHandler(requestHandler);
 
   return server;
 }
