@@ -33,6 +33,45 @@ export interface FrameworkCapabilities {
   nodejsBuiltins: boolean;
 }
 
+/** Deployment target capabilities declared by adapters */
+export interface DeploymentCapabilities {
+  readonly runtime: 'node' | 'edge' | 'static';
+  readonly ssr: boolean;
+  readonly apiRoutes: boolean;
+  readonly middleware: boolean;
+  readonly streaming: boolean;
+  readonly staticFiles: boolean;
+  readonly runtimeEnvironment: boolean;
+  readonly writableFilesystem: 'none' | 'temporary' | 'persistent';
+  readonly longLivedProcess: boolean;
+}
+
+/** Context passed to a deployment adapter during preparation/adaptation */
+export interface DeploymentAdapterContext {
+  readonly projectRoot: string;
+  readonly buildDir?: string | undefined;
+  readonly outputDir?: string | undefined;
+  readonly logger?: any;
+}
+
+/** Result returned by a deployment adapter */
+export interface DeploymentResult {
+  readonly success: boolean;
+  readonly target: string;
+  readonly outputDirectory: string;
+  readonly files?: readonly string[] | undefined;
+  readonly warnings?: readonly string[] | undefined;
+  readonly diagnostics?: readonly any[] | undefined;
+}
+
+/** Deployment Adapter contract */
+export interface RanuDeploymentAdapter {
+  readonly name: string;
+  readonly apiVersion: number;
+  readonly capabilities: DeploymentCapabilities;
+  adapt(context: DeploymentAdapterContext): Promise<DeploymentResult>;
+}
+
 /** Normalized version compatibility helper */
 export interface VersionCompatibility {
   frameworkVersion: string;
@@ -45,4 +84,18 @@ export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 
 
 /** Supported HTTP method array */
 export const HTTP_METHODS: HttpMethod[] = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+
+/** Static route parameter values */
+export type StaticParamValue = string | readonly string[];
+
+/** Static route parameter record mapping parameter names to string values or string arrays */
+export type StaticParamRecord = Readonly<Record<string, StaticParamValue>>;
+
+/** Result returned by generateStaticParams */
+export type GenerateStaticParamsResult = readonly StaticParamRecord[];
+
+/** Public function signature for generateStaticParams */
+export type GenerateStaticParams = () =>
+  | GenerateStaticParamsResult
+  | Promise<GenerateStaticParamsResult>;
 

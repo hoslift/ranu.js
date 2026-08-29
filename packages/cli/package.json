@@ -25,13 +25,14 @@
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/build": "workspace:*",
+    "@ranu/adapter-vercel": "workspace:*",
     "@ranu/dev": "workspace:*",
     "@ranu/runtime-node": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.15.32",
+    "@types/node": "^22.20.1",
     "rimraf": "^6.0.1",
-    "tsup": "^8.5.0",
+    "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4"
   }

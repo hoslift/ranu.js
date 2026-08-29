@@ -18,7 +18,8 @@
     "src/signals.ts",
     "src/dispatch.ts",
     "src/errors.ts",
-    "src/engine.ts"
+    "src/engine.ts",
+    "src/matcher.ts"
   ],
   "exclude": ["dist", "node_modules"]
 }

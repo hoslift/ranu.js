@@ -6,4 +6,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: ['@ranu/core', '@ranu/diagnostics'],
+  tsconfig: 'tsconfig.build.json',
 });

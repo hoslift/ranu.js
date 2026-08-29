@@ -10,6 +10,8 @@
     { "path": "../core" },
     { "path": "../diagnostics" },
     { "path": "../manifests" },
+    { "path": "../react" },
+    { "path": "../router" },
     { "path": "../runtime" }
   ],
   "include": ["src"],

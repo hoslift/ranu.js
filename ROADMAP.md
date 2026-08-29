@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 6 — Runtime (Completed)
+> **Current Phase:** Phase 24–26 — Deployment (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -60,38 +60,49 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 7 — Node Runtime ⏳
-
-**Next phase (Not Started)**
+## Phase 7 — Node Runtime ✅
 
 * Node.js HTTP runtime
+* Web Request and Response bridging
+* Streaming and body limit handling
+* Graceful server lifecycle
 
 ---
 
-## Phase 8 — Server Helpers ⏳
+## Phase 8 — Server Helpers ✅
 
-* Server helpers (`cookies()`, `headers()`, `redirect()`, etc.)
-
----
-
-## Phase 9–10 — React Renderer ⏳
-
-* SSR pipeline
-* Layouts, async pages
-* Metadata, errors, not-found, loading
+* Server helpers (`cookies()`, `headers()`, `redirect()`, `notFound()`, `getRequestContext()`)
+* Request context and server lifecycle integration
 
 ---
 
-## Phase 11–12 — Build System ⏳
+## Phase 9–10 — React Renderer ✅
 
-* TypeScript/JSX transforms
-* Server/client graph separation
-* `"use client"` enforcement
-* `Ranu.js/server-only`
+* React 19 streaming SSR
+* Root and nested layouts
+* Async pages and layouts
+* Metadata resolution and `<head>` generation
+* Redirect and not-found control flow
+* Segment-scoped loading/Suspense
+* Production-safe render error handling
 
 ---
 
-## Phase 13–16 — Client ⏳
+## Phase 11–12 — Build System ✅
+
+* Production build pipeline and deterministic output structure
+* TypeScript, JavaScript, JSX, and TSX compilation
+* Server build graph and production server bundles
+* Client/server module boundary classification and `"use client"` detection
+* Transitive client graph propagation and security boundary enforcement
+* `ranu/server-only` boundary validation
+* Route, server, client, and static build manifests
+* Production entry generation and Node.js SSR production artifact
+* Cross-platform build and asset packaging behavior
+
+---
+
+## Phase 13–16 — Client ✅
 
 * Hydration
 * Client navigation (`Link`, `useRouter`)
@@ -100,14 +111,14 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 17–19 — CSS/Assets and Dev Server ⏳
+## Phase 17–19 — CSS/Assets and Dev Server ✅
 
 * CSS, CSS Modules
 * HMR and React Fast Refresh
 
 ---
 
-## Phase 20–23 — Middleware, Plugins, CLI ⏳
+## Phase 20–23 — Middleware, Plugins, CLI ✅
 
 * Middleware
 * Plugin API v1
@@ -117,6 +128,8 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 ---
 
 ## Phase 24–26 — Deployment ⏳
+
+**Next phase (Upcoming)**
 
 * Generic Node.js production
 * Container deployment
@@ -142,14 +155,14 @@ Phase 1      Contracts & Manifests       ✅ Completed
 Phase 2      Configuration               ✅ Completed
 Phase 3–5    Router                      ✅ Completed
 Phase 6      Runtime Contracts           ✅ Completed
-Phase 7      Node Runtime                ⏳ Next / Not Started
-Phase 8      Server Helpers              ⏳ Planned
-Phase 9–10   React Renderer              ⏳ Planned
-Phase 11–12  Build System                ⏳ Planned
-Phase 13–16  Client                      ⏳ Planned
-Phase 17–19  CSS / Assets / Dev Server   ⏳ Planned
-Phase 20–23  Middleware / Plugins / CLI  ⏳ Planned
-Phase 24–26  Deployment                  ⏳ Planned
+Phase 7      Node Runtime                ✅ Completed
+Phase 8      Server Helpers              ✅ Completed
+Phase 9–10   React Renderer              ✅ Completed
+Phase 11–12  Build System                ✅ Completed
+Phase 13–16  Client                      ✅ Completed
+Phase 17–19  CSS / Assets / Dev Server   ✅ Completed
+Phase 20–23  Middleware / Plugins / CLI  ✅ Completed
+Phase 24–26  Deployment                  ⏳ Next / Upcoming
 Phase 27–32  Quality / Security / Docs   ⏳ Planned
 ```
 
@@ -176,4 +189,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 7 — Node Runtime**
+**Next development focus: Phase 24–26 — Deployment**

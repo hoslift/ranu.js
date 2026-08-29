@@ -1,0 +1,8 @@
+{
+  "name": "fixture-build-basic",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ranu/config": "workspace:*"
+  }
+}

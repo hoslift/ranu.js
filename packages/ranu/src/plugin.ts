@@ -2,8 +2,20 @@
  * Ranu.js/plugin
  *
  * Public plugin API.
- * Phase 0 skeleton — no implementation yet.
  */
 
-// definePlugin() will be implemented in Phase 21
-export {};
+export {
+  definePlugin,
+  type RanuPlugin,
+  type RanuPluginDefinition,
+  type PluginEnforce,
+  type PluginSetupContext,
+  type PluginHookContext,
+  type PluginLogger,
+  type PluginRouteInfo,
+  type PluginBuildExtensionApi,
+  type PluginBuildContext,
+  type PluginBuildResult,
+  type PluginDevContext,
+  type PluginHooks,
+} from '@ranu/plugin';

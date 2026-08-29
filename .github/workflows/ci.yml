@@ -6,25 +6,47 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         node-version: [22.x]
 
     steps:
     - uses: actions/checkout@v4
+
     - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'pnpm'
-    - run: pnpm install --frozen-lockfile
-    - run: pnpm typecheck
-    - run: pnpm build
-    - run: pnpm test
-    - run: pnpm run check-cycles
-    - run: pnpm run check-exports
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Validate (typecheck, build, lint, test, test:integration, check-cycles, check-exports)
+      run: pnpm ci:verify
+
+    - name: Generate test coverage
+      run: pnpm test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: hoslift/ranu.js
+

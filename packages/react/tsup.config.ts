@@ -6,4 +6,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: ['react', 'react-dom', '@ranu/core', '@ranu/diagnostics', '@ranu/manifests', '@ranu/runtime'],
+  tsconfig: 'tsconfig.build.json',
 });

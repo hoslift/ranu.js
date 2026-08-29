@@ -133,7 +133,7 @@ Ranu.js has not yet reached a stable public release.
 The intended project creation experience is:
 
 ```bash
-npm create ranu.js@latest my-app
+npm create ranu@latest my-app
 cd my-app
 npm install
 npm run dev
@@ -174,15 +174,9 @@ A dedicated `ROADMAP.md` can track implementation progress, milestones, and rele
 
 ## Documentation
 
-Project documentation will be maintained in:
+Public documentation is planned for the official Ranu.js project website as the framework develops.
 
-```text
-docs/
-```
-
-Public documentation is also planned for the Ranu.js project website.
-
-Documentation will expand alongside implementation and public releases.
+Detailed framework design, API specifications, and usage guides will be published alongside stable releases.
 
 ---
 
@@ -251,7 +245,11 @@ See [`LICENSE`](./LICENSE) for the full license text.
   <strong>Ranu.js</strong><br>
   Rethinking the Full-Stack Web.
 </p>
-
+<p align="center">
+ <a href="https://codecov.io/gh/hoslift/ranu.js" > 
+ <img src="https://codecov.io/gh/hoslift/ranu.js/branch/main/graph/badge.svg?token=XZLQF6Q65N"/> 
+</p>
+   
 <p align="center">
   Open source under the MIT License.<br>
   Created and maintained by <a href="https://github.com/hoslift">Hoslift</a>.

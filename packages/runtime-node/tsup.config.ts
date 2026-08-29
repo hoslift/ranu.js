@@ -5,6 +5,14 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['@ranu/core', '@ranu/diagnostics', '@ranu/manifests', '@ranu/runtime'],
+  external: [
+    '@ranu/core',
+    '@ranu/diagnostics',
+    '@ranu/manifests',
+    '@ranu/react',
+    '@ranu/router',
+    '@ranu/runtime',
+  ],
   platform: 'node',
+  tsconfig: 'tsconfig.build.json',
 });
