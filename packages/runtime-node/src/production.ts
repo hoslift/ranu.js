@@ -186,7 +186,7 @@ export function serveStaticFile(
   }
 
   const stream = fs.createReadStream(realFile);
-  stream.on('error', () => res.destroy());
+  stream.on('error', (err) => res.destroy(err));
   stream.pipe(res);
   return true;
 }
