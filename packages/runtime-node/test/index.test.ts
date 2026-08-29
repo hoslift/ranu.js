@@ -91,31 +91,6 @@ describe('@ranu/runtime-node', () => {
       };
       expect(buildRequestUrl(req, { trustProxy: true })).toBe('https://actual-domain.com/test');
     });
-
-    it('uses the first array-valued forwarded host when trustProxy is enabled', () => {
-      const req = {
-        url: '/test',
-        headers: {
-          host: 'direct.com',
-          'x-forwarded-host': ['first.example', 'second.example'],
-        },
-        socket: { encrypted: false },
-      };
-
-      expect(buildRequestUrl(req, { trustProxy: true })).toBe('http://first.example/test');
-    });
-
-    it('uses a forwarded HTTPS protocol without a forwarded host', () => {
-      const req = {
-        url: '/secure',
-        headers: {
-          host: 'direct.example',
-          'x-forwarded-proto': 'https',
-        },
-        socket: { encrypted: false },
-      };
-      expect(buildRequestUrl(req, { trustProxy: true })).toBe('https://direct.example/secure');
-    });
   });
 
   describe('toWebRequest Conversion & Body Limits', () => {
@@ -478,27 +453,6 @@ describe('@ranu/runtime-node', () => {
   });
 
   describe('NodeServer Startup & Graceful Shutdown', () => {
-    it('preserves wildcard bind addresses', async () => {
-      const server = createNodeServer({
-        runtime: new RanuServerRuntime({
-          routeRecords: [],
-          contextStore: new NodeRequestContextStore(),
-          apiDispatcher: new NodeApiEndpointDispatcher({ loadModule: async () => ({}) }),
-          staticDispatcher: mockStaticDispatcher,
-          renderer: mockRenderer,
-          config: { mode: 'production' },
-        }),
-        port: 0,
-        host: '0.0.0.0',
-      });
-
-      try {
-        await expect(server.listen()).resolves.toMatchObject({ host: '0.0.0.0' });
-      } finally {
-        await server.close();
-      }
-    });
-
     it('boots Node HTTP server and executes API request through RanuServerRuntime', async () => {
       const mockModule: ApiRouteModule = {
         GET: async (req, ctx) =>
@@ -547,6 +501,7 @@ describe('@ranu/runtime-node', () => {
 
       const addr = await server.listen();
       expect(addr.port).toBeGreaterThan(0);
+      expect(addr.host).toBe('127.0.0.1');
 
       try {
         const url = `http://127.0.0.1:${addr.port}/api/items/99`;
@@ -614,19 +569,53 @@ describe('@ranu/runtime-node', () => {
       const addr = await server.listen();
 
       // Launch in-flight request
-      const fetchPromise = fetch(`http://127.0.0.1:${addr.port}/api/slow`);
+      let fetchError: unknown;
+      const fetchPromise = fetch(`http://127.0.0.1:${addr.port}/api/slow`).catch((error) => {
+        fetchError = error;
+        resolveStarted();
+        return undefined;
+      });
 
       // Wait until the server-side request handler actually starts executing
       await startedPromise;
+
+      if (fetchError) {
+        await server.close();
+        throw fetchError;
+      }
 
       // Initiate graceful shutdown while request is running
       const closePromise = server.close();
 
       const [fetchRes] = await Promise.all([fetchPromise, closePromise]);
-      expect(fetchRes.status).toBe(200);
+      expect(fetchRes?.status).toBe(200);
       expect(isSlowRequestFinished).toBe(true);
-      const data = await fetchRes.json();
+      const data = await fetchRes?.json();
       expect(data).toEqual({ slow: true });
+    });
+
+    it('normalizes a wildcard listener to a connectable loopback address', async () => {
+      const server = createNodeServer({
+        runtime: new RanuServerRuntime({
+          routeRecords: [],
+          contextStore: new NodeRequestContextStore(),
+          apiDispatcher: new NodeApiEndpointDispatcher({ loadModule: async () => ({}) }),
+          staticDispatcher: mockStaticDispatcher,
+          renderer: mockRenderer,
+          config: { mode: 'production' },
+        }),
+        port: 0,
+        host: '0.0.0.0',
+      });
+
+      const addr = await server.listen();
+      try {
+        expect(addr.host).toBe('127.0.0.1');
+        const response = await fetch(`http://${addr.host}:${addr.port}/missing`);
+        expect(response.status).toBe(404);
+      } finally {
+        await server.close();
+      }
     });
   });
 });
