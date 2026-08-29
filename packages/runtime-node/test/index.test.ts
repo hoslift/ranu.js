@@ -453,6 +453,112 @@ describe('@ranu/runtime-node', () => {
   });
 
   describe('NodeServer Startup & Graceful Shutdown', () => {
+    const createRuntime = () =>
+      new RanuServerRuntime({
+        routeRecords: [],
+        contextStore: new NodeRequestContextStore(),
+        apiDispatcher: new NodeApiEndpointDispatcher({ loadModule: async () => ({}) }),
+        staticDispatcher: mockStaticDispatcher,
+        renderer: mockRenderer,
+        config: { mode: 'production' },
+      });
+
+    it('replaces the request handler while preserving connection tracking', async () => {
+      const server = new NodeServer({ runtime: createRuntime(), port: 0, host: '127.0.0.1' });
+      const replacement = vi.fn(async (_req: IncomingMessage, res: ServerResponse) => {
+        res.writeHead(202);
+        res.end('replacement');
+      });
+      server.setRequestHandler(replacement);
+
+      const address = await server.listen();
+      try {
+        const response = await fetch(`http://127.0.0.1:${address.port}/replacement`);
+        expect(response.status).toBe(202);
+        expect(await response.text()).toBe('replacement');
+        expect(replacement).toHaveBeenCalledOnce();
+        expect(server.httpServer.listenerCount('connection')).toBeGreaterThan(0);
+      } finally {
+        await server.close();
+      }
+    });
+
+    it('rejects listener failures and removes the paired listening listener', async () => {
+      const occupied = http.createServer();
+      await new Promise<void>((resolve) => occupied.listen(0, '127.0.0.1', resolve));
+      const address = occupied.address();
+      if (!address || typeof address === 'string') throw new Error('Expected TCP address');
+      const server = new NodeServer({ runtime: createRuntime() });
+      const off = vi.spyOn(server.httpServer, 'off');
+
+      try {
+        await expect(server.listen(address.port, '127.0.0.1')).rejects.toMatchObject({
+          code: 'EADDRINUSE',
+        });
+        expect(off).toHaveBeenCalledWith('listening', expect.any(Function));
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          occupied.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    });
+
+    it('shares pending shutdown work and disposes the runtime once', async () => {
+      const runtime = createRuntime();
+      const dispose = vi.spyOn(runtime, 'dispose');
+      const server = new NodeServer({ runtime, port: 0, host: '127.0.0.1' });
+      await server.listen();
+
+      const firstClose = server.close();
+      const secondClose = server.close();
+      await Promise.all([firstClose, secondClose]);
+      expect(dispose).toHaveBeenCalledOnce();
+    });
+
+    it('ignores runtime disposal errors during shutdown', async () => {
+      const runtime = createRuntime();
+      vi.spyOn(runtime, 'dispose').mockImplementation(() => {
+        throw new Error('dispose failed');
+      });
+      const server = new NodeServer({ runtime, port: 0, host: '127.0.0.1' });
+      await server.listen();
+
+      await expect(server.close()).resolves.toBeUndefined();
+    });
+
+    it('forcefully destroys remaining sockets after the shutdown timeout', async () => {
+      vi.useFakeTimers();
+      const server = new NodeServer({ runtime: createRuntime() });
+      const socket = Object.assign(
+        new (class extends Readable {
+          destroySoon = vi.fn();
+        })(),
+        { destroy: vi.fn() },
+      );
+      server.httpServer.emit('connection', socket as any);
+      const close = vi
+        .spyOn(server.httpServer, 'close')
+        .mockImplementation(() => server.httpServer);
+      const closeAllConnections = vi
+        .spyOn(server.httpServer, 'closeAllConnections')
+        .mockImplementation(() => undefined);
+      const closeIdleConnections = vi
+        .spyOn(server.httpServer, 'closeIdleConnections')
+        .mockImplementation(() => undefined);
+
+      try {
+        const closePromise = server.close(25);
+        await vi.advanceTimersByTimeAsync(25);
+        await closePromise;
+        expect(socket.destroy).toHaveBeenCalled();
+        expect(closeAllConnections).toHaveBeenCalledOnce();
+      } finally {
+        close.mockRestore();
+        closeAllConnections.mockRestore();
+        closeIdleConnections.mockRestore();
+        vi.useRealTimers();
+      }
+    });
     it('boots Node HTTP server and executes API request through RanuServerRuntime', async () => {
       const mockModule: ApiRouteModule = {
         GET: async (req, ctx) =>
