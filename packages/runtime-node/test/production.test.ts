@@ -256,6 +256,10 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(getMimeType('data.json')).toBe('application/json; charset=utf-8');
       expect(getMimeType('logo.svg')).toBe('image/svg+xml');
       expect(getMimeType('image.png')).toBe('image/png');
+      expect(getMimeType('font.OTF')).toBe('font/otf');
+      expect(getMimeType('movie.Mp4')).toBe('video/mp4');
+      expect(getMimeType('clip.WEBM')).toBe('video/webm');
+      expect(getMimeType('sound.mP3')).toBe('audio/mpeg');
       expect(getMimeType('unknown.xyz')).toBe('application/octet-stream');
     });
 
@@ -295,8 +299,13 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       stream.emit('error', readError);
       expect(response.destroy).toHaveBeenCalledWith(readError);
 
+      response.destroyed = true;
+      stream.emit('error', readError);
+      expect(response.destroy).toHaveBeenCalledTimes(2);
+
       response.emit('close');
-      expect(stream.destroy).toHaveBeenCalledOnce();
+      response.emit('close');
+      expect(stream.destroy).toHaveBeenCalledTimes(2);
     });
 
     it('returns false when static-file canonicalization fails', () => {
@@ -327,8 +336,22 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       );
 
       await expect(createProductionRuntime({ projectRoot: tempDir, buildDir })).rejects.toThrow(
-        /Failed to load compiled middleware/,
+        `Failed to load compiled middleware at "${path.join(buildDir, 'server', 'middleware.mjs')}".`,
       );
+    });
+
+    it('loads and executes valid compiled middleware', async () => {
+      fs.writeFileSync(
+        path.join(buildDir, 'server', 'middleware.mjs'),
+        `export default function middleware() {
+  return { type: 'response', response: new Response('middleware response', { status: 209 }) };
+}`,
+      );
+      const runtime = await createProductionRuntime({ projectRoot: tempDir, buildDir });
+      const response = await runtime.handle(new Request('http://localhost/'));
+      expect(response.status).toBe(209);
+      expect(await response.text()).toBe('middleware response');
+      runtime.dispose();
     });
 
     it.each(['routes.json', 'server.json'])(
@@ -432,6 +455,7 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       const firstPage = await loader.loadPage('page:/');
       expect(await loader.loadPage('page:/')).toBe(firstPage);
       await expect(loader.loadPage('page:/missing')).rejects.toThrow('No server entry registered');
+      expect(await loader.loadLayout(componentPath)).toHaveProperty('default');
       expect(await loader.loadLoading(componentPath)).toHaveProperty('default');
       expect(await loader.loadError(componentPath)).toHaveProperty('default');
       expect(await loader.loadNotFound(notFoundPath)).toHaveProperty('default');
@@ -488,6 +512,15 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       expect(malformed.end).toHaveBeenCalledWith('Bad Request');
     }, 15_000);
 
+    it('uses default paths and URL when handler options and request URL are absent', async () => {
+      const runtime = { handle: vi.fn() } as any;
+      const handler = createProductionRequestHandler(runtime);
+      const response = makeResponse();
+      response.destroyed = true;
+      await handler({ url: undefined } as any, response as any);
+      expect(runtime.handle).not.toHaveBeenCalled();
+    });
+
     it('serves framework and public assets and falls back when framework assets are absent', async () => {
       const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
       const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
@@ -537,6 +570,17 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
   });
 
   describe('createProductionServer', () => {
+    it('attaches the production handler through NodeServer.setRequestHandler()', async () => {
+      const setRequestHandler = vi.spyOn(
+        (await import('../src/server.js')).NodeServer.prototype,
+        'setRequestHandler',
+      );
+      const server = await createProductionServer({ projectRoot: tempDir, buildDir });
+      expect(setRequestHandler).toHaveBeenCalledOnce();
+      expect(setRequestHandler).toHaveBeenCalledWith(expect.any(Function));
+      (server as any).options.runtime.dispose();
+    });
+
     it('starts listening, serves static assets and dispatches requests', async () => {
       const server = await createProductionServer({
         projectRoot: tempDir,

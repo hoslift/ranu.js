@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
 import {
@@ -30,6 +30,8 @@ const mockRenderer: RanuRenderer = {
 };
 
 describe('@ranu/runtime-node', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   describe('Body Limit Parsing & Error', () => {
     it('parses numeric and string body limits', () => {
       expect(parseBodyLimit(undefined)).toBe(1024 * 1024);
@@ -453,6 +455,209 @@ describe('@ranu/runtime-node', () => {
   });
 
   describe('NodeServer Startup & Graceful Shutdown', () => {
+    const createRuntime = (dispose?: () => void) => {
+      const runtime = new RanuServerRuntime({
+        routeRecords: [],
+        contextStore: new NodeRequestContextStore(),
+        apiDispatcher: new NodeApiEndpointDispatcher({ loadModule: async () => ({}) }),
+        staticDispatcher: mockStaticDispatcher,
+        renderer: mockRenderer,
+        config: { mode: 'production' },
+      });
+      if (dispose) vi.spyOn(runtime, 'dispose').mockImplementation(dispose);
+      return runtime;
+    };
+
+    it('replaces the request handler while retaining connection lifecycle tracking', async () => {
+      const server = createNodeServer({ runtime: createRuntime() });
+      const replacement = vi.fn(async (_req: IncomingMessage, res: ServerResponse) => {
+        res.statusCode = 202;
+        res.end('replacement');
+      });
+      server.setRequestHandler(replacement as any);
+      const socket = Object.assign(new Readable({ read() {} }), { destroySoon: vi.fn() });
+      const request = Object.assign(new Readable({ read() {} }), {
+        url: '/replacement',
+        headers: {},
+        socket,
+      });
+      const response = Object.assign(new (await import('node:events')).EventEmitter(), {
+        statusCode: 200,
+        end: vi.fn(),
+      });
+      server.httpServer.emit('connection', socket);
+      server.httpServer.emit('request', request, response);
+      await vi.waitFor(() => expect(replacement).toHaveBeenCalledOnce());
+      expect(response.statusCode).toBe(202);
+      expect(response.end).toHaveBeenCalledWith('replacement');
+      expect(replacement).toHaveBeenCalledOnce();
+      expect((server as any).connections.has(socket)).toBe(true);
+      expect(server.httpServer.listenerCount('connection')).toBeGreaterThan(0);
+      (server as any).isShuttingDown = true;
+      response.emit('finish');
+      expect(socket.destroySoon).toHaveBeenCalledOnce();
+      socket.emit('close');
+      expect((server as any).connections.has(socket)).toBe(false);
+    });
+
+    it('applies a positive request timeout to the HTTP server', () => {
+      const server = createNodeServer({ runtime: createRuntime(), requestTimeout: 1234 });
+      expect(server.httpServer.requestTimeout).toBe(1234);
+    });
+
+    it('rejects listener failures and removes the paired listening listener', async () => {
+      const server = createNodeServer({ runtime: createRuntime() });
+      const baselineListeners = server.httpServer.listenerCount('listening');
+      vi.spyOn(server.httpServer, 'listen').mockImplementation(function (this: http.Server) {
+        queueMicrotask(() => this.emit('error', new Error('listen failed')));
+        return this;
+      } as any);
+
+      await expect(server.listen(0, '127.0.0.1')).rejects.toThrow('listen failed');
+      expect(server.httpServer.listenerCount('listening')).toBe(baselineListeners);
+    });
+
+    it('uses default listener targets when no address details are returned', async () => {
+      const server = createNodeServer({ runtime: createRuntime() });
+      vi.spyOn(server.httpServer, 'address').mockReturnValue(null);
+      const listen = vi.spyOn(server.httpServer, 'listen').mockImplementation(function (
+        this: http.Server,
+      ) {
+        queueMicrotask(() => this.emit('listening'));
+        return this;
+      } as any);
+      await expect(server.listen()).resolves.toEqual({ host: 'localhost', port: 3000 });
+      expect(listen).toHaveBeenCalledWith(3000, 'localhost');
+    });
+
+    it.each(['0.0.0.0', '::', ''])(
+      'normalizes the mocked wildcard address %j to loopback',
+      async (address) => {
+        const server = createNodeServer({ runtime: createRuntime() });
+        vi.spyOn(server.httpServer, 'address').mockReturnValue({
+          address,
+          family: address === '::' ? 'IPv6' : 'IPv4',
+          port: 43210,
+        });
+        vi.spyOn(server.httpServer, 'listen').mockImplementation(function (this: http.Server) {
+          queueMicrotask(() => this.emit('listening'));
+          return this;
+        } as any);
+
+        await expect(server.listen(0, address || '127.0.0.1')).resolves.toEqual({
+          host: '127.0.0.1',
+          port: 43210,
+        });
+      },
+    );
+
+    it('binds wildcard IPv6 when the environment supports it', async () => {
+      const server = createNodeServer({ runtime: createRuntime(), port: 0, host: '::' });
+      try {
+        const addr = await server.listen();
+        expect(addr).toMatchObject({ host: '127.0.0.1' });
+        expect(addr.port).toBeGreaterThan(0);
+      } catch (error: any) {
+        if (!['EAFNOSUPPORT', 'EADDRNOTAVAIL'].includes(error?.code)) throw error;
+      } finally {
+        if (server.httpServer.listening) await server.close();
+      }
+    });
+
+    it('shares concurrent shutdown work and disposes the runtime once', async () => {
+      const dispose = vi.fn();
+      const server = createNodeServer({
+        runtime: createRuntime(dispose),
+        port: 0,
+        host: '127.0.0.1',
+      });
+      await server.listen();
+      const first = server.close();
+      const closeOperation = (server as any).closePromise;
+      const second = server.close();
+      expect((server as any).closePromise).toBe(closeOperation);
+      await Promise.all([first, second]);
+      expect(dispose).toHaveBeenCalledOnce();
+      await server.close();
+      expect(dispose).toHaveBeenCalledOnce();
+    });
+
+    it('ignores disposal errors during normal shutdown', async () => {
+      const server = createNodeServer({
+        runtime: createRuntime(() => {
+          throw new Error('dispose failed');
+        }),
+        port: 0,
+        host: '127.0.0.1',
+      });
+      await server.listen();
+      await expect(server.close()).resolves.toBeUndefined();
+    });
+
+    it('rejects close callback errors after disposing once', async () => {
+      const dispose = vi.fn();
+      const server = createNodeServer({ runtime: createRuntime(dispose) });
+      vi.spyOn(server.httpServer, 'close').mockImplementation((callback: any) => {
+        callback(new Error('close failed'));
+        return server.httpServer;
+      });
+      vi.spyOn(server.httpServer, 'closeIdleConnections').mockImplementation(() => {});
+      await expect(server.close()).rejects.toThrow('close failed');
+      expect(dispose).toHaveBeenCalledOnce();
+    });
+
+    it('closes an idle keep-alive socket during shutdown', async () => {
+      const server = createNodeServer({ runtime: createRuntime() });
+      vi.spyOn(server.httpServer, 'close').mockImplementation((callback: any) => {
+        callback();
+        return server.httpServer;
+      });
+      const closeIdle = vi
+        .spyOn(server.httpServer, 'closeIdleConnections')
+        .mockImplementation(() => {});
+      await server.close();
+      expect(closeIdle).toHaveBeenCalledOnce();
+    });
+
+    it('destroys remaining sockets when the shutdown timeout expires', async () => {
+      vi.useFakeTimers();
+      try {
+        const dispose = vi.fn();
+        const server = createNodeServer({ runtime: createRuntime(dispose) });
+        const socket = { destroy: vi.fn() };
+        (server as any).connections.add(socket);
+        let closeCallback!: (error?: Error) => void;
+        vi.spyOn(server.httpServer, 'close').mockImplementation((callback: any) => {
+          closeCallback = callback;
+          return server.httpServer;
+        });
+        vi.spyOn(server.httpServer, 'closeIdleConnections').mockImplementation(() => {});
+        const closeAll = vi
+          .spyOn(server.httpServer, 'closeAllConnections')
+          .mockImplementation(() => {});
+
+        const closing = server.close(25);
+        await vi.advanceTimersByTimeAsync(25);
+        await closing;
+        closeCallback();
+        expect(socket.destroy).toHaveBeenCalledOnce();
+        expect(closeAll).toHaveBeenCalledOnce();
+        expect(dispose).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('closes cleanly when the runtime has no disposal hook', async () => {
+      const server = createNodeServer({ runtime: {} as any });
+      vi.spyOn(server.httpServer, 'close').mockImplementation((callback: any) => {
+        callback();
+        return server.httpServer;
+      });
+      vi.spyOn(server.httpServer, 'closeIdleConnections').mockImplementation(() => {});
+      await expect(server.close()).resolves.toBeUndefined();
+    });
+
     it('boots Node HTTP server and executes API request through RanuServerRuntime', async () => {
       const mockModule: ApiRouteModule = {
         GET: async (req, ctx) =>
