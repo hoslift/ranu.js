@@ -28,9 +28,14 @@ const sharedAliases = {
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
 
+const sharedTestConfig = {
+  setupFiles: [path.resolve(__dirname, 'tests/setup.ts')],
+};
+
 export default defineWorkspace([
   {
     test: {
+      ...sharedTestConfig,
       name: 'packages',
       include: ['packages/*/test/**/*.{test,spec}.{ts,tsx}'],
     },
@@ -40,6 +45,7 @@ export default defineWorkspace([
   },
   {
     test: {
+      ...sharedTestConfig,
       name: 'adapters',
       include: ['adapters/*/test/**/*.{test,spec}.{ts,tsx}'],
     },
@@ -49,6 +55,7 @@ export default defineWorkspace([
   },
   {
     test: {
+      ...sharedTestConfig,
       name: 'create-ranu',
       include: ['create-ranu/test/**/*.{test,spec}.{ts,tsx}'],
     },
@@ -58,6 +65,7 @@ export default defineWorkspace([
   },
   {
     test: {
+      ...sharedTestConfig,
       name: 'integration',
       include: ['tests/integration/**/*.test.ts'],
     },
@@ -67,6 +75,7 @@ export default defineWorkspace([
   },
   {
     test: {
+      ...sharedTestConfig,
       name: 'e2e',
       include: ['tests/e2e/**/*.test.ts'],
     },
