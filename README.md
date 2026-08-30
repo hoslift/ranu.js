@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://ranu.js.org">
+  <a href="https://hoslift.com">
     <img src="logo.svg" alt="Ranu.js Logo" width="80" height="80">
   </a>
 </p>
