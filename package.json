@@ -23,7 +23,7 @@
     "test:unit": "pnpm -r --filter './packages/*' --filter './adapters/*' --filter './create-ranu' test",
     "test:api": "vitest run tests/api",
     "test:integration": "vitest run tests/integration",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --coverage.exclude=scripts/** --coverage.exclude=**/test/** --coverage.exclude=**/*.d.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
