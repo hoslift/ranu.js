@@ -31,6 +31,9 @@ const sharedAliases = {
 
 const sharedTestConfig = {
   setupFiles: [path.resolve(__dirname, 'tests/setup.ts')],
+  coverage: {
+    exclude: ['scripts/**', '**/test/**', '**/*.d.ts'],
+  },
 };
 
 export default defineWorkspace([
