@@ -81,18 +81,10 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(pkg.exports).toBeDefined();
       const exportKeys = Object.keys(pkg.exports);
 
-      // Canonical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10
-      expect(exportKeys).toContain('.');
-      expect(exportKeys).toContain('./config');
-      expect(exportKeys).toContain('./react');
-      expect(exportKeys).toContain('./server');
-      expect(exportKeys).toContain('./plugin');
-      expect(exportKeys).toContain('./server-only');
+      // Canonical and technical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10
+      const expectedExports = ['.', './config', './plugin', './react', './server', './server-only'];
 
-      // Ensure no wildcards or internal paths are exported
-      expect(exportKeys).not.toContain('./*');
-      expect(exportKeys).not.toContain('./dist/*');
-      expect(exportKeys).not.toContain('./src/*');
+      expect(exportKeys.sort()).toEqual(expectedExports.sort());
     });
 
     it('blocks unexported deep imports at package export map boundary', () => {
@@ -124,7 +116,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
 
       for (const deepImport of invalidImports) {
         expect(() => requireFromPkg.resolve(deepImport)).toThrowError(
-          expect.objectContaining({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+          expect.objectContaining({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' }),
         );
       }
     });
@@ -140,7 +132,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
           '-e',
           'try { await import("ranu/dist/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
         ],
-        { cwd: consumerDir, encoding: 'utf8' }
+        { cwd: consumerDir, encoding: 'utf8' },
       );
       expect(resultDist.status).toBe(42);
       expect(resultDist.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
@@ -153,7 +145,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
           '-e',
           'try { await import("ranu/src/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
         ],
-        { cwd: consumerDir, encoding: 'utf8' }
+        { cwd: consumerDir, encoding: 'utf8' },
       );
       expect(resultSrc.status).toBe(42);
       expect(resultSrc.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
@@ -168,27 +160,54 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
           '-e',
           'await Promise.all([import("ranu"), import("ranu/config"), import("ranu/react"), import("ranu/server"), import("ranu/plugin"), import("ranu/server-only")]); process.exit(0);',
         ],
-        { cwd: consumerDir, encoding: 'utf8' }
+        { cwd: consumerDir, encoding: 'utf8' },
       );
       expect(result.status).toBe(0);
     });
   });
 
   describe('3. Internal Package Visibility & Privacy Enforcement', () => {
-    it('ensures all internal framework packages are marked private: true', () => {
-      const packagesDir = path.join(rootDir, 'packages');
-      const packageEntries = fs.readdirSync(packagesDir, { withFileTypes: true });
+    it('enumerates all workspace packages across packages/* and adapters/* and enforces privacy boundary', () => {
+      // Release packages allowlist aligned with scripts/check-exports.mjs
+      const publicReleasePackages = new Set(['packages/ranu', 'adapters/vercel']);
 
-      for (const entry of packageEntries) {
-        if (!entry.isDirectory()) continue;
-        const pkgJsonPath = path.join(packagesDir, entry.name, 'package.json');
-        if (!fs.existsSync(pkgJsonPath)) continue;
+      const scanDirs = ['packages', 'adapters'];
+      const scannedPackages: { relativeDir: string; name: string; private: boolean }[] = [];
 
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-        if (entry.name === 'ranu') {
-          expect(pkgJson.private).toBe(false);
+      for (const groupDir of scanDirs) {
+        const fullGroupPath = path.join(rootDir, groupDir);
+        if (!fs.existsSync(fullGroupPath)) continue;
+
+        const entries = fs.readdirSync(fullGroupPath, { withFileTypes: true });
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+          const pkgJsonPath = path.join(fullGroupPath, entry.name, 'package.json');
+          if (!fs.existsSync(pkgJsonPath)) continue;
+
+          const relativeDir = `${groupDir}/${entry.name}`;
+          const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+          scannedPackages.push({
+            relativeDir,
+            name: pkgJson.name,
+            private: pkgJson.private,
+          });
+        }
+      }
+
+      // Ensure we scanned both packages/* and adapters/* directories
+      expect(scannedPackages.length).toBeGreaterThanOrEqual(15);
+
+      for (const pkg of scannedPackages) {
+        if (publicReleasePackages.has(pkg.relativeDir)) {
+          expect(
+            pkg.private,
+            `Expected ${pkg.relativeDir} (${pkg.name}) to have private: false`,
+          ).toBe(false);
         } else {
-          expect(pkgJson.private).toBe(true);
+          expect(
+            pkg.private,
+            `Expected ${pkg.relativeDir} (${pkg.name}) to have private: true`,
+          ).toBe(true);
         }
       }
     });

@@ -81,7 +81,20 @@ export default defineWorkspace([
       include: ['tests/api/**/*.test.ts'],
     },
     resolve: {
-      alias: sharedAliases,
+      alias: [
+        {
+          find: /^ranu$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        },
+        {
+          find: /^ranu\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
+        },
+        {
+          find: /^@ranu\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/$1/dist/index.js'),
+        },
+      ],
     },
   },
   {
