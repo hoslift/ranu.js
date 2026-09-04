@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 24–26 — Deployment (Next)
+> **Current Phase:** Phase 27–32 — Quality, Security, Docs, Governance (Next)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -127,9 +127,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 24–26 — Deployment ⏳
-
-**Next phase (Upcoming)**
+## Phase 24–26 — Deployment ✅
 
 * Generic Node.js production
 * Container deployment
@@ -138,6 +136,8 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 ---
 
 ## Phase 27–32 — Quality, Security, Docs, Governance ⏳
+
+**Next phase (Upcoming)**
 
 * Public API conformance
 * Security hardening
@@ -162,8 +162,8 @@ Phase 11–12  Build System                ✅ Completed
 Phase 13–16  Client                      ✅ Completed
 Phase 17–19  CSS / Assets / Dev Server   ✅ Completed
 Phase 20–23  Middleware / Plugins / CLI  ✅ Completed
-Phase 24–26  Deployment                  ⏳ Next / Upcoming
-Phase 27–32  Quality / Security / Docs   ⏳ Planned
+Phase 24–26  Deployment                  ✅ Completed
+Phase 27–32  Quality / Security / Docs   ⏳ Next / Upcoming
 ```
 
 ---
@@ -189,4 +189,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 24–26 — Deployment**
+**Next development focus: Phase 27–32 — Quality, Security, Docs, Governance**
