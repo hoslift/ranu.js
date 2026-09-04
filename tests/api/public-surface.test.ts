@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +110,67 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       for (const subpath of invalidSubpaths) {
         expect(pkg.exports[subpath]).toBeUndefined();
       }
+    });
+
+    it('rejects unexported deep imports via real Node package self-reference resolution boundary', () => {
+      const requireFromPkg = createRequire(path.join(rootDir, 'packages/ranu/package.json'));
+
+      const invalidImports = [
+        'ranu/dist/index.js',
+        'ranu/src/index.ts',
+        'ranu/src/index.js',
+        'ranu/internal',
+      ];
+
+      for (const deepImport of invalidImports) {
+        expect(() => requireFromPkg.resolve(deepImport)).toThrowError(
+          expect.objectContaining({ code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+        );
+      }
+    });
+
+    it('verifies that actual consumer import attempts for invalid deep imports are blocked by Node package exports', () => {
+      const consumerDir = path.join(rootDir, 'examples/minimal');
+
+      // Attempt actual import of ranu/dist/index.js
+      const resultDist = spawnSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          'try { await import("ranu/dist/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
+        ],
+        { cwd: consumerDir, encoding: 'utf8' }
+      );
+      expect(resultDist.status).toBe(42);
+      expect(resultDist.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
+
+      // Attempt actual import of ranu/src/index.js
+      const resultSrc = spawnSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          'try { await import("ranu/src/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
+        ],
+        { cwd: consumerDir, encoding: 'utf8' }
+      );
+      expect(resultSrc.status).toBe(42);
+      expect(resultSrc.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
+    });
+
+    it('verifies that real consumer can import all canonical public entrypoints without export errors', () => {
+      const consumerDir = path.join(rootDir, 'examples/minimal');
+      const result = spawnSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          'await Promise.all([import("ranu"), import("ranu/config"), import("ranu/react"), import("ranu/server"), import("ranu/plugin"), import("ranu/server-only")]); process.exit(0);',
+        ],
+        { cwd: consumerDir, encoding: 'utf8' }
+      );
+      expect(result.status).toBe(0);
     });
   });
 
