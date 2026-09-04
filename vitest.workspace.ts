@@ -24,6 +24,7 @@ const sharedAliases = {
   'ranu/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
   'ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
   'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
+  'ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
   'create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
@@ -71,6 +72,29 @@ export default defineWorkspace([
     },
     resolve: {
       alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'api',
+      include: ['tests/api/**/*.test.ts'],
+    },
+    resolve: {
+      alias: [
+        {
+          find: /^ranu$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        },
+        {
+          find: /^ranu\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
+        },
+        {
+          find: /^@ranu\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/$1/dist/index.js'),
+        },
+      ],
     },
   },
   {

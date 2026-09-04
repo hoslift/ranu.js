@@ -97,10 +97,15 @@ export interface ResolvedMetadata {
 /**
  * Validated Page module export contract.
  */
+/**
+ * Dynamic metadata generation function signature (11_PUBLIC_API_SPECIFICATION.md §59).
+ */
+export type GenerateMetadata<P = PageProps> = (props: P) => Promise<Metadata> | Metadata;
+
 export interface PageModule {
   readonly default: PageComponent;
   readonly metadata?: Metadata | undefined;
-  readonly generateMetadata?: ((props: PageProps) => Promise<Metadata> | Metadata) | undefined;
+  readonly generateMetadata?: GenerateMetadata<PageProps> | undefined;
   readonly render?: ('server' | 'static' | 'client') | undefined;
 }
 
