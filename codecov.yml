@@ -7,3 +7,4 @@ coverage:
 
 ignore:
   - 'scripts/**'
+  - 'vitest.workspace.ts'
