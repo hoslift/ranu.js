@@ -40,3 +40,18 @@ export interface MiddlewareContext {
 export interface MiddlewareNextOptions {
   headers?: MiddlewareHeadersInit;
 }
+
+/**
+ * Context passed to API Route Handlers (05_SERVER_RUNTIME_SPEC.md §27, 11_PUBLIC_API_SPECIFICATION.md §61).
+ */
+export interface RouteHandlerContext {
+  readonly params: Readonly<Record<string, string | string[]>>;
+}
+
+/**
+ * Standard API route handler function signature (11_PUBLIC_API_SPECIFICATION.md §60).
+ */
+export type RouteHandler = (
+  request: Request,
+  context: RouteHandlerContext
+) => Promise<Response> | Response;

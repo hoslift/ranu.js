@@ -56,6 +56,15 @@ for (const pkg of publishedPackages) {
       failed = true;
     }
   }
+
+  // 2b. For ranu package, verify root index exposes defineConfig convenience re-export
+  if (pkg.name === 'ranu') {
+    const rootSrc = fs.readFileSync(path.join(pkg.dir, 'src/index.ts'), 'utf8');
+    if (!rootSrc.includes('defineConfig')) {
+      console.error(`Package ranu root entry (src/index.ts) is missing convenience re-export of defineConfig`);
+      failed = true;
+    }
+  }
   
   // 3. Verify target files resolve to source equivalents
   for (const [expKey, expVal] of Object.entries(exports)) {

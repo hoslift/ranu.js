@@ -13,6 +13,7 @@ export {
 
 export type {
   Metadata,
+  GenerateMetadata,
   TitleMetadata,
   OpenGraphMetadata,
   OpenGraphImage,
