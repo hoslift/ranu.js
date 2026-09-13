@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://hoslift.com">
-    <img src="logo.svg" alt="Ranu.js Logo" width="80" height="80">
+    <img src="logo.svg" alt="Ranu.js Logo" width="577.5" height="115">
   </a>
 </p>
 
