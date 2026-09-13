@@ -100,8 +100,51 @@ export default defineWorkspace([
   {
     test: {
       ...sharedTestConfig,
-      name: 'e2e',
-      include: ['tests/e2e/**/*.test.ts'],
+      name: 'cli',
+      include: ['tests/cli/**/*.test.ts'],
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'deployment',
+      include: ['tests/deployment/**/*.test.ts'],
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'security',
+      include: ['tests/security/**/*.test.ts'],
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'performance',
+      include: ['tests/performance/**/*.test.ts'],
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'smoke',
+      include: ['tests/smoke/**/*.test.ts'],
+    },
+    resolve: {
+      alias: sharedAliases,
     },
   },
 ]);

@@ -38,7 +38,7 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Validate (typecheck, build, lint, test, test:integration, check-cycles, check-exports)
+    - name: Validate Core (typecheck, build, lint, unit, api, integration, cli, deployment, security, perf)
       run: pnpm ci:verify
 
     - name: Generate test coverage
@@ -50,3 +50,55 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: hoslift/ranu.js
 
+  browser-e2e:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright E2E Tests
+      run: pnpm test:e2e
+
+  release-smoke:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Release Tarball Smoke Tests
+      run: pnpm test:smoke
