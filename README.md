@@ -4,8 +4,6 @@
   </a>
 </p>
 
-<h1 align="center">Ranu.js</h1>
-
 <p align="center">
   <strong>Rethinking the Full-Stack Web.</strong><br>
   A JavaScript/TypeScript full-stack web framework for building modern web applications.
