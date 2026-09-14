@@ -1,10 +1,8 @@
-import { defineConfig } from '@ranu/config';
-
-export default defineConfig({
+export default {
   server: {
     port: 3000,
   },
   rendering: {
     defaultMode: 'server',
   },
-});
+};
