@@ -1,26 +1,25 @@
 import net from 'node:net';
 
 /**
- * Check whether a TCP port is currently occupied / listening.
+ * Check whether a TCP port is currently occupied / listening with bounded timeout.
  */
-export async function isPortOccupied(port: number): Promise<boolean> {
+export async function isPortOccupied(port: number, timeoutMs = 500): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const socket = new net.Socket();
-    socket.setTimeout(300);
+    let settled = false;
 
-    socket.on('connect', () => {
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
       socket.destroy();
-      resolve(true);
-    });
+      resolve(result);
+    };
 
-    socket.on('timeout', () => {
-      socket.destroy();
-      resolve(false);
-    });
+    socket.setTimeout(timeoutMs);
 
-    socket.on('error', () => {
-      resolve(false);
-    });
+    socket.on('connect', () => finish(true));
+    socket.on('timeout', () => finish(false));
+    socket.on('error', () => finish(false));
 
     socket.connect(port, '127.0.0.1');
   });

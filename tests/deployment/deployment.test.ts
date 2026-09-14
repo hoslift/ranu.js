@@ -1,11 +1,14 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, afterAll } from 'vitest';
+import { writeContainerArtifacts } from '@ranu/build';
 import { createTemporaryFixture } from '../helpers/fixture.js';
-import { runCommand, cleanupAllProcesses } from '../helpers/process.js';
+import { runCommand, cleanupAllProcesses, terminateProcessTree } from '../helpers/process.js';
 import { getAvailablePort, releasePort } from '../helpers/ports.js';
 import { waitForHttpReady, fetchText } from '../helpers/http.js';
+import { isPortOccupied } from '../helpers/leak-detector.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +20,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
     await cleanupAllProcesses();
   });
 
-  it('Node.js Production: builds, starts runtime, handles SSR/API, and shuts down cleanly', async () => {
+  it('Node.js Production: builds, starts runtime, handles SSR/API, and shuts down gracefully', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
     const port = await getAvailablePort();
 
@@ -29,27 +32,45 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
       const entryPath = path.join(projectDir, '.ranu/build/server/entry.mjs');
       expect(fs.existsSync(entryPath)).toBe(true);
 
-      const startPromise = runCommand(
+      // Spawn start server directly to test signal-driven graceful shutdown
+      const child = spawn(
         process.execPath,
         [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
-        { cwd: projectDir, timeoutMs: 15000 },
+        {
+          cwd: projectDir,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
       );
 
       const url = `http://127.0.0.1:${port}/`;
       await waitForHttpReady(url, { timeoutMs: 10000 });
 
-      // Root SSR page
+      // Root SSR page response
       const pageRes = await fetchText(url);
       expect(pageRes.status).toBe(200);
       expect(pageRes.body).toContain('<!DOCTYPE html>');
 
-      // API route
+      // API route response
       const apiRes = await fetchText(`http://127.0.0.1:${port}/api/hello`);
       expect(apiRes.status).toBe(200);
       expect(JSON.parse(apiRes.body)).toEqual({ message: 'Hello from Ranu API' });
 
-      await cleanupAllProcesses();
-      await startPromise.catch(() => {});
+      // Signal graceful shutdown via SIGINT/SIGTERM (on Windows, tree termination is used)
+      const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
+        child.on('close', (code, signal) => resolve({ code, signal }));
+      });
+
+      if (process.platform === 'win32') {
+        await terminateProcessTree(child);
+      } else {
+        child.kill('SIGTERM');
+      }
+
+      await exitPromise;
+
+      // Verify server stops accepting connections after shutdown
+      const occupied = await isPortOccupied(port, 1000);
+      expect(occupied).toBe(false);
     } finally {
       releasePort(port);
       await cleanup();
@@ -63,17 +84,39 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
       const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
       expect(buildRes.code).toBe(0);
 
-      // Verify build manifest outputs
-      const staticManifest = path.join(projectDir, '.ranu/build/static-manifest.json');
-      const routeManifest = path.join(projectDir, '.ranu/build/route-manifest.json');
-      expect(fs.existsSync(staticManifest)).toBe(true);
-      expect(fs.existsSync(routeManifest)).toBe(true);
+      // Invoke container artifact generation API
+      const result = writeContainerArtifacts(projectDir, {
+        nodeVersion: '22-alpine',
+        packageManager: 'npm',
+        port: 3000,
+        nonRoot: true,
+      });
+
+      expect(result.written).toBe(true);
+
+      // Assert Dockerfile exists and contains multi-stage production instructions
+      const dockerfilePath = path.join(projectDir, 'Dockerfile');
+      expect(fs.existsSync(dockerfilePath)).toBe(true);
+      const dockerfileContent = fs.readFileSync(dockerfilePath, 'utf8');
+
+      expect(dockerfileContent).toContain('FROM node:22-alpine AS build');
+      expect(dockerfileContent).toContain('FROM node:22-alpine AS runtime');
+      expect(dockerfileContent).toContain('USER node');
+      expect(dockerfileContent).toContain('CMD ["node", ".ranu/build/server/entry.mjs"]');
+
+      // Assert .dockerignore exists and excludes secrets / git / local dev cache
+      const dockerignorePath = path.join(projectDir, '.dockerignore');
+      expect(fs.existsSync(dockerignorePath)).toBe(true);
+      const dockerignoreContent = fs.readFileSync(dockerignorePath, 'utf8');
+      expect(dockerignoreContent).toContain('node_modules');
+      expect(dockerignoreContent).toContain('.git');
+      expect(dockerignoreContent).toContain('.env');
     } finally {
       await cleanup();
     }
   });
 
-  it('Vercel Adapter: compiles application into valid Build Output API v3 structure', async () => {
+  it('Vercel Adapter: compiles application into valid Build Output API v3 structure and function config', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
 
     try {
@@ -94,10 +137,19 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
         ],
       });
 
+      // Assert config.json version 3
       const vercelConfig = path.join(projectDir, '.vercel/output/config.json');
       expect(fs.existsSync(vercelConfig)).toBe(true);
       const configJson = JSON.parse(fs.readFileSync(vercelConfig, 'utf8'));
       expect(configJson.version).toBe(3);
+
+      // Assert serverless function output configuration (.vc-config.json)
+      const vcConfigPath = path.join(projectDir, '.vercel/output/functions/index.func/.vc-config.json');
+      expect(fs.existsSync(vcConfigPath)).toBe(true);
+      const vcConfig = JSON.parse(fs.readFileSync(vcConfigPath, 'utf8'));
+      expect(vcConfig.runtime).toMatch(/nodejs22/);
+      expect(vcConfig.launcherType).toBe('Nodejs');
+      expect(vcConfig.handler).toBe('index.mjs');
     } finally {
       await cleanup();
     }

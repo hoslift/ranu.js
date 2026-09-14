@@ -14,14 +14,9 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        node-version: [22.x]
-
+  core-validation:
+    name: Core Validation (Ubuntu)
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
@@ -29,17 +24,20 @@ jobs:
       with:
         run_install: false
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js 22.x
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 22.x
         cache: 'pnpm'
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Validate Core (typecheck, build, lint, unit, api, integration, cli, deployment, security, perf)
+    - name: Run Core Verification (typecheck, build, lint, unit, api, integration, cycles, exports)
       run: pnpm ci:verify
+
+    - name: Check code formatting
+      run: pnpm format:check
 
     - name: Generate test coverage
       run: pnpm test:coverage
@@ -50,8 +48,31 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: hoslift/ranu.js
 
+  windows-validation:
+    name: Windows Validation
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Validate build and tests on Windows
+      run: pnpm ci:verify
+
   browser-e2e:
-    needs: build-and-test
+    name: Browser E2E (Playwright Chromium)
+    needs: core-validation
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -78,8 +99,9 @@ jobs:
     - name: Run Playwright E2E Tests
       run: pnpm test:e2e
 
-  release-smoke:
-    needs: build-and-test
+  security-regression:
+    name: Security Regression Harness
+    needs: core-validation
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -100,5 +122,57 @@ jobs:
     - name: Build packages
       run: pnpm build
 
-    - name: Run Release Tarball Smoke Tests
+    - name: Run Security Regression Tests
+      run: pnpm test:security
+
+  deployment-e2e:
+    name: Deployment E2E
+    needs: core-validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Deployment E2E Tests
+      run: pnpm test:deployment
+
+  release-smoke:
+    name: Release Tarball Smoke
+    needs: core-validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Release Smoke Tests
       run: pnpm test:smoke

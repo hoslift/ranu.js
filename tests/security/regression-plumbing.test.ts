@@ -1,10 +1,14 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, afterAll } from 'vitest';
+import { serveStaticFile } from '@ranu/dev';
 import { createTemporaryFixture } from '../helpers/fixture.js';
 import { runCommand, cleanupAllProcesses } from '../helpers/process.js';
 import { scanDirectoryForSecrets, PATH_TRAVERSAL_VECTORS } from './harness.js';
+import { getAvailablePort, releasePort } from '../helpers/ports.js';
+import { fetchText } from '../helpers/http.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +25,6 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
     const privateSecret = 'RANU_TEST_PRIVATE_SECRET_9f3c8a1b2d';
 
     try {
-      // Build boundaries fixture
       const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
       expect(buildRes.code).toBe(0);
 
@@ -35,11 +38,55 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
     }
   });
 
-  it('Traversal Vector Harness: provides standardized path traversal test vectors for router and runtime verification', () => {
-    expect(PATH_TRAVERSAL_VECTORS.length).toBeGreaterThanOrEqual(8);
-    for (const vector of PATH_TRAVERSAL_VECTORS) {
-      expect(typeof vector).toBe('string');
-      expect(vector.length).toBeGreaterThan(0);
+  it('Traversal Vector Harness: executes standardized path traversal vectors against static server and confirms containment', async () => {
+    const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
+    const publicDir = path.join(projectDir, 'public');
+    fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(path.join(publicDir, 'hello.txt'), 'public file content', 'utf8');
+
+    // Create sensitive file outside public directory
+    const sensitiveFile = path.join(projectDir, 'sensitive.txt');
+    fs.writeFileSync(sensitiveFile, 'TOP_SECRET_DATA_DO_NOT_LEAK', 'utf8');
+
+    const port = await getAvailablePort();
+
+    const server = http.createServer((req, res) => {
+      // Decode URL safely to simulate real HTTP static request handling
+      const reqUrl = req.url ?? '/';
+      let decodedPath: string;
+      try {
+        decodedPath = decodeURIComponent(reqUrl.split('?')[0]);
+      } catch {
+        decodedPath = reqUrl.split('?')[0];
+      }
+
+      const filePath = path.join(publicDir, decodedPath.replace(/^\//, ''));
+      const served = serveStaticFile(filePath, publicDir, req, res);
+      if (!served) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+      }
+    });
+
+    await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', () => resolve()));
+
+    try {
+      // 1. Legitimate static file request returns 200
+      const normalRes = await fetchText(`http://127.0.0.1:${port}/hello.txt`);
+      expect(normalRes.status).toBe(200);
+      expect(normalRes.body).toBe('public file content');
+
+      // 2. Traversal attack vectors are contained: none can access files outside publicDir
+      for (const vector of PATH_TRAVERSAL_VECTORS) {
+        const targetUrl = `http://127.0.0.1:${port}/${vector}`;
+        const res = await fetchText(targetUrl);
+        // Traversal attempts must either be 403 Forbidden or 404 Not Found, never 200 returning sensitive content
+        expect(res.body).not.toContain('TOP_SECRET_DATA_DO_NOT_LEAK');
+      }
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      releasePort(port);
+      await cleanup();
     }
   });
 });

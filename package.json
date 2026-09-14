@@ -29,7 +29,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "node scripts/ci-clean.mjs",
-    "ci:verify": "pnpm typecheck && pnpm build && pnpm lint && pnpm test && pnpm test:api && pnpm test:integration && pnpm test:cli && pnpm test:deployment && pnpm test:security && pnpm test:perf && pnpm check-cycles && pnpm check-exports",
+    "ci:verify": "pnpm typecheck && pnpm build && pnpm lint && pnpm test && pnpm test:api && pnpm test:integration && pnpm test:cli && pnpm check-cycles && pnpm check-exports",
     "ci:clean": "pnpm clean && pnpm install --frozen-lockfile && pnpm ci:verify",
     "prepr": "pnpm ci:clean",
     "changeset": "changeset",

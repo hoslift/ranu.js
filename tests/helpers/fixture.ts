@@ -7,14 +7,18 @@ export interface FixtureProject {
   cleanup: () => Promise<void>;
 }
 
+const FORBIDDEN_COPY_DIRS = new Set(['.git', 'node_modules', '.ranu']);
+
 /**
- * Deep copy directory recursively.
+ * Deep copy directory recursively, avoiding heavy or lock-prone folders.
  */
 export function copyDirSync(src: string, dest: string): void {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
+    if (FORBIDDEN_COPY_DIRS.has(entry.name)) continue;
+
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 

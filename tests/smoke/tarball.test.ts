@@ -20,18 +20,38 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
     fs.mkdirSync(tempDir, { recursive: true });
 
     try {
-      // 1. Pack packages/ranu
-      const ranuPkgDir = path.join(root, 'packages/ranu');
-      const packRes = await runCommand('pnpm', ['pack', '--pack-destination', tempDir], {
-        cwd: ranuPkgDir,
-      });
-      expect(packRes.code).toBe(0);
+      // 1. Pack packages/ranu and required internal packages into tarballs
+      const packagesToPack = [
+        'packages/core',
+        'packages/diagnostics',
+        'packages/manifests',
+        'packages/config',
+        'packages/router',
+        'packages/runtime',
+        'packages/runtime-node',
+        'packages/server',
+        'packages/react',
+        'packages/plugin',
+        'packages/ranu',
+      ];
+
+      const tarballMap: Record<string, string> = {};
+
+      for (const relPkg of packagesToPack) {
+        const pkgDir = path.join(root, relPkg);
+        const packRes = await runCommand('pnpm', ['pack', '--pack-destination', tempDir], {
+          cwd: pkgDir,
+        });
+        expect(packRes.code).toBe(0);
+      }
 
       const tarballs = fs.readdirSync(tempDir).filter((f) => f.endsWith('.tgz'));
-      expect(tarballs.length).toBeGreaterThanOrEqual(1);
-      const ranuTarball = path.join(tempDir, tarballs[0]);
+      expect(tarballs.length).toBeGreaterThanOrEqual(packagesToPack.length);
 
-      // 2. Initialize external standalone project
+      const ranuTarball = tarballs.find((f) => f.startsWith('ranu-'));
+      expect(ranuTarball).toBeDefined();
+
+      // 2. Initialize external standalone project outside monorepo
       const standaloneDir = path.join(tempDir, 'standalone-app');
       fs.mkdirSync(standaloneDir, { recursive: true });
 
@@ -41,7 +61,7 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         private: true,
         type: 'module',
         dependencies: {
-          ranu: `file:${ranuTarball.replace(/\\\\/g, '/')}`,
+          ranu: `file:${path.join(tempDir, ranuTarball!).replace(/\\/g, '/')}`,
         },
       };
       fs.writeFileSync(path.join(standaloneDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
@@ -57,9 +77,13 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
 
       fs.writeFileSync(path.join(standaloneDir, 'test-import.mjs'), testImportScript, 'utf8');
 
-      // Install tarball
-      const installRes = await runCommand('pnpm', ['install'], {
+      // Install tarball with clean environment to avoid workspace linkage
+      const installRes = await runCommand('pnpm', ['install', '--no-frozen-lockfile'], {
         cwd: standaloneDir,
+        env: {
+          ...process.env,
+          NODE_PATH: '',
+        },
         timeoutMs: 60000,
       });
       expect(installRes.code).toBe(0);
@@ -67,6 +91,10 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
       // Execute script against standalone node_modules
       const execRes = await runCommand(process.execPath, ['test-import.mjs'], {
         cwd: standaloneDir,
+        env: {
+          ...process.env,
+          NODE_PATH: '',
+        },
       });
       expect(execRes.code).toBe(0);
     } finally {

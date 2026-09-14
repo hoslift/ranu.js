@@ -33,6 +33,7 @@ export async function terminateProcessTree(child: ChildProcess): Promise<void> {
     });
   } else {
     try {
+      // Kill the entire process group if spawned detached
       process.kill(-pid, 'SIGKILL');
     } catch {
       try {
@@ -46,6 +47,7 @@ export async function terminateProcessTree(child: ChildProcess): Promise<void> {
 
 /**
  * Run a command to completion and capture stdout/stderr with execution timeout guards.
+ * Uses detached process group on POSIX to enable clean process-tree termination.
  */
 export async function runCommand(
   cmd: string,
@@ -58,19 +60,35 @@ export async function runCommand(
   return new Promise<RunProcessResult>((resolve, reject) => {
     let stdout = '';
     let stderr = '';
+    let isSettled = false;
 
     const child = spawn(cmd, args, {
       ...spawnOpts,
+      detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     activeProcesses.add(child);
 
+    const settleResolve = (result: RunProcessResult) => {
+      if (isSettled) return;
+      isSettled = true;
+      activeProcesses.delete(child);
+      resolve(result);
+    };
+
+    const settleReject = (err: Error) => {
+      if (isSettled) return;
+      isSettled = true;
+      activeProcesses.delete(child);
+      reject(err);
+    };
+
     let timer: NodeJS.Timeout | null = null;
     if (timeoutMs > 0) {
       timer = setTimeout(async () => {
         await terminateProcessTree(child);
-        reject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd} ${args.join(' ')}`));
+        settleReject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd} ${args.join(' ')}`));
       }, timeoutMs);
     }
 
@@ -84,14 +102,12 @@ export async function runCommand(
 
     child.on('error', async (err) => {
       if (timer) clearTimeout(timer);
-      activeProcesses.delete(child);
-      reject(err);
+      settleReject(err);
     });
 
     child.on('close', (code, signal) => {
       if (timer) clearTimeout(timer);
-      activeProcesses.delete(child);
-      resolve({
+      settleResolve({
         code,
         signal,
         stdout,
