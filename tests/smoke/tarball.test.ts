@@ -20,7 +20,7 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
     fs.mkdirSync(tempDir, { recursive: true });
 
     try {
-      // 1. Pack packages/ranu and required internal packages into tarballs
+      // 1. Pack packages/ranu and required internal workspace packages into tarballs
       const packagesToPack = [
         'packages/core',
         'packages/diagnostics',
@@ -35,8 +35,6 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         'packages/ranu',
       ];
 
-      const tarballMap: Record<string, string> = {};
-
       for (const relPkg of packagesToPack) {
         const pkgDir = path.join(root, relPkg);
         const packRes = await runCommand('pnpm', ['pack', '--pack-destination', tempDir], {
@@ -48,8 +46,25 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
       const tarballs = fs.readdirSync(tempDir).filter((f) => f.endsWith('.tgz'));
       expect(tarballs.length).toBeGreaterThanOrEqual(packagesToPack.length);
 
-      const ranuTarball = tarballs.find((f) => f.startsWith('ranu-'));
-      expect(ranuTarball).toBeDefined();
+      const tarballPaths: Record<string, string> = {};
+      for (const f of tarballs) {
+        const fullPath = path.join(tempDir, f);
+        if (f.startsWith('ranu-core-')) tarballPaths['@ranu/core'] = fullPath;
+        else if (f.startsWith('ranu-diagnostics-')) tarballPaths['@ranu/diagnostics'] = fullPath;
+        else if (f.startsWith('ranu-manifests-')) tarballPaths['@ranu/manifests'] = fullPath;
+        else if (f.startsWith('ranu-config-')) tarballPaths['@ranu/config'] = fullPath;
+        else if (f.startsWith('ranu-router-')) tarballPaths['@ranu/router'] = fullPath;
+        else if (f.startsWith('ranu-runtime-node-')) tarballPaths['@ranu/runtime-node'] = fullPath;
+        else if (f.startsWith('ranu-runtime-')) tarballPaths['@ranu/runtime'] = fullPath;
+        else if (f.startsWith('ranu-server-')) tarballPaths['@ranu/server'] = fullPath;
+        else if (f.startsWith('ranu-react-')) tarballPaths['@ranu/react'] = fullPath;
+        else if (f.startsWith('ranu-plugin-')) tarballPaths['@ranu/plugin'] = fullPath;
+        else if (f.startsWith('ranu-')) tarballPaths['ranu'] = fullPath;
+      }
+
+      expect(tarballPaths['ranu']).toBeDefined();
+      expect(tarballPaths['@ranu/server']).toBeDefined();
+      expect(tarballPaths['@ranu/core']).toBeDefined();
 
       // 2. Initialize external standalone project outside monorepo
       const standaloneDir = path.join(tempDir, 'standalone-app');
@@ -61,32 +76,59 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         private: true,
         type: 'module',
         dependencies: {
-          ranu: `file:${path.join(tempDir, ranuTarball!).replace(/\\/g, '/')}`,
+          ranu: `file:${tarballPaths['ranu'].replace(/\\/g, '/')}`,
         },
       };
       fs.writeFileSync(path.join(standaloneDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
 
-      // 3. Test canonical import resolution from tarball
-      const testImportScript = [
-        'import { defineConfig } from "ranu";',
-        'import { redirect, notFound } from "ranu/server";',
-        'const config = defineConfig({});',
-        'if (typeof defineConfig !== "function" || typeof redirect !== "function") process.exit(1);',
-        'process.exit(0);',
-      ].join('\n');
+      // 3. Configure .pnpmfile.cjs in standalone directory to hook dependency resolution
+      // and redirect all internal @ranu/* workspace dependencies to local packed tarballs
+      const pnpmfileContent = `
+module.exports = {
+  hooks: {
+    readPackage(pkg) {
+      const map = ${JSON.stringify(tarballPaths)};
+      if (pkg.dependencies) {
+        for (const [dep, file] of Object.entries(map)) {
+          if (pkg.dependencies[dep]) {
+            pkg.dependencies[dep] = 'file:' + file.replace(/\\\\/g, '/');
+          }
+        }
+      }
+      return pkg;
+    }
+  }
+};
+`;
+      fs.writeFileSync(path.join(standaloneDir, '.pnpmfile.cjs'), pnpmfileContent);
 
-      fs.writeFileSync(path.join(standaloneDir, 'test-import.mjs'), testImportScript, 'utf8');
-
-      // Install tarball with clean environment to avoid workspace linkage
+      // 4. Install standalone app using only local packed tarballs without monorepo resolution
       const installRes = await runCommand('pnpm', ['install', '--no-frozen-lockfile'], {
         cwd: standaloneDir,
         env: {
           ...process.env,
           NODE_PATH: '',
         },
-        timeoutMs: 60000,
+        timeoutMs: 120000,
       });
       expect(installRes.code).toBe(0);
+
+      // Verify node_modules contains installed package tarballs
+      const nodeModules = path.join(standaloneDir, 'node_modules');
+      expect(fs.existsSync(path.join(nodeModules, 'ranu'))).toBe(true);
+      expect(fs.existsSync(path.join(nodeModules, '@ranu/server'))).toBe(true);
+      expect(fs.existsSync(path.join(nodeModules, '@ranu/core'))).toBe(true);
+
+      // 5. Test canonical import resolution from installed standalone package
+      const testImportScript = [
+        'import { defineConfig } from "ranu";',
+        'import { redirect, notFound } from "ranu/server";',
+        'const config = defineConfig({});',
+        'if (typeof defineConfig !== "function" || typeof redirect !== "function" || typeof notFound !== "function") process.exit(1);',
+        'process.exit(0);',
+      ].join('\n');
+
+      fs.writeFileSync(path.join(standaloneDir, 'test-import.mjs'), testImportScript, 'utf8');
 
       // Execute script against standalone node_modules
       const execRes = await runCommand(process.execPath, ['test-import.mjs'], {

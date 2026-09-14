@@ -33,8 +33,29 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Run Core Verification (typecheck, build, lint, unit, api, integration, cycles, exports)
-      run: pnpm ci:verify
+    - name: TypeScript typecheck
+      run: pnpm typecheck
+
+    - name: Build monorepo packages
+      run: pnpm build
+
+    - name: ESLint check
+      run: pnpm lint
+
+    - name: Unit test suite
+      run: pnpm test:unit
+
+    - name: Public API conformance tests
+      run: pnpm test:api
+
+    - name: Integration tests
+      run: pnpm test:integration
+
+    - name: Check dependency cycles
+      run: pnpm check-cycles
+
+    - name: Check public export maps
+      run: pnpm check-exports
 
     - name: Check code formatting
       run: pnpm format:check
@@ -67,7 +88,7 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Validate build and tests on Windows
+    - name: Validate build and tests on Windows (including CLI E2E)
       run: pnpm ci:verify
 
   browser-e2e:
