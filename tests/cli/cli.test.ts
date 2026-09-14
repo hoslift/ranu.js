@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, afterAll } from 'vitest';
-import { runCommand, cleanupAllProcesses } from '../helpers/process.js';
+import { runCommand, cleanupAllProcesses, type SpawnManagedOptions } from '../helpers/process.js';
 import { createTemporaryFixture } from '../helpers/fixture.js';
 import { getAvailablePort, releasePort } from '../helpers/ports.js';
 import { waitForHttpReady, fetchText } from '../helpers/http.js';
@@ -11,13 +11,20 @@ const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '../..');
 const cliBin = path.join(root, 'packages/cli/dist/bin/ranu.js');
 
+// Strip NODE_ENV=test so the bin entry-point guard doesn't suppress execution
+const cliEnv = { ...process.env, NODE_ENV: 'production' };
+
+function runCli(args: string[], opts: SpawnManagedOptions = {}) {
+  return runCommand(process.execPath, [cliBin, ...args], { env: cliEnv, ...opts });
+}
+
 describe('Phase 28 — CLI E2E Subprocess Execution', () => {
   afterAll(async () => {
     await cleanupAllProcesses();
   });
 
   it('prints help information and exits with code 0', async () => {
-    const res = await runCommand(process.execPath, [cliBin, '--help']);
+    const res = await runCli(['--help']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Ranu.js');
     expect(res.stdout).toContain('Usage:');
@@ -25,13 +32,13 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
   });
 
   it('prints version information and exits with code 0', async () => {
-    const res = await runCommand(process.execPath, [cliBin, '--version']);
+    const res = await runCli(['--version']);
     expect(res.code).toBe(0);
     expect(res.stdout).toMatch(/Ranu\.js v\d+\.\d+\.\d+/);
   });
 
   it('fails gracefully with exit code 1 on unknown commands', async () => {
-    const res = await runCommand(process.execPath, [cliBin, 'non-existent-cmd']);
+    const res = await runCli(['non-existent-cmd']);
     expect(res.code).toBe(1);
     expect(res.stderr + res.stdout).toContain('Unknown command');
   });
@@ -40,9 +47,7 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
     try {
       const nestedDir = path.join(projectDir, 'app', 'about');
-      const res = await runCommand(process.execPath, [cliBin, 'build'], {
-        cwd: nestedDir,
-      });
+      const res = await runCli(['build'], { cwd: nestedDir });
       expect(res.code).toBe(0);
       expect(res.stdout).toContain('Build complete');
     } finally {
@@ -53,9 +58,7 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
   it('outputs valid machine-readable JSON when --json flag is provided to build', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
     try {
-      const res = await runCommand(process.execPath, [cliBin, 'build', '--json'], {
-        cwd: projectDir,
-      });
+      const res = await runCli(['build', '--json'], { cwd: projectDir });
       expect(res.code).toBe(0);
       const json = JSON.parse(res.stdout.trim());
       expect(json.success).toBe(true);
@@ -72,15 +75,12 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
 
     try {
       // 1. Build
-      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], {
-        cwd: projectDir,
-      });
+      const buildRes = await runCli(['build'], { cwd: projectDir });
       expect(buildRes.code).toBe(0);
 
       // 2. Start subprocess
-      const startPromise = runCommand(
-        process.execPath,
-        [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
+      const startPromise = runCli(
+        ['start', '--port', String(port), '--host', '127.0.0.1'],
         { cwd: projectDir, timeoutMs: 15000 },
       );
 
