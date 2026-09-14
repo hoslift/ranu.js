@@ -49,7 +49,7 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
       const nestedDir = path.join(projectDir, 'app', 'about');
       const res = await runCli(['build'], { cwd: nestedDir });
       expect(res.code).toBe(0);
-      expect(res.stdout).toContain('Build complete');
+      expect(res.stdout).toContain('Ranu.js production build completed');
     } finally {
       await cleanup();
     }
