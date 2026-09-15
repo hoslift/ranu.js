@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   build-and-test:
+    name: build-and-test (${{ matrix.os }}, ${{ matrix.node-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,6 +25,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
@@ -38,15 +41,166 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Validate (typecheck, build, lint, test, test:integration, check-cycles, check-exports)
-      run: pnpm ci:verify
+    # On Ubuntu (Linux): Run core validation (excluding CLI, deployment, security, perf, smoke, browser E2E)
+    - name: TypeScript typecheck
+      if: runner.os == 'Linux'
+      run: pnpm typecheck
+
+    - name: Build monorepo packages
+      if: runner.os == 'Linux'
+      run: pnpm build
+
+    - name: ESLint check
+      if: runner.os == 'Linux'
+      run: pnpm lint
+
+    - name: Unit test suite
+      if: runner.os == 'Linux'
+      run: pnpm test:unit
+
+    - name: Public API conformance tests
+      if: runner.os == 'Linux'
+      run: pnpm test:api
+
+    - name: Integration tests
+      if: runner.os == 'Linux'
+      run: pnpm test:integration
+
+    - name: Check dependency cycles
+      if: runner.os == 'Linux'
+      run: pnpm check-cycles
+
+    - name: Check public export maps
+      if: runner.os == 'Linux'
+      run: pnpm check-exports
 
     - name: Generate test coverage
+      if: runner.os == 'Linux'
       run: pnpm test:coverage
 
     - name: Upload coverage to Codecov
+      if: runner.os == 'Linux'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: hoslift/ranu.js
 
+    # On Windows: Validate build and tests covering CLI E2E on native Windows
+    - name: Validate build and tests on Windows (including CLI E2E)
+      if: runner.os == 'Windows'
+      run: pnpm ci:verify
+
+  browser-e2e:
+    name: Browser E2E (Playwright Chromium)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright E2E Tests
+      run: pnpm test:e2e
+
+  security-regression:
+    name: Security Regression Harness
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Security Regression Tests
+      run: pnpm test:security
+
+  deployment-e2e:
+    name: Deployment E2E
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Deployment E2E Tests
+      run: pnpm test:deployment
+
+  release-smoke:
+    name: Release Tarball Smoke
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build packages
+      run: pnpm build
+
+    - name: Run Release Smoke Tests
+      run: pnpm test:smoke
