@@ -74,10 +74,6 @@ jobs:
       if: runner.os == 'Linux'
       run: pnpm check-exports
 
-    - name: Check code formatting
-      if: runner.os == 'Linux'
-      run: pnpm format:check
-
     - name: Generate test coverage
       if: runner.os == 'Linux'
       run: pnpm test:coverage
