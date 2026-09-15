@@ -29,10 +29,11 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
       expect(buildRes.code).toBe(0);
 
       const clientOutDir = path.join(projectDir, '.ranu/build/client');
-      if (fs.existsSync(clientOutDir)) {
-        const scan = scanDirectoryForSecrets(clientOutDir, [privateSecret]);
-        expect(scan.leaked).toBe(false);
-      }
+      // CodeRabbit suggestion: Assert client artifact directory exists to prevent false passes
+      expect(fs.existsSync(clientOutDir)).toBe(true);
+
+      const scan = scanDirectoryForSecrets(clientOutDir, [privateSecret]);
+      expect(scan.leaked).toBe(false);
     } finally {
       await cleanup();
     }
@@ -76,10 +77,28 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
       expect(normalRes.status).toBe(200);
       expect(normalRes.body).toBe('public file content');
 
-      // 2. Traversal attack vectors are contained: none can access files outside publicDir
+      // 2. Traversal attack vectors: send literal unnormalized request paths over raw HTTP
       for (const vector of PATH_TRAVERSAL_VECTORS) {
-        const targetUrl = `http://127.0.0.1:${port}/${vector}`;
-        const res = await fetchText(targetUrl);
+        const rawPath = vector.startsWith('/') ? vector : '/' + vector;
+        const res = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+          const req = http.request(
+            {
+              host: '127.0.0.1',
+              port,
+              path: rawPath,
+              method: 'GET',
+            },
+            (resp) => {
+              let body = '';
+              resp.setEncoding('utf8');
+              resp.on('data', (chunk) => (body += chunk));
+              resp.on('end', () => resolve({ status: resp.statusCode || 0, body }));
+            },
+          );
+          req.on('error', reject);
+          req.end();
+        });
+
         // Traversal attempts must either be 403 Forbidden or 404 Not Found, never 200 returning sensitive content
         expect(res.body).not.toContain('TOP_SECRET_DATA_DO_NOT_LEAK');
       }

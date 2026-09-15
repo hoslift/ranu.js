@@ -48,6 +48,7 @@ export async function terminateProcessTree(child: ChildProcess): Promise<void> {
 /**
  * Run a command to completion and capture stdout/stderr with execution timeout guards.
  * Uses detached process group on POSIX to enable clean process-tree termination.
+ * Resolves pnpm to pnpm.cmd on Windows to ensure reliable subprocess execution.
  */
 export async function runCommand(
   cmd: string,
@@ -57,12 +58,15 @@ export async function runCommand(
   const { timeoutMs = 60000, ...spawnOpts } = options;
   const startTime = Date.now();
 
+  const resolvedCmd =
+    process.platform === 'win32' && cmd === 'pnpm' ? 'pnpm.cmd' : cmd;
+
   return new Promise<RunProcessResult>((resolve, reject) => {
     let stdout = '';
     let stderr = '';
     let isSettled = false;
 
-    const child = spawn(cmd, args, {
+    const child = spawn(resolvedCmd, args, {
       ...spawnOpts,
       detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -88,7 +92,9 @@ export async function runCommand(
     if (timeoutMs > 0) {
       timer = setTimeout(async () => {
         await terminateProcessTree(child);
-        settleReject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd} ${args.join(' ')}`));
+        settleReject(
+          new Error(`Command timed out after ${timeoutMs}ms: ${cmd} ${args.join(' ')}`),
+        );
       }, timeoutMs);
     }
 

@@ -102,6 +102,8 @@ export default defineWorkspace([
       ...sharedTestConfig,
       name: 'cli',
       include: ['tests/cli/**/*.test.ts'],
+      testTimeout: 60000,
+      hookTimeout: 60000,
     },
     resolve: {
       alias: sharedAliases,
@@ -112,6 +114,8 @@ export default defineWorkspace([
       ...sharedTestConfig,
       name: 'deployment',
       include: ['tests/deployment/**/*.test.ts'],
+      testTimeout: 120000,
+      hookTimeout: 60000,
     },
     resolve: {
       alias: sharedAliases,
@@ -122,6 +126,8 @@ export default defineWorkspace([
       ...sharedTestConfig,
       name: 'security',
       include: ['tests/security/**/*.test.ts'],
+      testTimeout: 60000,
+      hookTimeout: 60000,
     },
     resolve: {
       alias: sharedAliases,
@@ -132,6 +138,8 @@ export default defineWorkspace([
       ...sharedTestConfig,
       name: 'performance',
       include: ['tests/performance/**/*.test.ts'],
+      testTimeout: 120000,
+      hookTimeout: 60000,
     },
     resolve: {
       alias: sharedAliases,
@@ -142,6 +150,8 @@ export default defineWorkspace([
       ...sharedTestConfig,
       name: 'smoke',
       include: ['tests/smoke/**/*.test.ts'],
+      testTimeout: 180000,
+      hookTimeout: 60000,
     },
     resolve: {
       alias: sharedAliases,

@@ -14,89 +14,94 @@ permissions:
   contents: read
 
 jobs:
-  core-validation:
-    name: Core Validation (Ubuntu)
-    runs-on: ubuntu-latest
+  build-and-test:
+    name: build-and-test (${{ matrix.os }}, ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [22.x]
+
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
         run_install: false
 
-    - name: Use Node.js 22.x
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: 22.x
+        node-version: ${{ matrix.node-version }}
         cache: 'pnpm'
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    # On Ubuntu (Linux): Run core validation (excluding CLI, deployment, security, perf, smoke, browser E2E)
     - name: TypeScript typecheck
+      if: runner.os == 'Linux'
       run: pnpm typecheck
 
     - name: Build monorepo packages
+      if: runner.os == 'Linux'
       run: pnpm build
 
     - name: ESLint check
+      if: runner.os == 'Linux'
       run: pnpm lint
 
     - name: Unit test suite
+      if: runner.os == 'Linux'
       run: pnpm test:unit
 
     - name: Public API conformance tests
+      if: runner.os == 'Linux'
       run: pnpm test:api
 
     - name: Integration tests
+      if: runner.os == 'Linux'
       run: pnpm test:integration
 
     - name: Check dependency cycles
+      if: runner.os == 'Linux'
       run: pnpm check-cycles
 
     - name: Check public export maps
+      if: runner.os == 'Linux'
       run: pnpm check-exports
 
     - name: Check code formatting
+      if: runner.os == 'Linux'
       run: pnpm format:check
 
     - name: Generate test coverage
+      if: runner.os == 'Linux'
       run: pnpm test:coverage
 
     - name: Upload coverage to Codecov
+      if: runner.os == 'Linux'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: hoslift/ranu.js
 
-  windows-validation:
-    name: Windows Validation
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: pnpm/action-setup@v4
-      with:
-        run_install: false
-
-    - name: Use Node.js 22.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22.x
-        cache: 'pnpm'
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-
+    # On Windows: Validate build and tests covering CLI E2E on native Windows
     - name: Validate build and tests on Windows (including CLI E2E)
+      if: runner.os == 'Windows'
       run: pnpm ci:verify
 
   browser-e2e:
     name: Browser E2E (Playwright Chromium)
-    needs: core-validation
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
@@ -122,10 +127,12 @@ jobs:
 
   security-regression:
     name: Security Regression Harness
-    needs: core-validation
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
@@ -148,10 +155,12 @@ jobs:
 
   deployment-e2e:
     name: Deployment E2E
-    needs: core-validation
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
@@ -174,10 +183,12 @@ jobs:
 
   release-smoke:
     name: Release Tarball Smoke
-    needs: core-validation
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     - uses: pnpm/action-setup@v4
       with:
