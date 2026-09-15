@@ -112,11 +112,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ranu
 
-  fixtures/build-basic:
-    dependencies:
-      '@ranu/config':
-        specifier: workspace:*
-        version: link:../../packages/config
+  fixtures/build-basic: {}
 
   fixtures/build-boundaries:
     dependencies:
