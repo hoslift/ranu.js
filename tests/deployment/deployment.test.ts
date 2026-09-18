@@ -140,9 +140,9 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
       const adapter = vercelAdapter();
 
       await adapter.adapt({
-        rootDir: projectDir,
+        projectRoot: projectDir,
         buildDir: path.join(projectDir, '.ranu/build'),
-        outDir: path.join(projectDir, '.vercel/output'),
+        outputDir: path.join(projectDir, '.vercel/output'),
         routes: [
           { id: 'root', pattern: '/', kind: 'page' },
           { id: 'api-hello', pattern: '/api/hello', kind: 'api' },

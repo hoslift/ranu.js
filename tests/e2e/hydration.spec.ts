@@ -1,15 +1,13 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createTemporaryFixture } from '../helpers/fixture.js';
 import { runCommand, cleanupAllProcesses } from '../helpers/process.js';
 import { getAvailablePort, releasePort } from '../helpers/ports.js';
 import { waitForHttpReady } from '../helpers/http.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const root = path.resolve(__dirname, '../..');
+const root = process.cwd();
 const cliBin = path.join(root, 'packages/cli/dist/bin/ranu.js');
+const cliEnv = { ...process.env, NODE_ENV: 'production' };
 
 test.describe('Phase 28 — Browser E2E: React 19 Hydration & Interactivity', () => {
   let projectDir: string;
@@ -24,14 +22,14 @@ test.describe('Phase 28 — Browser E2E: React 19 Hydration & Interactivity', ()
     port = await getAvailablePort();
 
     // Build project
-    const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
+    const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir, env: cliEnv });
     expect(buildRes.code).toBe(0);
 
     // Boot start server
     serverPromise = runCommand(
       process.execPath,
       [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
-      { cwd: projectDir, timeoutMs: 30000 },
+      { cwd: projectDir, timeoutMs: 30000, env: cliEnv },
     );
 
     await waitForHttpReady(`http://127.0.0.1:${port}/`, { timeoutMs: 15000 });

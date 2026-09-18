@@ -1,7 +1,5 @@
-import { defineConfig } from '@ranu/config';
-
-export default defineConfig({
+export default {
   rendering: {
     defaultMode: 'server',
   },
-});
+};
