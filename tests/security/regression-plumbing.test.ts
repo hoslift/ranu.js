@@ -29,7 +29,7 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
       const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir, env: cliEnv });
       expect(buildRes.code).toBe(0);
 
-      const clientOutDir = path.join(projectDir, '.ranu/build/client');
+      const clientOutDir = path.join(projectDir, '.ranu/build/static');
       // CodeRabbit suggestion: Assert client artifact directory exists to prevent false passes
       expect(fs.existsSync(clientOutDir)).toBe(true);
 
