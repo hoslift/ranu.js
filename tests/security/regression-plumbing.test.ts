@@ -14,6 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '../..');
 const cliBin = path.join(root, 'packages/cli/dist/bin/ranu.js');
+const cliEnv = { ...process.env, NODE_ENV: 'production' };
 
 describe('Phase 28 — Security Regression Infrastructure Harness', () => {
   afterAll(async () => {
@@ -25,7 +26,7 @@ describe('Phase 28 — Security Regression Infrastructure Harness', () => {
     const privateSecret = 'RANU_TEST_PRIVATE_SECRET_9f3c8a1b2d';
 
     try {
-      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
+      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir, env: cliEnv });
       expect(buildRes.code).toBe(0);
 
       const clientOutDir = path.join(projectDir, '.ranu/build/client');

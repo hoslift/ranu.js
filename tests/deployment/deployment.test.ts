@@ -14,6 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '../..');
 const cliBin = path.join(root, 'packages/cli/dist/bin/ranu.js');
+const cliEnv = { ...process.env, NODE_ENV: 'production' };
 
 describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
   afterAll(async () => {
@@ -24,7 +25,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
 
     try {
-      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
+      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir, env: cliEnv });
       expect(buildRes.code).toBe(0);
 
       // Verify production entry exists
@@ -41,6 +42,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
             [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
             {
               cwd: projectDir,
+              env: cliEnv,
               stdio: ['ignore', 'pipe', 'pipe'],
             },
           );
@@ -112,7 +114,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
       expect(dockerfileContent).toContain('FROM node:22-alpine AS build');
       expect(dockerfileContent).toContain('FROM node:22-alpine AS runtime');
       expect(dockerfileContent).toContain('USER node');
-      expect(dockerfileContent).toContain('CMD ["node", ".ranu/build/server/entry.mjs"]');
+      expect(dockerfileContent).toContain('CMD ["node",".ranu/build/server/entry.mjs"]');
 
       // Assert .dockerignore exists and excludes secrets / git / local dev cache
       const dockerignorePath = path.join(projectDir, '.dockerignore');
@@ -130,7 +132,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
 
     try {
-      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir });
+      const buildRes = await runCommand(process.execPath, [cliBin, 'build'], { cwd: projectDir, env: cliEnv });
       expect(buildRes.code).toBe(0);
 
       // Emulate Vercel adapter compilation

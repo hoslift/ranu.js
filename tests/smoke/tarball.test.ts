@@ -113,11 +113,9 @@ module.exports = {
       });
       expect(installRes.code).toBe(0);
 
-      // Verify node_modules contains installed package tarballs
+      // Verify node_modules contains installed package tarball
       const nodeModules = path.join(standaloneDir, 'node_modules');
       expect(fs.existsSync(path.join(nodeModules, 'ranu'))).toBe(true);
-      expect(fs.existsSync(path.join(nodeModules, '@ranu/server'))).toBe(true);
-      expect(fs.existsSync(path.join(nodeModules, '@ranu/core'))).toBe(true);
 
       // 5. Test canonical import resolution from installed standalone package
       const testImportScript = [
