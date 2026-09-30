@@ -84,7 +84,7 @@ export function shouldIgnoreFile(relativePath: string): boolean {
 function canonicalizePath(p: string): string {
   const resolved = path.resolve(p);
   try {
-    return fs.realpathSync.native ? fs.realpathSync.native(resolved) : fs.realpathSync(resolved);
+    return fs.realpathSync.native(resolved);
   } catch {
     return resolved;
   }

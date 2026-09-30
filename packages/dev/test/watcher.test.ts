@@ -186,6 +186,23 @@ describe('ProjectWatcher live file watching', () => {
     }
   });
 
+  it('falls back to resolved path when canonical path resolution fails', () => {
+    const realpathSpy = vi.spyOn(fs.realpathSync, 'native').mockImplementationOnce(() => {
+      throw new Error('realpath failed');
+    });
+    try {
+      expect(() => {
+        watcher = new ProjectWatcher({
+          projectRoot: tempDir,
+          onChange: () => {},
+        });
+      }).not.toThrow();
+      expect(() => watcher!.close()).not.toThrow();
+    } finally {
+      realpathSpy.mockRestore();
+    }
+  });
+
   it('filters out ignored paths (e.g. node_modules) before invoking onChange', async () => {
     const nodeModulesDir = path.join(tempDir, 'node_modules', 'some-pkg');
     fs.mkdirSync(nodeModulesDir, { recursive: true });
