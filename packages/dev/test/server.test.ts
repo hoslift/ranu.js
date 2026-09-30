@@ -9,7 +9,7 @@ describe('DevServer HTTP Server and Lifecycle', () => {
   let devServer: ReturnType<typeof createDevServer> | null;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-'));
+    tempDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-'));
     const appDir = path.join(tempDir, 'app');
     const publicDir = path.join(tempDir, 'public');
     fs.mkdirSync(appDir, { recursive: true });

@@ -138,7 +138,7 @@ describe('DevServer focused coverage', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-coverage-'));
+    tempDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-coverage-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-server-coverage-'));
     harness.initialBuildState = makeBuildState(tempDir);
     harness.coordinators.length = 0;
     harness.watchers.length = 0;

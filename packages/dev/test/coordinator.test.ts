@@ -8,7 +8,7 @@ describe('RebuildCoordinator Incremental Builds', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-coord-'));
+    tempDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-coord-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-coord-'));
     const appDir = path.join(tempDir, 'app');
     fs.mkdirSync(appDir, { recursive: true });
 

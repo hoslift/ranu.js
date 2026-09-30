@@ -81,6 +81,15 @@ export function shouldIgnoreFile(relativePath: string): boolean {
   return false;
 }
 
+function canonicalizePath(p: string): string {
+  const resolved = path.resolve(p);
+  try {
+    return fs.realpathSync.native ? fs.realpathSync.native(resolved) : fs.realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 export class ProjectWatcher {
   private readonly projectRoot: string;
   private readonly debounceMs: number;
@@ -93,7 +102,7 @@ export class ProjectWatcher {
   private debounceTimer: NodeJS.Timeout | null = null;
 
   constructor(options: ProjectWatcherOptions) {
-    this.projectRoot = path.resolve(options.projectRoot);
+    this.projectRoot = canonicalizePath(options.projectRoot);
     this.debounceMs = options.debounceMs ?? 80;
     this.onChange = options.onChange;
     this.onError = options.onError;
@@ -106,7 +115,9 @@ export class ProjectWatcher {
       this.projectRoot,
       path.join(this.projectRoot, 'app'),
       path.join(this.projectRoot, 'public'),
-    ].filter(dir => fs.existsSync(dir));
+    ]
+      .filter((dir) => fs.existsSync(dir))
+      .map((dir) => canonicalizePath(dir));
 
     // Deduplicate watch targets
     const uniqueTargets = Array.from(new Set(watchTargets));
