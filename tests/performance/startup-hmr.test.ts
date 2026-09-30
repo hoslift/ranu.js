@@ -57,44 +57,48 @@ describe('Phase 30 — Performance Baseline: Dev Startup & HMR Benchmarks', () =
 
     try {
       // 1. Cold Dev Server Startup
-      const coldStart = performance.now();
       const devServer = createDevServer({
         projectRoot: projectDir,
         watch: false,
       });
 
-      const address = await devServer.start(port, '127.0.0.1');
-      const coldDurationMs = performance.now() - coldStart;
+      try {
+        const coldStart = performance.now();
+        const address = await devServer.start(port, '127.0.0.1');
+        const coldDurationMs = performance.now() - coldStart;
 
-      expect(address.url).toBe(`http://127.0.0.1:${port}`);
-      await waitForHttpReady(address.url, { timeoutMs: 10000 });
+        expect(address.url).toBe(`http://127.0.0.1:${port}`);
+        await waitForHttpReady(address.url, { timeoutMs: 10000 });
 
-      const res = await fetchText(address.url);
-      expect(res.status).toBe(200);
-      expect(coldDurationMs).toBeGreaterThan(0);
-
-      await devServer.close();
+        const res = await fetchText(address.url);
+        expect(res.status).toBe(200);
+        expect(coldDurationMs).toBeGreaterThan(0);
+      } finally {
+        await devServer.close();
+      }
 
       // 2. Warm Dev Server Startup (on same project directory with existing .ranu/dev)
       const warmPort = await getAvailablePort();
       try {
-        const warmStart = performance.now();
         const warmServer = createDevServer({
           projectRoot: projectDir,
           watch: false,
         });
 
-        const warmAddr = await warmServer.start(warmPort, '127.0.0.1');
-        const warmDurationMs = performance.now() - warmStart;
+        try {
+          const warmStart = performance.now();
+          const warmAddr = await warmServer.start(warmPort, '127.0.0.1');
+          const warmDurationMs = performance.now() - warmStart;
 
-        expect(warmAddr.url).toBe(`http://127.0.0.1:${warmPort}`);
-        await waitForHttpReady(warmAddr.url, { timeoutMs: 10000 });
+          expect(warmAddr.url).toBe(`http://127.0.0.1:${warmPort}`);
+          await waitForHttpReady(warmAddr.url, { timeoutMs: 10000 });
 
-        const warmRes = await fetchText(warmAddr.url);
-        expect(warmRes.status).toBe(200);
-        expect(warmDurationMs).toBeGreaterThan(0);
-
-        await warmServer.close();
+          const warmRes = await fetchText(warmAddr.url);
+          expect(warmRes.status).toBe(200);
+          expect(warmDurationMs).toBeGreaterThan(0);
+        } finally {
+          await warmServer.close();
+        }
       } finally {
         releasePort(warmPort);
       }
@@ -114,56 +118,58 @@ describe('Phase 30 — Performance Baseline: Dev Startup & HMR Benchmarks', () =
         watch: false,
       });
 
-      await devServer.start(port, '127.0.0.1');
-      const targetPage = path.join(projectDir, 'app', 'page.tsx');
+      try {
+        await devServer.start(port, '127.0.0.1');
+        const targetPage = path.join(projectDir, 'app', 'page.tsx');
 
-      const hmrSummary = await runBenchmark(
-        'hmr-incremental-rebuild',
-        'build-basic',
-        async (iter) => {
-          // Simulate an incremental edit
-          const updatedContent = `export default function Page() { return <div>Benchmark Iteration ${iter}</div>; }`;
-          fs.writeFileSync(targetPage, updatedContent, 'utf8');
+        const hmrSummary = await runBenchmark(
+          'hmr-incremental-rebuild',
+          'build-basic',
+          async (iter) => {
+            // Simulate an incremental edit
+            const updatedContent = `export default function Page() { return <div>Benchmark Iteration ${iter}</div>; }`;
+            fs.writeFileSync(targetPage, updatedContent, 'utf8');
 
-          let completed = false;
-          let timeoutHandle: NodeJS.Timeout | null = null;
-          await new Promise<void>((resolve, reject) => {
-            timeoutHandle = setTimeout(() => {
-              if (!completed) {
-                completed = true;
-                reject(new Error('HMR rebuild timed out after 10000ms'));
-              }
-            }, 10000);
+            let completed = false;
+            let timeoutHandle: NodeJS.Timeout | null = null;
+            await new Promise<void>((resolve, reject) => {
+              timeoutHandle = setTimeout(() => {
+                if (!completed) {
+                  completed = true;
+                  reject(new Error('HMR rebuild timed out after 10000ms'));
+                }
+              }, 10000);
 
-            devServer.coordinator.triggerRebuild('file-change', [
-              {
-                path: targetPage,
-                type: 'change',
-              },
-            ]).then(() => {
-              if (!completed) {
-                completed = true;
-                if (timeoutHandle) clearTimeout(timeoutHandle);
-                resolve();
-              }
-            }).catch((err) => {
-              if (!completed) {
-                completed = true;
-                if (timeoutHandle) clearTimeout(timeoutHandle);
-                reject(err);
-              }
+              devServer.coordinator.triggerRebuild('file-change', [
+                {
+                  path: targetPage,
+                  type: 'change',
+                },
+              ]).then(() => {
+                if (!completed) {
+                  completed = true;
+                  if (timeoutHandle) clearTimeout(timeoutHandle);
+                  resolve();
+                }
+              }).catch((err) => {
+                if (!completed) {
+                  completed = true;
+                  if (timeoutHandle) clearTimeout(timeoutHandle);
+                  reject(err);
+                }
+              });
             });
-          });
-        },
-        { iterations: 3, warmupIterations: 1 },
-      );
+          },
+          { iterations: 3, warmupIterations: 1 },
+        );
 
-      expect(hmrSummary.name).toBe('hmr-incremental-rebuild');
-      expect(hmrSummary.medianMs).toBeGreaterThan(0);
-      expect(hmrSummary.medianMs).toBeLessThan(3000); // HMR rebuild should finish in under 3s
-      expect(hmrSummary.p95Ms).toBeGreaterThan(0);
-
-      await devServer.close();
+        expect(hmrSummary.name).toBe('hmr-incremental-rebuild');
+        expect(hmrSummary.medianMs).toBeGreaterThan(0);
+        expect(hmrSummary.medianMs).toBeLessThan(3000); // HMR rebuild should finish in under 3s
+        expect(hmrSummary.p95Ms).toBeGreaterThan(0);
+      } finally {
+        await devServer.close();
+      }
     } finally {
       releasePort(port);
       await cleanup();

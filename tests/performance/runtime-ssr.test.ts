@@ -21,6 +21,7 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
   it('measures production server startup latency and SSR request roundtrip', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
     const port = await getAvailablePort();
+    let serverProcessPromise: Promise<unknown> | null = null;
 
     try {
       // 1. Build the fixture
@@ -32,7 +33,7 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
 
       // 2. Measure production server startup time
       const serverStart = performance.now();
-      const serverProcessPromise = runCommand(
+      serverProcessPromise = runCommand(
         process.execPath,
         [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
         { cwd: projectDir, env: cliEnv, timeoutMs: 30000 },
@@ -84,10 +85,11 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
 
       expect(apiSummary.medianMs).toBeGreaterThan(0);
       expect(apiSummary.medianMs).toBeLessThan(300);
-
-      await cleanupAllProcesses();
-      await serverProcessPromise.catch(() => {});
     } finally {
+      await cleanupAllProcesses();
+      if (serverProcessPromise) {
+        await serverProcessPromise.catch(() => {});
+      }
       releasePort(port);
       await cleanup();
     }
@@ -96,6 +98,7 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
   it('measures concurrent SSR throughput and verifies memory stability under load', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
     const port = await getAvailablePort();
+    let serverProcessPromise: Promise<unknown> | null = null;
 
     try {
       // 1. Build
@@ -106,7 +109,7 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
       expect(buildRes.code).toBe(0);
 
       // 2. Start
-      const serverProcessPromise = runCommand(
+      serverProcessPromise = runCommand(
         process.execPath,
         [cliBin, 'start', '--port', String(port), '--host', '127.0.0.1'],
         { cwd: projectDir, env: cliEnv, timeoutMs: 30000 },
@@ -148,10 +151,11 @@ describe('Phase 30 — Performance Baseline: Production Server & SSR Benchmarks'
 
       // Under 20 local fetch requests, client process heap should not experience uncontrolled leak (< 100MB)
       expect(memGrowthMb).toBeLessThan(100);
-
-      await cleanupAllProcesses();
-      await serverProcessPromise.catch(() => {});
     } finally {
+      await cleanupAllProcesses();
+      if (serverProcessPromise) {
+        await serverProcessPromise.catch(() => {});
+      }
       releasePort(port);
       await cleanup();
     }

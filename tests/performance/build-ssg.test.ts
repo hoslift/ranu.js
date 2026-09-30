@@ -82,6 +82,13 @@ describe('Phase 30 — Performance Baseline: Production Build & SSG Benchmarks',
     const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
 
     try {
+      // Configure root page for static pre-rendering
+      fs.writeFileSync(
+        path.join(projectDir, 'app', 'page.tsx'),
+        `import React from 'react';\nexport const render = 'static';\nexport default function HomePage() { return <div><h1>Home</h1></div>; }\n`,
+        'utf8',
+      );
+
       // Add additional static pages to measure throughput across multiple pages
       const pagesToCreate = ['blog', 'docs', 'pricing', 'features', 'contact'];
       for (const p of pagesToCreate) {
@@ -89,7 +96,7 @@ describe('Phase 30 — Performance Baseline: Production Build & SSG Benchmarks',
         fs.mkdirSync(pageDir, { recursive: true });
         fs.writeFileSync(
           path.join(pageDir, 'page.tsx'),
-          `export default function ${p.toUpperCase()}Page() { return <div><h1>${p} Page</h1><p>Static content for ${p}</p></div>; }`,
+          `import React from 'react';\nexport const render = 'static';\nexport default function ${p.toUpperCase()}Page() { return <div><h1>${p} Page</h1><p>Static content for ${p}</p></div>; }\n`,
           'utf8',
         );
       }
@@ -109,9 +116,20 @@ describe('Phase 30 — Performance Baseline: Production Build & SSG Benchmarks',
       const staticDir = path.join(projectDir, '.ranu', 'build', 'static');
       expect(fs.existsSync(staticDir)).toBe(true);
 
-      const totalPages = pagesToCreate.length + 1; // + index page
-      const ssgThroughputPagesPerSec = (totalPages / (totalBuildMs / 1000));
+      const expectedPages = [
+        'index.html',
+        ...pagesToCreate.map((p) => `${p}.html`),
+      ];
+      let verifiedPageCount = 0;
+      for (const pageFile of expectedPages) {
+        const pagePath = path.join(staticDir, 'pages', pageFile);
+        expect(fs.existsSync(pagePath)).toBe(true);
+        verifiedPageCount++;
+      }
 
+      const ssgThroughputPagesPerSec = (verifiedPageCount / (totalBuildMs / 1000));
+
+      expect(verifiedPageCount).toBe(expectedPages.length);
       expect(ssgThroughputPagesPerSec).toBeGreaterThan(0);
       expect(totalBuildMs).toBeLessThan(20000);
     } finally {

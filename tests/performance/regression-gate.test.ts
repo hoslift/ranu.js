@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   type BenchmarkSummary,
   compareWithBaseline,
+  compareMetricWithBaseline,
   saveBaselineReport,
   loadBaselineReport,
 } from '../helpers/benchmark.js';
@@ -109,5 +110,34 @@ describe('Phase 30 — Performance Baseline: Regression Gate & Baseline Manageme
   it('handles non-existent baseline file gracefully', () => {
     const nonExistent = path.join(os.tmpdir(), `non-existent-${Date.now()}.json`);
     expect(loadBaselineReport(nonExistent)).toBeNull();
+  });
+
+  it('loads committed benchmarks/baseline.json and verifies baseline metrics against thresholds', () => {
+    const committedBaselinePath = path.join(root, 'benchmarks', 'baseline.json');
+    expect(fs.existsSync(committedBaselinePath)).toBe(true);
+
+    const report = loadBaselineReport(committedBaselinePath) as any;
+    expect(report).toBeDefined();
+    expect(report.metrics).toBeDefined();
+    expect(report.metrics.cliColdStartupMedianMs).toBeGreaterThan(0);
+    expect(report.metrics.productionBuildColdMedianMs).toBeGreaterThan(0);
+
+    // Verify comparison against committed baseline values
+    const cliComparison = compareMetricWithBaseline(
+      'cliColdStartupMedianMs',
+      report.metrics.cliColdStartupMedianMs * 1.1, // 10% delta (pass)
+      report.metrics.cliColdStartupMedianMs,
+      20,
+    );
+    expect(cliComparison.isRegression).toBe(false);
+
+    const regressionComparison = compareMetricWithBaseline(
+      'productionBuildColdMedianMs',
+      report.metrics.productionBuildColdMedianMs * 1.35, // 35% delta (regression)
+      report.metrics.productionBuildColdMedianMs,
+      20,
+    );
+    expect(regressionComparison.isRegression).toBe(true);
+    expect(regressionComparison.summary).toContain('REGRESSION');
   });
 });

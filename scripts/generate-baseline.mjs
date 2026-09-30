@@ -33,9 +33,10 @@ for (let i = 0; i < 5; i++) {
     encoding: 'utf8',
     env: { ...process.env, NODE_ENV: 'production' },
   });
-  if (res.status === 0) {
-    cliDurations.push(performance.now() - start);
+  if (res.status !== 0) {
+    throw new Error(`CLI cold startup failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`);
   }
+  cliDurations.push(performance.now() - start);
 }
 cliDurations.sort((a, b) => a - b);
 const cliMedian = cliDurations[Math.floor(cliDurations.length / 2)] || 0;
@@ -51,9 +52,10 @@ for (let i = 0; i < 3; i++) {
     encoding: 'utf8',
     env: { ...process.env, NODE_ENV: 'production' },
   });
-  if (res.status === 0) {
-    buildDurations.push(performance.now() - start);
+  if (res.status !== 0) {
+    throw new Error(`Production build failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`);
   }
+  buildDurations.push(performance.now() - start);
 }
 buildDurations.sort((a, b) => a - b);
 const buildMedian = buildDurations[Math.floor(buildDurations.length / 2)] || 0;

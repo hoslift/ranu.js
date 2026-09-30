@@ -120,15 +120,19 @@ describe('Phase 30 — Performance Baseline: Bundle Size & Artifact Budgets', ()
     for (const pkg of corePackages) {
       const distDir = path.join(root, 'packages', pkg, 'dist');
       if (fs.existsSync(distDir)) {
-        const files = fs.readdirSync(distDir);
-        for (const file of files) {
-          const filePath = path.join(distDir, file);
-          const stat = fs.statSync(filePath);
-          if (stat.isFile()) {
-            // Single compiled library file should not exceed 5MB
-            expect(stat.size).toBeLessThan(5 * 1024 * 1024);
+        const checkDirectory = (directory: string): void => {
+          for (const file of fs.readdirSync(directory)) {
+            const filePath = path.join(directory, file);
+            const stat = fs.statSync(filePath);
+            if (stat.isDirectory()) {
+              checkDirectory(filePath);
+            } else if (stat.isFile()) {
+              // Single compiled library file should not exceed 5MB
+              expect(stat.size).toBeLessThan(5 * 1024 * 1024);
+            }
           }
-        }
+        };
+        checkDirectory(distDir);
       }
     }
   });

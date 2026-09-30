@@ -251,6 +251,53 @@ export async function runThroughputBenchmark(
   };
 }
 
+export interface FrameworkBaselineReport {
+  version: string;
+  timestamp: string;
+  environment: {
+    nodeVersion: string;
+    platform: string;
+    arch: string;
+    cpuModel: string;
+    totalMemoryGb: number;
+  };
+  metrics: Record<string, number>;
+  thresholds?: {
+    maxRegressionPercent?: number;
+    maxBundleGzipKb?: number;
+    maxBuildDurationMs?: number;
+    maxCliStartupMs?: number;
+    [key: string]: number | undefined;
+  };
+  summaries?: Record<string, BenchmarkSummary>;
+}
+
+/**
+ * Compare two numeric metric values against a threshold percentage.
+ */
+export function compareMetricWithBaseline(
+  metricName: string,
+  currentValue: number,
+  baselineValue: number,
+  maxRegressionPercent: number = 20,
+): BaselineComparisonResult {
+  const delta = currentValue - baselineValue;
+  const deltaPercent = baselineValue > 0 ? (delta / baselineValue) * 100 : 0;
+  const isRegression = deltaPercent > maxRegressionPercent;
+
+  return {
+    metric: metricName,
+    currentValue,
+    baselineValue,
+    deltaPercent: Number(deltaPercent.toFixed(2)),
+    isRegression,
+    thresholdPercent: maxRegressionPercent,
+    summary: isRegression
+      ? `REGRESSION: ${metricName} slowed by ${deltaPercent.toFixed(1)}% (current: ${currentValue}, baseline: ${baselineValue}, threshold: +${maxRegressionPercent}%)`
+      : `PASS: ${metricName} changed by ${deltaPercent.toFixed(1)}% (current: ${currentValue}, baseline: ${baselineValue})`,
+  };
+}
+
 /**
  * Compare current benchmark results with baseline to detect performance regressions (> threshold%).
  */
@@ -259,24 +306,12 @@ export function compareWithBaseline(
   baseline: BenchmarkSummary,
   maxRegressionPercent: number = 20,
 ): BaselineComparisonResult {
-  const currentMs = current.medianMs;
-  const baselineMs = baseline.medianMs;
-
-  const delta = currentMs - baselineMs;
-  const deltaPercent = baselineMs > 0 ? (delta / baselineMs) * 100 : 0;
-  const isRegression = deltaPercent > maxRegressionPercent;
-
-  return {
-    metric: `${current.name} (medianMs)`,
-    currentValue: currentMs,
-    baselineValue: baselineMs,
-    deltaPercent: Number(deltaPercent.toFixed(2)),
-    isRegression,
-    thresholdPercent: maxRegressionPercent,
-    summary: isRegression
-      ? `REGRESSION: ${current.name} slowed by ${deltaPercent.toFixed(1)}% (current: ${currentMs}ms, baseline: ${baselineMs}ms, threshold: +${maxRegressionPercent}%)`
-      : `PASS: ${current.name} changed by ${deltaPercent.toFixed(1)}% (current: ${currentMs}ms, baseline: ${baselineMs}ms)`,
-  };
+  return compareMetricWithBaseline(
+    `${current.name} (medianMs)`,
+    current.medianMs,
+    baseline.medianMs,
+    maxRegressionPercent,
+  );
 }
 
 /**
@@ -284,7 +319,7 @@ export function compareWithBaseline(
  */
 export function saveBaselineReport(
   filePath: string,
-  baselineData: Record<string, BenchmarkSummary>,
+  baselineData: Record<string, BenchmarkSummary> | FrameworkBaselineReport,
 ): void {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
@@ -294,9 +329,12 @@ export function saveBaselineReport(
 }
 
 /**
- * Load baseline reports from JSON file on disk.
+ * Load baseline reports from JSON file on disk. Supports both raw BenchmarkSummary dictionaries
+ * and top-level FrameworkBaselineReport schemas.
  */
-export function loadBaselineReport(filePath: string): Record<string, BenchmarkSummary> | null {
+export function loadBaselineReport(
+  filePath: string,
+): Record<string, BenchmarkSummary> | FrameworkBaselineReport | null {
   if (!fs.existsSync(filePath)) {
     return null;
   }
