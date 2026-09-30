@@ -224,6 +224,21 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       ).toBe(true);
       expect(dotfile.writeHead).toHaveBeenCalledWith(403, expect.anything());
 
+      const canonicalDotfile = response();
+      const regularFile = path.join(root, 'alias.txt');
+      fs.writeFileSync(regularFile, 'secret');
+      const spyRealpath = vi.spyOn(fs, 'realpathSync').mockImplementation((p) => {
+        if (typeof p === 'string' && p.endsWith('alias.txt')) {
+          return path.join(root, '.env');
+        }
+        return p as string;
+      });
+      expect(
+        serveStaticFile(regularFile, root, {} as any, canonicalDotfile as any),
+      ).toBe(true);
+      expect(canonicalDotfile.writeHead).toHaveBeenCalledWith(403, expect.anything());
+      spyRealpath.mockRestore();
+
       expect(serveStaticFile(path.join(root, 'missing'), root, {} as any, response() as any)).toBe(
         false,
       );

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -76,6 +76,26 @@ describe('artifact-writer', () => {
     expect(fs.existsSync(stagingDir)).toBe(true);
     cleanupTempArtifacts(stagingDir);
     expect(fs.existsSync(stagingDir)).toBe(false);
+  });
+
+  it('re-throws when cleanupTempArtifacts targets an unsafe deletion path', () => {
+    const unsafeDir = path.join(path.parse(process.cwd()).root, 'unsafe-cleanup-test-dir');
+    fs.mkdirSync(unsafeDir, { recursive: true });
+    try {
+      expect(() => cleanupTempArtifacts(unsafeDir)).toThrow('Refusing to delete unauthorized path');
+    } finally {
+      fs.rmSync(unsafeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('silently ignores cleanup I/O errors when fs.rmSync fails for ordinary errors', () => {
+    const stagingDir = path.join(tempDir, '.build_temp_io_err');
+    fs.mkdirSync(stagingDir, { recursive: true });
+    const spy = vi.spyOn(fs, 'rmSync').mockImplementationOnce(() => {
+      throw new Error('EPERM: operation not permitted');
+    });
+    expect(() => cleanupTempArtifacts(stagingDir)).not.toThrow();
+    spy.mockRestore();
   });
 
   describe('assertSafeDeletePath', () => {

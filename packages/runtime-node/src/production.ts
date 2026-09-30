@@ -162,15 +162,6 @@ export function serveStaticFile(
   }
 
   const safeFile = path.resolve(normalizedRoot, '.' + path.sep + relativeFromRoot);
-  if (
-    !safeFile.startsWith(normalizedRoot + path.sep) &&
-    safeFile !== normalizedRoot
-  ) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Forbidden: Path traversal is prohibited');
-    return true;
-  }
-
   if (!fs.existsSync(safeFile)) {
     return false;
   }
@@ -204,15 +195,6 @@ export function serveStaticFile(
   }
 
   const safeRealFile = path.resolve(realRoot, '.' + path.sep + relativeReal);
-  if (
-    !safeRealFile.startsWith(realRoot + path.sep) &&
-    safeRealFile !== realRoot
-  ) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Forbidden: Path traversal is prohibited');
-    return true;
-  }
-
   const stat = fs.statSync(safeRealFile);
   if (!stat.isFile()) {
     return false;
