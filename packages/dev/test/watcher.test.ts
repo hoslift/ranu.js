@@ -82,7 +82,7 @@ describe('ProjectWatcher live file watching', () => {
   let watcher: ProjectWatcher | null;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-'));
+    tempDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-'));
     appDir = path.join(tempDir, 'app');
     fs.mkdirSync(appDir, { recursive: true });
     watcher = null;
@@ -172,7 +172,7 @@ describe('ProjectWatcher live file watching', () => {
   }, 8000);
 
   it('does not throw when only the project root exists (no app/public subdirectories)', () => {
-    const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-bare-'));
+    const bareDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-bare-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-watcher-bare-'));
     try {
       expect(() => {
         watcher = new ProjectWatcher({
@@ -183,6 +183,23 @@ describe('ProjectWatcher live file watching', () => {
       expect(() => watcher!.close()).not.toThrow();
     } finally {
       fs.rmSync(bareDir, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back to resolved path when canonical path resolution fails', () => {
+    const realpathSpy = vi.spyOn(fs.realpathSync, 'native').mockImplementationOnce(() => {
+      throw new Error('realpath failed');
+    });
+    try {
+      expect(() => {
+        watcher = new ProjectWatcher({
+          projectRoot: tempDir,
+          onChange: () => {},
+        });
+      }).not.toThrow();
+      expect(() => watcher!.close()).not.toThrow();
+    } finally {
+      realpathSpy.mockRestore();
     }
   });
 

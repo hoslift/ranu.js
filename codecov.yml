@@ -8,3 +8,6 @@ coverage:
 ignore:
   - 'scripts/**'
   - 'vitest.workspace.ts'
+  - 'tests/**'
+  - 'fixtures/**'
+  - 'playwright.config.ts'

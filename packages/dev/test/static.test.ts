@@ -43,7 +43,7 @@ describe('Development Static File Server', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-static-'));
+    tempDir = fs.realpathSync.native ? fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-static-'))) : fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-dev-static-'));
   });
 
   afterEach(() => {

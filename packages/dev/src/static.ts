@@ -42,11 +42,16 @@ export function serveStaticFile(
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ): boolean {
-  const normalizedFile = path.resolve(fullPath);
   const normalizedRoot = path.resolve(authorizedRoot);
+  const normalizedFile = path.resolve(fullPath);
 
   // Security guard: Ensure target file is strictly contained within authorized root
-  if (!isPathContained(normalizedFile, normalizedRoot)) {
+  const relativeFromRoot = path.relative(normalizedRoot, normalizedFile);
+  if (
+    relativeFromRoot.startsWith('..') ||
+    path.isAbsolute(relativeFromRoot) ||
+    !isPathContained(normalizedFile, normalizedRoot)
+  ) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden: Path traversal is prohibited');
     return true;
@@ -65,7 +70,12 @@ export function serveStaticFile(
     return false;
   }
 
-  if (!isPathContained(realFile, realRoot)) {
+  const relativeReal = path.relative(realRoot, realFile);
+  if (
+    relativeReal.startsWith('..') ||
+    path.isAbsolute(relativeReal) ||
+    !isPathContained(realFile, realRoot)
+  ) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden: Path traversal is prohibited');
     return true;
