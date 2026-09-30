@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -8,6 +8,7 @@ import {
   formatJson,
   promoteBuildArtifacts,
   cleanupTempArtifacts,
+  assertSafeDeletePath,
 } from '../src/output/artifact-writer.js';
 
 describe('artifact-writer', () => {
@@ -75,5 +76,60 @@ describe('artifact-writer', () => {
     expect(fs.existsSync(stagingDir)).toBe(true);
     cleanupTempArtifacts(stagingDir);
     expect(fs.existsSync(stagingDir)).toBe(false);
+  });
+
+  it('re-throws when cleanupTempArtifacts targets an unsafe deletion path', () => {
+    expect(() => cleanupTempArtifacts(os.homedir())).toThrow('Refusing to delete user home directory');
+  });
+
+  it('silently ignores cleanup I/O errors when fs.rmSync fails for ordinary errors', () => {
+    const stagingDir = path.join(tempDir, '.build_temp_io_err');
+    fs.mkdirSync(stagingDir, { recursive: true });
+    const spy = vi.spyOn(fs, 'rmSync').mockImplementationOnce(() => {
+      throw new Error('EPERM: operation not permitted');
+    });
+    expect(() => cleanupTempArtifacts(stagingDir)).not.toThrow();
+    spy.mockRestore();
+  });
+
+  describe('assertSafeDeletePath', () => {
+    it('allows valid deletion paths within .ranu and temp folders', () => {
+      const validRanu = path.join(tempDir, '.ranu', 'build');
+      expect(() => assertSafeDeletePath(validRanu)).not.toThrow();
+
+      const validTemp = path.join(tempDir, 'staging');
+      expect(() => assertSafeDeletePath(validTemp)).not.toThrow();
+    });
+
+    it('rejects invalid or empty target paths', () => {
+      expect(() => assertSafeDeletePath('')).toThrow('Refusing to delete invalid path');
+      expect(() => assertSafeDeletePath(null as any)).toThrow('Refusing to delete invalid path');
+      expect(() => assertSafeDeletePath('   ')).toThrow('Refusing to delete invalid path');
+    });
+
+    it('rejects deletion of filesystem root', () => {
+      expect(() => assertSafeDeletePath('/')).toThrow('Refusing to delete filesystem root');
+      const rootDrive = path.parse(process.cwd()).root;
+      expect(() => assertSafeDeletePath(rootDrive)).toThrow('Refusing to delete filesystem root');
+    });
+
+    it('rejects deletion of user home directory', () => {
+      expect(() => assertSafeDeletePath(os.homedir())).toThrow('Refusing to delete user home directory');
+    });
+
+    it('rejects deletion of system temporary root', () => {
+      expect(() => assertSafeDeletePath(os.tmpdir())).toThrow('Refusing to delete system temporary directory itself');
+    });
+
+    it('rejects deletion outside allowed boundaries when not in .ranu or temp', () => {
+      const outsideDir = path.join(path.parse(process.cwd()).root, 'my-arbitrary-folder');
+      expect(() => assertSafeDeletePath(outsideDir)).toThrow('Refusing to delete unauthorized path');
+
+      const pseudoRanu = path.join(path.parse(process.cwd()).root, '.ranu-backup');
+      expect(() => assertSafeDeletePath(pseudoRanu)).toThrow('Refusing to delete unauthorized path');
+
+      const ranurc = path.join(path.parse(process.cwd()).root, '.ranurc');
+      expect(() => assertSafeDeletePath(ranurc)).toThrow('Refusing to delete unauthorized path');
+    });
   });
 });

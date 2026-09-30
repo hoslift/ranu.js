@@ -56,3 +56,36 @@ export const PATH_TRAVERSAL_VECTORS = [
   '/etc/passwd',
   'C:\\Windows\\win.ini',
 ];
+
+/**
+ * Standard dotfile paths that must never be served as static files.
+ */
+export const DOTFILE_VECTORS = [
+  '/.env',
+  '/.env.local',
+  '/.env.production',
+  '/.git/HEAD',
+  '/.git/config',
+  '/.gitignore',
+  '/.ranu/build/server/entry.mjs',
+];
+
+/**
+ * Standard CRLF / response splitting attack vectors.
+ */
+export const CRLF_INJECTION_VECTORS = [
+  'evil\r\nInjected-Header: injected_value',
+  'text/html\r\nSet-Cookie: session=hacked; Path=/',
+  'attachment; filename="test.pdf"\r\n\r\n<script>alert(1)</script>',
+];
+
+/**
+ * Standard adversarial XSS and script breakout sequences.
+ */
+export const XSS_SCRIPT_BREAKOUT_VECTORS = [
+  '</script><script>alert("xss")</script>',
+  '<!--<script>',
+  '"><script>alert(document.cookie)</script>',
+  '</script><svg onload=alert(1)>',
+  'Line1\u2028Line2\u2029Line3',
+];

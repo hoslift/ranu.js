@@ -231,6 +231,41 @@ describe('@ranu/runtime-node', () => {
       expect(headersSet['set-cookie']).toEqual(['a=1; Path=/; HttpOnly', 'b=2; Path=/; Secure']);
     });
 
+    it('sanitizes CRLF characters in statusMessage and headers', async () => {
+      const mockWebResponse = {
+        status: 200,
+        statusText: 'OK\r\nInjected-Header: evil',
+        headers: {
+          getSetCookie: () => ['session=123\r\nX-Injected: bad'],
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('val\r\nInjected: evil', 'x-custom');
+          },
+        },
+        body: null,
+      } as unknown as Response;
+
+      const headersSet: Record<string, any> = {};
+      const res = {
+        statusCode: 200,
+        statusMessage: '',
+        setHeader(k: string, v: any) {
+          headersSet[k.toLowerCase()] = v;
+        },
+        end() {
+          this.writableEnded = true;
+        },
+        writableEnded: false,
+        destroyed: false,
+      } as unknown as ServerResponse;
+
+      const signal = new AbortController().signal;
+      await writeWebResponse(mockWebResponse, res, { signal });
+
+      expect(res.statusMessage).toBe('OK Injected-Header: evil');
+      expect(headersSet['set-cookie']).toEqual(['session=123 X-Injected: bad']);
+      expect(headersSet['x-custom']).toBe('val Injected: evil');
+    });
+
     it('suppresses response body for 204, 304, and isBodylessStatus', async () => {
       expect(isBodylessStatus(204)).toBe(true);
       expect(isBodylessStatus(304)).toBe(true);

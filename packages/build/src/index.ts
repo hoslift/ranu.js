@@ -38,6 +38,7 @@ export {
   isPathContained,
   normalizePath,
   formatJson,
+  assertSafeDeletePath,
   promoteBuildArtifacts,
   cleanupTempArtifacts,
 } from './output/artifact-writer.js';

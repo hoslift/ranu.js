@@ -138,40 +138,69 @@ export function serveStaticFile(
   res: ServerResponse,
   cacheControl = 'public, max-age=3600',
 ): boolean {
-  const normalizedFile = path.resolve(fullPath);
   const normalizedRoot = path.resolve(authorizedRoot);
+  const normalizedFile = path.resolve(fullPath);
 
-  if (!isPathContained(normalizedFile, normalizedRoot)) {
+  // Security guard: Ensure target file is strictly contained within authorized root
+  const relativeFromRoot = path.relative(normalizedRoot, normalizedFile);
+  if (
+    relativeFromRoot.startsWith('..') ||
+    path.isAbsolute(relativeFromRoot) ||
+    !isPathContained(normalizedFile, normalizedRoot)
+  ) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden: Path traversal is prohibited');
     return true;
   }
 
-  if (!fs.existsSync(normalizedFile)) {
+  // Security guard: Prohibit dotfiles (.env, .git, etc.) from being served as static assets
+  const segments = relativeFromRoot.split(/[\\/]/);
+  if (segments.some((seg) => seg.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Access to hidden files is prohibited');
+    return true;
+  }
+
+  const safeFile = path.resolve(normalizedRoot, '.' + path.sep + relativeFromRoot);
+  if (!fs.existsSync(safeFile)) {
     return false;
   }
 
   let realFile: string;
   let realRoot: string;
   try {
-    realFile = fs.realpathSync(normalizedFile);
+    realFile = fs.realpathSync(safeFile);
     realRoot = fs.realpathSync(normalizedRoot);
   } catch {
     return false;
   }
 
-  if (!isPathContained(realFile, realRoot)) {
+  const relativeReal = path.relative(realRoot, realFile);
+  if (
+    relativeReal.startsWith('..') ||
+    path.isAbsolute(relativeReal) ||
+    !isPathContained(realFile, realRoot)
+  ) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden: Path traversal is prohibited');
     return true;
   }
 
-  const stat = fs.statSync(realFile);
+  // Security guard: Prohibit canonical hidden files (symlinks pointing to .env, .git, etc.)
+  const realSegments = relativeReal.split(/[\\/]/);
+  if (realSegments.some((seg) => seg.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Access to hidden files is prohibited');
+    return true;
+  }
+
+  const safeRealFile = path.resolve(realRoot, '.' + path.sep + relativeReal);
+  const stat = fs.statSync(safeRealFile);
   if (!stat.isFile()) {
     return false;
   }
 
-  const mimeType = getMimeType(realFile);
+  const mimeType = getMimeType(safeRealFile);
   const isHead = req.method?.toUpperCase() === 'HEAD';
 
   res.writeHead(200, {
@@ -185,7 +214,7 @@ export function serveStaticFile(
     return true;
   }
 
-  const stream = fs.createReadStream(realFile);
+  const stream = fs.createReadStream(safeRealFile);
   stream.on('error', (err) => res.destroy(err));
   res.on('close', () => {
     if (!stream.destroyed) stream.destroy();
@@ -412,7 +441,17 @@ export function createProductionRequestHandler(
     // 1. Immutable static framework assets (/_ranu/assets/*)
     if (pathname.startsWith('/_ranu/assets/')) {
       const relPath = pathname.slice('/_ranu/assets/'.length);
-      const targetFile = path.join(staticAssetsDir, relPath);
+      const targetFile = path.resolve(staticAssetsDir, '.' + path.sep + relPath);
+      const relCheck = path.relative(staticAssetsDir, targetFile);
+      if (
+        relCheck.startsWith('..') ||
+        path.isAbsolute(relCheck) ||
+        !isPathContained(targetFile, staticAssetsDir)
+      ) {
+        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Forbidden: Path traversal is prohibited');
+        return;
+      }
       const served = serveStaticFile(
         targetFile,
         staticAssetsDir,
@@ -426,8 +465,14 @@ export function createProductionRequestHandler(
     // 2. Public static assets in static/assets/
     if (pathname !== '/') {
       const relPath = pathname.replace(/^\//, '');
-      const targetFile = path.join(staticAssetsDir, relPath);
-      if (isPathContained(targetFile, staticAssetsDir) && fs.existsSync(targetFile)) {
+      const targetFile = path.resolve(staticAssetsDir, '.' + path.sep + relPath);
+      const relCheck = path.relative(staticAssetsDir, targetFile);
+      if (
+        !relCheck.startsWith('..') &&
+        !path.isAbsolute(relCheck) &&
+        isPathContained(targetFile, staticAssetsDir) &&
+        fs.existsSync(targetFile)
+      ) {
         const served = serveStaticFile(
           targetFile,
           staticAssetsDir,
@@ -443,8 +488,14 @@ export function createProductionRequestHandler(
     const publicDir = path.join(projectRoot, 'public');
     if (fs.existsSync(publicDir) && pathname !== '/') {
       const relPath = pathname.replace(/^\//, '');
-      const targetFile = path.join(publicDir, relPath);
-      if (isPathContained(targetFile, publicDir) && fs.existsSync(targetFile)) {
+      const targetFile = path.resolve(publicDir, '.' + path.sep + relPath);
+      const relCheck = path.relative(publicDir, targetFile);
+      if (
+        !relCheck.startsWith('..') &&
+        !path.isAbsolute(relCheck) &&
+        isPathContained(targetFile, publicDir) &&
+        fs.existsSync(targetFile)
+      ) {
         const served = serveStaticFile(targetFile, publicDir, req, res, 'public, max-age=3600');
         if (served) return;
       }
