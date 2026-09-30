@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-09-30T19:52:36.305Z",
+  "environment": {
+    "nodeVersion": "v24.19.0",
+    "platform": "win32",
+    "arch": "arm64",
+    "cpuModel": "virt-7.2",
+    "totalMemoryGb": 12
+  },
+  "metrics": {
+    "cliColdStartupMedianMs": 1007.82,
+    "productionBuildColdMedianMs": 1820.31,
+    "clientBundleTotalRawKb": 0.28,
+    "clientBundleTotalGzipKb": 0.24
+  },
+  "thresholds": {
+    "maxRegressionPercent": 20,
+    "maxBundleGzipKb": 300,
+    "maxBuildDurationMs": 15000,
+    "maxCliStartupMs": 3000
+  }
+}
