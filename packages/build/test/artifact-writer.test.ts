@@ -79,13 +79,7 @@ describe('artifact-writer', () => {
   });
 
   it('re-throws when cleanupTempArtifacts targets an unsafe deletion path', () => {
-    const unsafeDir = path.join(path.parse(process.cwd()).root, 'unsafe-cleanup-test-dir');
-    fs.mkdirSync(unsafeDir, { recursive: true });
-    try {
-      expect(() => cleanupTempArtifacts(unsafeDir)).toThrow('Refusing to delete unauthorized path');
-    } finally {
-      fs.rmSync(unsafeDir, { recursive: true, force: true });
-    }
+    expect(() => cleanupTempArtifacts(os.homedir())).toThrow('Refusing to delete user home directory');
   });
 
   it('silently ignores cleanup I/O errors when fs.rmSync fails for ordinary errors', () => {
