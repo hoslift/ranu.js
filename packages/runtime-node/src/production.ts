@@ -147,6 +147,15 @@ export function serveStaticFile(
     return true;
   }
 
+  // Security guard: Prohibit dotfiles (.env, .git, etc.) from being served as static assets
+  const relativeFromRoot = path.relative(normalizedRoot, normalizedFile);
+  const segments = relativeFromRoot.split(/[\\/]/);
+  if (segments.some((seg) => seg.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Access to hidden files is prohibited');
+    return true;
+  }
+
   if (!fs.existsSync(normalizedFile)) {
     return false;
   }

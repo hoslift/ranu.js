@@ -36,13 +36,18 @@ export async function writeWebResponse(
   // 1. Set HTTP status
   res.statusCode = response.status;
   if (response.statusText) {
-    res.statusMessage = response.statusText;
+    res.statusMessage = response.statusText.replace(/[\r\n]+/g, ' ').trim();
   }
 
   // 2. Set headers
   const setCookies = response.headers.getSetCookie?.() ?? [];
   if (setCookies.length > 0) {
-    res.setHeader('Set-Cookie', setCookies);
+    const sanitizedCookies = setCookies
+      .map((c) => c.replace(/[\r\n]+/g, ' ').trim())
+      .filter(Boolean);
+    if (sanitizedCookies.length > 0) {
+      res.setHeader('Set-Cookie', sanitizedCookies);
+    }
   }
 
   response.headers.forEach((value, key) => {
@@ -50,7 +55,10 @@ export async function writeWebResponse(
       // Already set via getSetCookie() to prevent comma-joining
       return;
     }
-    res.setHeader(key, value);
+    const sanitizedKey = key.replace(/[\r\n]+/g, '').trim();
+    if (!sanitizedKey) return;
+    const sanitizedValue = typeof value === 'string' ? value.replace(/[\r\n]+/g, ' ').trim() : value;
+    res.setHeader(sanitizedKey, sanitizedValue);
   });
 
   // 3. Bodyless status codes (1xx, 204, 304) and explicit body suppression (HEAD)
