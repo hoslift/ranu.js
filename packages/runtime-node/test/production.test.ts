@@ -217,6 +217,13 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
         serveStaticFile(path.join(root, '..', 'secret'), root, {} as any, forbidden as any),
       ).toBe(true);
       expect(forbidden.writeHead).toHaveBeenCalledWith(403, expect.anything());
+
+      const dotfile = response();
+      expect(
+        serveStaticFile(path.join(root, '.env'), root, {} as any, dotfile as any),
+      ).toBe(true);
+      expect(dotfile.writeHead).toHaveBeenCalledWith(403, expect.anything());
+
       expect(serveStaticFile(path.join(root, 'missing'), root, {} as any, response() as any)).toBe(
         false,
       );
@@ -544,6 +551,28 @@ describe('@ranu/runtime-node — Production Server & Static Handling', () => {
       });
       await handler(request as any, delegated as any);
       expect(runtime.handle).toHaveBeenCalledOnce();
+    });
+
+    it('blocks access to hidden files and dotfiles (.env)', async () => {
+      const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
+      const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
+      const envAsset = path.join(buildDir, 'static', 'assets', '.env');
+      fs.writeFileSync(envAsset, 'SECRET=production');
+
+      const response = makeResponse();
+      await handler({ url: '/.env', method: 'GET', headers: {} } as any, response as any);
+      expect(response.writeHead).toHaveBeenCalledWith(403, expect.anything());
+      expect(response.end).toHaveBeenCalledWith('Forbidden: Access to hidden files is prohibited');
+    });
+
+    it('blocks path traversal attempts in static handler', async () => {
+      const runtime = { handle: vi.fn().mockResolvedValue(new Response('delegated')) } as any;
+      const handler = createProductionRequestHandler(runtime, { projectRoot: tempDir, buildDir });
+
+      const response = makeResponse();
+      await handler({ url: '/_ranu/assets/..%2f..%2fsecret', method: 'GET', headers: {} } as any, response as any);
+      expect(response.writeHead).toHaveBeenCalledWith(403, expect.anything());
+      expect(response.end).toHaveBeenCalledWith('Forbidden: Path traversal is prohibited');
     });
   });
 

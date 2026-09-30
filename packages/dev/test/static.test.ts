@@ -99,6 +99,28 @@ describe('Development Static File Server', () => {
     expect(served).toBe(false);
   });
 
+  it('blocks access to hidden files and dotfiles (.env, .git)', () => {
+    const envFile = path.join(tempDir, '.env');
+    fs.writeFileSync(envFile, 'SECRET=true');
+
+    let responseCode = 0;
+    let responseBody = '';
+    const mockReq: any = { method: 'GET' };
+    const mockRes: any = {
+      writeHead(code: number) {
+        responseCode = code;
+      },
+      end(body: string) {
+        responseBody = body;
+      },
+    };
+
+    const served = serveStaticFile(envFile, tempDir, mockReq, mockRes);
+    expect(served).toBe(true);
+    expect(responseCode).toBe(403);
+    expect(responseBody).toContain('Forbidden: Access to hidden files is prohibited');
+  });
+
   it('falls back to application/octet-stream for unknown extensions', () => {
     expect(getMimeType('archive.xyz')).toBe('application/octet-stream');
     expect(getMimeType('no-extension')).toBe('application/octet-stream');

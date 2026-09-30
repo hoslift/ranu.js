@@ -28,7 +28,7 @@ export function isPathContained(targetPath: string, basePath: string): boolean {
  * dedicated temporary test/build subdirectories.
  */
 export function assertSafeDeletePath(targetPath: string): void {
-  if (!targetPath || typeof targetPath !== 'string') {
+  if (!targetPath || typeof targetPath !== 'string' || targetPath.trim() === '') {
     throw new Error('Refusing to delete invalid path: target path must be a non-empty string.');
   }
 
