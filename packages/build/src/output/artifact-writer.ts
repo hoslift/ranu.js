@@ -52,8 +52,10 @@ export function assertSafeDeletePath(targetPath: string): void {
     throw new Error(`Refusing to delete system temporary directory itself: "${resolved}".`);
   }
 
-  // 4. Must be inside .ranu OR a subdirectory of system temp directory
-  const isInsideRanu = resolved.includes('.ranu') || path.basename(resolved).startsWith('.build_temp');
+  // 4. Must contain an exact '.ranu' directory segment OR be inside system temporary directory
+  const normalized = path.normalize(resolved);
+  const segments = normalized.split(/[\\/]/);
+  const isInsideRanu = segments.includes('.ranu');
   const isInsideTmp = isPathContained(resolved, tmp);
 
   if (!isInsideRanu && !isInsideTmp) {

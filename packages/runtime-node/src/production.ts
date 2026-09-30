@@ -195,6 +195,14 @@ export function serveStaticFile(
     return true;
   }
 
+  // Security guard: Prohibit canonical hidden files (symlinks pointing to .env, .git, etc.)
+  const realSegments = relativeReal.split(/[\\/]/);
+  if (realSegments.some((seg) => seg.startsWith('.'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden: Access to hidden files is prohibited');
+    return true;
+  }
+
   const safeRealFile = path.resolve(realRoot, '.' + path.sep + relativeReal);
   if (
     !safeRealFile.startsWith(realRoot + path.sep) &&

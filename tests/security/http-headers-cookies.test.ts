@@ -16,6 +16,9 @@ describe('Suites 7, 8, 9: HTTP Headers, Cookies & Proxy Trust (header-injection,
       status: 200,
       statusText: 'OK',
     });
+    Object.defineProperty(webResponse, 'statusText', {
+      value: 'OK\r\nX-Injected: yes',
+    });
 
     const res = new http.ServerResponse({ method: 'GET' } as any);
 
@@ -24,7 +27,8 @@ describe('Suites 7, 8, 9: HTTP Headers, Cookies & Proxy Trust (header-injection,
       suppressBody: true,
     });
 
-    expect(res.statusMessage).toBe('OK');
+    expect(res.statusMessage).toBe('OK X-Injected: yes');
+    expect(res.getHeader('x-injected')).toBeUndefined();
   });
 
   it('Suite 8: Cookie Serialization: preserves individual Set-Cookie headers with security attributes', async () => {

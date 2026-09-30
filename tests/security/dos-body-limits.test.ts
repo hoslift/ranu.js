@@ -104,9 +104,8 @@ describe('DoS & Request Body Streaming Limits (SEC-46, 108)', () => {
             resp.on('end', () => resolve({ status: resp.statusCode || 0, body }));
           },
         );
-        req.on('error', () => {
-          // If connection was severed due to early abort, treat as 413 rejection
-          resolve({ status: 413, body: 'Payload Too Large' });
+        req.on('error', (err) => {
+          reject(err);
         });
         req.write(largeBody);
         req.end();

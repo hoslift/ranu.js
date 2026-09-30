@@ -66,6 +66,35 @@ describe('Suites 2 & 13: Secret Leakage & Deployment Separation (secret-leakage 
       'utf8',
     );
 
+    // Create a server-only module that consumes the seeded secret
+    fs.writeFileSync(
+      path.join(projectDir, 'app/utils/server-data.ts'),
+      `import 'ranu/server-only';\nexport const serverSecretToken = "${privateDatabaseToken}";\n`,
+      'utf8',
+    );
+
+    // Import the server-only module in the server page and render it in server JSX
+    const pagePath = path.join(projectDir, 'app/page.tsx');
+    fs.writeFileSync(
+      pagePath,
+      `import React from 'react';
+import { Counter } from './components/Counter.js';
+import { formatTitle } from './utils/format.js';
+import { serverSecretToken } from './utils/server-data.js';
+
+export default function BoundaryPage() {
+  return (
+    <main>
+      <h1>{formatTitle('Boundary Demo')}</h1>
+      <p data-secret={serverSecretToken}>Server Secured</p>
+      <Counter initialCount={5} />
+    </main>
+  );
+}
+`,
+      'utf8',
+    );
+
     try {
       const buildRes = await runCommand(process.execPath, [cliBin, 'build', '--json'], { cwd: projectDir, env: cliEnv });
       expect(buildRes.code).toBe(0);
@@ -74,16 +103,22 @@ describe('Suites 2 & 13: Secret Leakage & Deployment Separation (secret-leakage 
 
       const clientStaticDir = path.join(projectDir, '.ranu/build/static');
       const manifestDir = path.join(projectDir, '.ranu/build/manifest');
+      const serverDir = path.join(projectDir, '.ranu/build/server');
 
       expect(fs.existsSync(clientStaticDir)).toBe(true);
       expect(fs.existsSync(manifestDir)).toBe(true);
+      expect(fs.existsSync(serverDir)).toBe(true);
 
-      // Scan client static assets for secret leaks
+      // Verify positive check: server build output actually contains the seeded secret
+      const serverScan = scanDirectoryForSecrets(serverDir, [privateSecret, privateDatabaseToken]);
+      expect(serverScan.leaked).toBe(true);
+
+      // Scan client static assets for secret leaks: must be 100% clean
       const staticScan = scanDirectoryForSecrets(clientStaticDir, [privateSecret, privateDatabaseToken]);
       expect(staticScan.leaked).toBe(false);
       expect(staticScan.findings).toHaveLength(0);
 
-      // Scan manifests for secret leaks
+      // Scan manifests for secret leaks: must be 100% clean
       const manifestScan = scanDirectoryForSecrets(manifestDir, [privateSecret, privateDatabaseToken]);
       expect(manifestScan.leaked).toBe(false);
       expect(manifestScan.findings).toHaveLength(0);

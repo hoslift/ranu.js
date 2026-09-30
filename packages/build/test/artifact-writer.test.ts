@@ -110,6 +110,12 @@ describe('artifact-writer', () => {
     it('rejects deletion outside allowed boundaries when not in .ranu or temp', () => {
       const outsideDir = path.join(path.parse(process.cwd()).root, 'my-arbitrary-folder');
       expect(() => assertSafeDeletePath(outsideDir)).toThrow('Refusing to delete unauthorized path');
+
+      const pseudoRanu = path.join(path.parse(process.cwd()).root, '.ranu-backup');
+      expect(() => assertSafeDeletePath(pseudoRanu)).toThrow('Refusing to delete unauthorized path');
+
+      const ranurc = path.join(path.parse(process.cwd()).root, '.ranurc');
+      expect(() => assertSafeDeletePath(ranurc)).toThrow('Refusing to delete unauthorized path');
     });
   });
 });

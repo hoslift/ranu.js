@@ -83,7 +83,7 @@ describe('Suite 6: Production Error Sanitization (production-error-leakage)', ()
       handler(req, res).catch(() => {
         if (!res.headersSent) {
           res.statusCode = 500;
-          res.end('Internal Server Error');
+          res.end('UNEXPECTED_HANDLER_REJECTION');
         }
       });
     });
