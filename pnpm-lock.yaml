@@ -56,9 +56,6 @@ importers:
 
   adapters/vercel:
     dependencies:
-      '@hoslift/ranu':
-        specifier: workspace:^
-        version: link:../../packages/ranu
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
