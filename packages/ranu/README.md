@@ -1,23 +1,23 @@
-# Ranu.js
+# ranu
 
 Ranu.js — JavaScript/TypeScript Full-Stack Web Framework.
 
-> ⚠️ **Pre-alpha**: APIs are not stable.
+> ⚠️ **Public Alpha (v0.1.0)**: Early release for community evaluation and feedback.
 
 ## Installation
 
 ```bash
-npm install Ranu.js
+npm install ranu
 ```
 
 ## Public API
 
-- `Ranu.js` — main entry
-- `Ranu.js/config` — `defineConfig()`
-- `Ranu.js/react` — React components and hooks
-- `Ranu.js/server` — server-side helpers
-- `Ranu.js/plugin` — `definePlugin()`
-- `Ranu.js/server-only` — server-only boundary marker
+- `ranu` — main framework entry
+- `ranu/config` — `defineConfig()`
+- `ranu/react` — React components and hooks
+- `ranu/server` — server-side helpers
+- `ranu/plugin` — `definePlugin()`
+- `ranu/server-only` — server-only boundary marker
 
 ## License
 

@@ -152,11 +152,10 @@ pnpm dev
 ## Getting Started
 
 > [!NOTE]
-> **Public installation is coming soon.**
+> **Ranu.js is currently in Public Alpha (v0.1.0).**
+> Community testing, feedback, and early evaluation are welcome.
 
-Ranu.js has not yet reached a stable public release.
-
-The intended project creation experience is:
+To create a new Ranu.js application:
 
 ```bash
 npm create ranu@latest my-app
@@ -164,10 +163,6 @@ cd my-app
 npm install
 npm run dev
 ```
-
-The package name, CLI behavior, and installation workflow may change before the first public release.
-
-Official installation instructions will be published once the corresponding packages are ready for public use.
 
 ---
 
@@ -216,7 +211,7 @@ Before opening a pull request, please read:
 
 You can also use [GitHub Issues](https://github.com/hoslift/ranu.js/issues) to report problems, suggest improvements, or discuss proposed framework capabilities.
 
-Because Ranu.js is currently pre-alpha, architecture and APIs may change significantly as development progresses.
+Because Ranu.js is currently in public alpha, architecture and APIs may evolve as development progresses toward stable V1.
 
 ---
 
@@ -250,9 +245,9 @@ Official sponsorship options will be published when available.
 | Area                 | Status             |
 | -------------------- | ------------------ |
 | Project              | Active development |
-| Release stage        | Pre-alpha          |
-| Production ready     | No                 |
-| API stability        | Unstable           |
+| Release stage        | Public Alpha (v0.1.0) |
+| Production ready     | No (Early community evaluation) |
+| API stability        | Maturing toward V1 |
 | V1 development       | In progress        |
 | Public documentation | Coming soon        |
 | Stable release       | Not yet available  |

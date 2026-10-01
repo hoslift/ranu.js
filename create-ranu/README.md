@@ -1,13 +1,13 @@
 # create-ranu
 
-Create a new Ranu.js project.
+Scaffolding CLI for creating new Ranu.js applications.
 
-> ⚠️ **Pre-alpha**: Not yet functional.
+> **Public Alpha (v0.1.0)**: Official project initializer for Ranu.js.
 
-## Usage (coming soon)
+## Usage
 
 ```bash
-npm create Ranu.js@latest my-app
+npm create ranu@latest my-app
 # or
 npx create-ranu my-app
 ```

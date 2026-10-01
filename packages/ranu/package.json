@@ -1,6 +1,6 @@
 {
   "name": "ranu",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework",
   "license": "MIT",
   "type": "module",
