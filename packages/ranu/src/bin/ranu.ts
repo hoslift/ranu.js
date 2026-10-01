@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from '../cli.js';
+import { runCli } from '@ranu/cli';
 
 /**
  * Runs the CLI with the provided arguments and exits with its status code.
@@ -20,7 +20,4 @@ export function runBin(argv: readonly string[] = process.argv.slice(2)): Promise
     });
 }
 
-/* v8 ignore next 3 */
-if (process.env.NODE_ENV !== 'test') {
-  void runBin();
-}
+void runBin();
