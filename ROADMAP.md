@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
 > **Status:** Pre-alpha development
-> **Current Phase:** Phase 27–32 — Quality, Security, Docs, Governance (Next)
+> **Current Phase:** Phase 32 — Open-Source Repository & Release Infrastructure (In Progress)
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -135,15 +135,22 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 ---
 
-## Phase 27–32 — Quality, Security, Docs, Governance ⏳
+## Phase 27–31 — Hardening, Quality, and Documentation ✅
 
-**Next phase (Upcoming)**
+* Phase 27: Public API conformance and strict boundary encapsulation ✅
+* Phase 28: Test infrastructure and cross-platform E2E consolidation ✅
+* Phase 29: Security hardening and regression verification suites ✅
+* Phase 30: Performance baseline, bundle budgets, and gate thresholds ✅
+* Phase 31: Documentation, official examples suite, and verification harness ✅
 
-* Public API conformance
-* Security hardening
-* Performance baseline
-* Documentation
-* Open-source release infrastructure
+---
+
+## Phase 32 — Open-Source Repository & Release Infrastructure 🚧
+
+* Monorepo release package architecture and tarball smoke validation
+* Changesets versioning and automated changelog generation
+* GitHub release workflow and OIDC npm provenance
+* Repository governance and branch protection baseline
 
 ---
 
@@ -163,7 +170,12 @@ Phase 13–16  Client                      ✅ Completed
 Phase 17–19  CSS / Assets / Dev Server   ✅ Completed
 Phase 20–23  Middleware / Plugins / CLI  ✅ Completed
 Phase 24–26  Deployment                  ✅ Completed
-Phase 27–32  Quality / Security / Docs   ⏳ Next / Upcoming
+Phase 27     Public API Conformance      ✅ Completed
+Phase 28     Test Infrastructure         ✅ Completed
+Phase 29     Security Hardening          ✅ Completed
+Phase 30     Performance Baseline        ✅ Completed
+Phase 31     Documentation & Examples    ✅ Completed
+Phase 32     Release Infrastructure      🚧 In Progress
 ```
 
 ---
@@ -189,4 +201,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Phase 27–32 — Quality, Security, Docs, Governance**
+**Next development focus: Alpha Release Qualification & Initial npm Publication**
