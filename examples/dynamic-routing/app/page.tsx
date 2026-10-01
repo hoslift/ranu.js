@@ -16,7 +16,7 @@ export default function HomePage() {
           <Link href="/shop/books/clean-code">Product (Multi-Segment [category]/[productId])</Link>
         </li>
         <li>
-          <Link href="/docs/api/routing/dynamic-routes">Catch-All ([...slug])</Link>
+          <Link href="/archive/2026/framework/release-notes">Catch-All ([...slug])</Link>
         </li>
       </ul>
     </section>

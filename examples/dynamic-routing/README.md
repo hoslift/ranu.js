@@ -6,16 +6,16 @@ This example demonstrates parameter extraction and wildcard matching in **Ranu.j
 
 - **Single dynamic segment**: `app/posts/[id]/page.tsx` captures `/posts/101` as `{ id: '101' }`
 - **Multiple dynamic segments**: `app/shop/[category]/[productId]/page.tsx` captures nested hierarchical params
-- **Catch-all segments**: `app/docs/[...slug]/page.tsx` matches any nested path under `/docs/...` as a string array
+- **Catch-all segments**: `app/archive/[...slug]/page.tsx` matches any nested path under `/archive/...` as a string array
 - **Params typing**: Standard React component props receiving strongly-typed `params`
 
 ## Project Structure
 
 ```text
 ├── app/
-│   ├── docs/
+│   ├── archive/
 │   │   └── [...slug]/
-│   │       └── page.tsx       # Catch-all route (/docs/*)
+│   │       └── page.tsx       # Catch-all route (/archive/*)
 │   ├── layout.tsx             # Root document layout
 │   ├── page.tsx               # Index directory
 │   ├── posts/
