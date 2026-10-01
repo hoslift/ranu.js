@@ -12,3 +12,4 @@ ignore:
   - 'tests/**'
   - 'fixtures/**'
   - 'playwright.config.ts'
+  - 'eslint.config.js'
