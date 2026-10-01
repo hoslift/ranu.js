@@ -1,15 +1,15 @@
-# create-ranu
+# @hoslift/create-ranu
 
 Scaffolding CLI for creating new Ranu.js applications.
 
-> **Public Alpha (v0.1.0)**: Official project initializer for Ranu.js.
+> **Public Alpha (v0.1.1)**: Official project initializer for Ranu.js.
 
 ## Usage
 
 ```bash
-npm create ranu@latest my-app
+npm create @hoslift/ranu@latest my-app
 # or
-npx create-ranu my-app
+npx @hoslift/create-ranu my-app
 ```
 
 Generated apps include:

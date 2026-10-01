@@ -152,13 +152,13 @@ pnpm dev
 ## Getting Started
 
 > [!NOTE]
-> **Ranu.js is currently in Public Alpha (v0.1.0).**
+> **Ranu.js is currently in Public Alpha (v0.1.1).**
 > Community testing, feedback, and early evaluation are welcome.
 
 To create a new Ranu.js application:
 
 ```bash
-npm create ranu@latest my-app
+npm create @hoslift/ranu@latest my-app
 cd my-app
 npm install
 npm run dev

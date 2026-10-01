@@ -32,6 +32,7 @@ const sharedAliases = {
   'ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
   'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   'ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
+  '@hoslift/create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   'create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };

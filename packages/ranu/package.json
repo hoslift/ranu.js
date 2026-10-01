@@ -1,6 +1,6 @@
 {
   "name": "@hoslift/ranu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework",
   "license": "MIT",
   "type": "module",
