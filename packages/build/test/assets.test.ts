@@ -166,6 +166,16 @@ describe('Static Asset Handling and public/ Directory', () => {
     expect(result.code).toMatch(/\/_ranu\/assets\/icon-[a-f0-9]{8}\.svg#glyph/);
   });
 
+  it('resists ReDoS attacks from malicious unclosed or whitespace-heavy CSS url expressions', () => {
+    const maliciousInput = '.danger { background: ' + 'url('.repeat(100) + ' '.repeat(50000);
+    const startTime = Date.now();
+    const result = rewriteCssUrls(maliciousInput, path.join(tempDir, 'styles.css'), staticOutDir, tempDir);
+    const duration = Date.now() - startTime;
+
+    expect(duration).toBeLessThan(100);
+    expect(result.referencedAssets).toHaveLength(0);
+  });
+
   it('copies public directory files to static output', () => {
     const publicDir = path.join(tempDir, 'public');
     fs.mkdirSync(path.join(publicDir, 'images'), { recursive: true });

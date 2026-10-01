@@ -66,8 +66,13 @@ export async function runCommand(
     let stderr = '';
     let isSettled = false;
 
+    const isCmdScript =
+      process.platform === 'win32' &&
+      (resolvedCmd.endsWith('.cmd') || resolvedCmd.endsWith('.bat'));
+
     const child = spawn(resolvedCmd, args, {
       ...spawnOpts,
+      shell: spawnOpts.shell ?? isCmdScript,
       detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     });

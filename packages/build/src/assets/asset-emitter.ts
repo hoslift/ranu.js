@@ -110,11 +110,18 @@ export function rewriteCssUrls(
   const referencedAssets: string[] = [];
   const cssDir = path.dirname(cssFilePath);
 
-  // Regular expression matching url(...) values with or without quotes
-  const urlRegex = /url\(\s*(['"]?)([^'")]+)\1\s*\)/g;
+  // Safe non-backtracking regular expression matching CSS url(...) expressions:
+  // 1. Double quoted: url("...")
+  // 2. Single quoted: url('...')
+  // 3. Unquoted: url(...)
+  const urlRegex = /url\(\s*(?:"([^"\r\n]*)"|'([^'\r\n]*)'|([^\s'"()]+))\s*\)/g;
 
-  const rewritten = cssContent.replace(urlRegex, (match, quote, rawUrl) => {
-    const trimmed = rawUrl.trim();
+  const rewritten = cssContent.replace(
+    urlRegex,
+    (match, doubleQuoted, singleQuoted, unquoted) => {
+      const quote = doubleQuoted !== undefined ? '"' : singleQuoted !== undefined ? "'" : '';
+      const rawUrl = doubleQuoted ?? singleQuoted ?? unquoted ?? '';
+      const trimmed = rawUrl.trim();
 
     // 1. Preserve absolute, protocol-relative, and data URIs
     if (
