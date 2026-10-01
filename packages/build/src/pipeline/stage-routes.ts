@@ -56,7 +56,7 @@ export function getRouteComponentEntryName(componentPath: string): string {
 export function analyzePageRenderMode(
   filePath: string,
   fileContent: string,
-  defaultMode: RenderMode = 'server'
+  defaultMode: RenderMode = 'server',
 ): { renderMode: RenderMode; diagnostics: RanuDiagnostic[] } {
   const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.Latest, true);
   const diagnostics: RanuDiagnostic[] = [];
@@ -64,7 +64,7 @@ export function analyzePageRenderMode(
 
   function visit(node: ts.Node) {
     if (ts.isVariableStatement(node)) {
-      const isExported = node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+      const isExported = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
       if (isExported) {
         for (const decl of node.declarationList.declarations) {
           if (ts.isIdentifier(decl.name) && decl.name.text === 'render') {
@@ -73,7 +73,10 @@ export function analyzePageRenderMode(
               if (val === 'server' || val === 'static' || val === 'client') {
                 discoveredMode = val as RenderMode;
               } else {
-                const { line, character } = ts.getLineAndCharacterOfPosition(sourceFile, decl.initializer.getStart(sourceFile));
+                const { line, character } = ts.getLineAndCharacterOfPosition(
+                  sourceFile,
+                  decl.initializer.getStart(sourceFile),
+                );
                 diagnostics.push({
                   code: 'RANU_BUILD_INVALID_RENDER_MODE',
                   severity: 'error',
@@ -112,9 +115,9 @@ export function getRouteOutputRelativePath(routeId: string): string {
   const pathname = pathParts.join(':');
   const sanitized = pathname
     .replace(/^\//, '')
-    .replace(/\[\.\.\.([^\]]+)\]/g, 'catchall-$1')
-    .replace(/\[\[\.\.\.([^\]]+)\]\]/g, 'optcatchall-$1')
-    .replace(/\[([^\]]+)\]/g, '$1')
+    .replace(/\[\[\.\.\.([a-zA-Z0-9_-]+)\]\]/g, 'optcatchall-$1')
+    .replace(/\[\.\.\.([a-zA-Z0-9_-]+)\]/g, 'catchall-$1')
+    .replace(/\[([a-zA-Z0-9_-]+)\]/g, '$1')
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
@@ -173,7 +176,7 @@ export function runRouteStage(ctx: BuildContext): RouteStageResult {
       const analysis = analyzePageRenderMode(
         sourceFile,
         content,
-        ctx.resolvedConfig.rendering?.defaultMode ?? 'server'
+        ctx.resolvedConfig.rendering?.defaultMode ?? 'server',
       );
       renderMode = analysis.renderMode;
       diagnostics.push(...analysis.diagnostics);
@@ -187,7 +190,7 @@ export function runRouteStage(ctx: BuildContext): RouteStageResult {
       pathnameTemplate: record.pathnameTemplate,
       params: record.params,
       renderMode,
-      methods: isApi ? (record as any).methods ?? [] : [],
+      methods: isApi ? ((record as any).methods ?? []) : [],
       sourceFile,
       layouts: record.layouts ?? [],
       loading: record.loading,
