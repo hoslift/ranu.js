@@ -1,6 +1,6 @@
 {
   "name": "@ranu/dev",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Ranu.js development server orchestration (internal)",
   "license": "MIT",
   "type": "module",

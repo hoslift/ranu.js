@@ -1,7 +1,7 @@
 # Ranu.js Roadmap
 
-> **Status:** Pre-alpha development
-> **Current Phase:** Phase 32 — Open-Source Repository & Release Infrastructure (In Progress)
+> **Status:** Public Alpha (v0.1.0)
+> **Current Phase:** Phase 32 — Open-Source Repository & Release Infrastructure ✅ Completed
 > **Target:** Ranu.js 1.0.0
 
 This roadmap reflects the planned development phases for **Ranu.js V1** and tracks the project's progress toward its first stable release.
@@ -175,7 +175,7 @@ Phase 28     Test Infrastructure         ✅ Completed
 Phase 29     Security Hardening          ✅ Completed
 Phase 30     Performance Baseline        ✅ Completed
 Phase 31     Documentation & Examples    ✅ Completed
-Phase 32     Release Infrastructure      🚧 In Progress
+Phase 32     Release Infrastructure      ✅ Completed
 ```
 
 ---
@@ -201,4 +201,4 @@ For the latest project overview, see [`README.md`](./README.md).
 
 ---
 
-**Next development focus: Alpha Release Qualification & Initial npm Publication**
+**Next development focus: Community Feedback, Bug Triage & V1 Beta Milestones**
