@@ -1,5 +1,5 @@
-import { defineConfig } from 'ranu/config';
-import { definePlugin } from 'ranu/plugin';
+import { defineConfig } from '@hoslift/ranu/config';
+import { definePlugin } from '@hoslift/ranu/plugin';
 
 export const bannerPlugin = (options: { text: string }) =>
   definePlugin({

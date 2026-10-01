@@ -4,6 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "ranu": "workspace:*"
+    "@hoslift/ranu": "workspace:*"
   }
 }
