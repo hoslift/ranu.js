@@ -90,6 +90,14 @@ export default defineWorkspace([
     resolve: {
       alias: [
         {
+          find: /^@hoslift\/ranu$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        },
+        {
+          find: /^@hoslift\/ranu\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
+        },
+        {
           find: /^ranu$/,
           replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
         },
