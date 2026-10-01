@@ -10,7 +10,7 @@ const publishedPackages = [
   },
   { 
     dir: 'create-ranu', 
-    name: 'create-ranu', 
+    name: '@hoslift/create-ranu', 
     canonicalExports: ['.'],
     technicalExports: []
   },

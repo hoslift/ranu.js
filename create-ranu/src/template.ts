@@ -32,7 +32,7 @@ export function generateTemplateFiles(
         start: 'ranu start',
       },
       dependencies: {
-        '@hoslift/ranu': '^0.1.0',
+        '@hoslift/ranu': '^0.1.1',
         react: '^19.0.0',
         'react-dom': '^19.0.0',
       },
