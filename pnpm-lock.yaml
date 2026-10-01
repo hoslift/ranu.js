@@ -100,17 +100,314 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.1)
 
+  examples/api-routes:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/client-components:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/deployment-node:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/deployment-vercel:
+    dependencies:
+      '@ranu/adapter-vercel':
+        specifier: workspace:*
+        version: link:../../adapters/vercel
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/dynamic-routing:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/full-stack-dashboard:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/hello-world:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/middleware:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
   examples/minimal:
     dependencies:
       ranu:
         specifier: workspace:*
         version: link:../../packages/ranu
 
+  examples/plugin-basic:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
   examples/routing:
     dependencies:
       ranu:
         specifier: workspace:*
         version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/ssg:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
+
+  examples/ssr:
+    dependencies:
+      ranu:
+        specifier: workspace:*
+        version: link:../../packages/ranu
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
 
   fixtures/build-basic: {}
 

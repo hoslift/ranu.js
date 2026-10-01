@@ -41,25 +41,26 @@ Ranu.js is currently being built and validated in public. Features documented as
 
 The current Ranu.js V1 target includes:
 
-* **File-based routing**
+- **File-based routing**
 
-  * Layouts
-  * Dynamic routes
-  * Catch-all routes
-* **Server-side rendering (SSR)**
-* **Static site generation (SSG)**
-* **Client rendering**
-* **TypeScript-first development**
-* **API routes**
-* **Middleware**
-* **React integration with hydration**
-* **CSS and CSS Modules**
-* **Plugin system**
-* **Deployment support**
+  - Layouts
+  - Dynamic routes
+  - Catch-all routes
 
-  * Generic Node.js
-  * Containers
-  * Vercel
+- **Server-side rendering (SSR)**
+- **Static site generation (SSG)**
+- **Client rendering**
+- **TypeScript-first development**
+- **API routes**
+- **Middleware**
+- **React integration with hydration**
+- **CSS and CSS Modules**
+- **Plugin system**
+- **Deployment support**
+
+  - Generic Node.js
+  - Containers
+  - Vercel
 
 > These capabilities are development targets for V1. Individual features may be incomplete, experimental, or subject to change during pre-alpha development.
 
@@ -71,8 +72,8 @@ Ranu.js is developed as a **pnpm monorepo**.
 
 ### Requirements
 
-* **Node.js** >= 22.0.0
-* **pnpm** >= 11.0.0
+- **Node.js** >= 22.0.0
+- **pnpm** >= 11.0.0
 
 ### Local Development
 
@@ -117,6 +118,33 @@ Format the codebase:
 
 ```bash
 pnpm format
+```
+
+## Official Examples
+
+The repository includes standalone, idiomatic example applications demonstrating core framework capabilities using canonical public APIs (`ranu`, `ranu/react`, `ranu/server`, `ranu/config`, `ranu/plugin`).
+
+| Example                                                            | Description                    | Key APIs & Concepts                                                          |
+| :----------------------------------------------------------------- | :----------------------------- | :--------------------------------------------------------------------------- |
+| [`examples/hello-world`](./examples/hello-world)                   | Minimal baseline application   | Root layout, page routing, `defineConfig`                                    |
+| [`examples/routing`](./examples/routing)                           | Nested file-based routing      | Multi-level layouts, static subpages, custom 404                             |
+| [`examples/dynamic-routing`](./examples/dynamic-routing)           | Parameterized route patterns   | Single `[id]`, multi-segment `[category]/[productId]`, catch-all `[...slug]` |
+| [`examples/ssr`](./examples/ssr)                                   | Dynamic Server-Side Rendering  | `export const render = 'server'`, request headers, runtime context           |
+| [`examples/ssg`](./examples/ssg)                                   | Static Site Generation         | `export const render = 'static'`, pre-rendered HTML generation               |
+| [`examples/api-routes`](./examples/api-routes)                     | Backend REST API endpoints     | `GET`, `POST`, `Response.json()`, request body parsing                       |
+| [`examples/middleware`](./examples/middleware)                     | Request interception & guards  | Route protection, authentication redirects, URL rewriting                    |
+| [`examples/client-components`](./examples/client-components)       | Interactive React 19 hydration | Client state, `useRouter()`, `usePathname()`, `useSearchParams()`            |
+| [`examples/full-stack-dashboard`](./examples/full-stack-dashboard) | Complete full-stack reference  | SSR dashboard, SSG about, API metrics, client widgets, middleware            |
+| [`examples/deployment-node`](./examples/deployment-node)           | Standalone Node.js server      | Multi-stage production `Dockerfile`, non-root container, healthcheck         |
+| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranu/adapter-vercel`, Vercel Build Output API v3                           |
+| [`examples/plugin-basic`](./examples/plugin-basic)                 | Extensible plugin architecture | `definePlugin()`, build lifecycle hooks, config customization                |
+
+To run any example locally:
+
+```bash
+cd examples/<example-name>
+pnpm install
+pnpm dev
 ```
 
 ---
@@ -206,12 +234,12 @@ Ranu.js is being developed as an open-source project and is intended to remain f
 
 Future sponsorships will help support areas such as:
 
-* Core framework development
-* Testing and quality assurance
-* Documentation
-* Development infrastructure
-* Project maintenance
-* Community resources
+- Core framework development
+- Testing and quality assurance
+- Documentation
+- Development infrastructure
+- Project maintenance
+- Community resources
 
 Official sponsorship options will be published when available.
 
@@ -247,7 +275,7 @@ See [`LICENSE`](./LICENSE) for the full license text.
  <a href="https://codecov.io/gh/hoslift/ranu.js" > 
  <img src="https://codecov.io/gh/hoslift/ranu.js/branch/main/graph/badge.svg?token=XZLQF6Q65N"/> 
 </p>
-   
+
 <p align="center">
   Open source under the MIT License.<br>
   Created and maintained by <a href="https://github.com/hoslift">Hoslift</a>.

@@ -157,4 +157,16 @@ export default defineWorkspace([
       alias: sharedAliases,
     },
   },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'examples',
+      include: ['tests/examples/**/*.test.ts'],
+      testTimeout: 240000,
+      hookTimeout: 60000,
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
 ]);
