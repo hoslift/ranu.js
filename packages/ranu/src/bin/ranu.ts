@@ -20,4 +20,7 @@ export function runBin(argv: readonly string[] = process.argv.slice(2)): Promise
     });
 }
 
-void runBin();
+/* v8 ignore next 3 */
+if (process.env.NODE_ENV !== 'test') {
+  void runBin();
+}
