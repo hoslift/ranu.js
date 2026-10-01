@@ -1,0 +1,25 @@
+{
+  "name": "example-deployment-vercel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ranu dev",
+    "build": "ranu build",
+    "start": "ranu start",
+    "deploy": "ranu deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ranu": "workspace:*",
+    "@ranu/adapter-vercel": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

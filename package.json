@@ -17,7 +17,7 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --filter \"!example-*\" build",
     "typecheck": "tsc --noEmit",
     "test": "pnpm -r test",
     "test:unit": "pnpm -r --filter './packages/*' --filter './adapters/*' --filter './create-ranu' test",
@@ -29,7 +29,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "node scripts/ci-clean.mjs",
-    "ci:verify": "pnpm typecheck && pnpm build && pnpm lint && pnpm test && pnpm test:api && pnpm test:integration && pnpm test:cli && pnpm test:perf && pnpm check-cycles && pnpm check-exports",
+    "ci:verify": "pnpm typecheck && pnpm build && pnpm lint && pnpm test && pnpm test:api && pnpm test:integration && pnpm test:cli && pnpm test:perf && pnpm test:examples && pnpm check-cycles && pnpm check-exports",
     "ci:clean": "pnpm clean && pnpm install --frozen-lockfile && pnpm ci:verify",
     "prepr": "pnpm ci:clean",
     "changeset": "changeset",
@@ -41,6 +41,7 @@
     "test:deployment": "vitest run tests/deployment",
     "test:security": "vitest run tests/security",
     "test:perf": "vitest run tests/performance",
+    "test:examples": "vitest run tests/examples",
     "bench:baseline": "node scripts/generate-baseline.mjs",
     "test:smoke": "vitest run tests/smoke",
     "test:e2e": "playwright test"

@@ -111,6 +111,7 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/.ranu/**',
+      '**/.vercel/**',
       '**/coverage/**',
       '**/node_modules/**',
       '**/*.d.ts',

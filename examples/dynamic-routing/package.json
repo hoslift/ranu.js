@@ -1,0 +1,23 @@
+{
+  "name": "example-dynamic-routing",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ranu dev",
+    "build": "ranu build",
+    "start": "ranu start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ranu": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}
