@@ -17,7 +17,7 @@
   <a href="https://github.com/hoslift/ranu.js/issues">
     <img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=for-the-badge&color=ffd43b&labelColor=000000&logo=github&logoColor=white" alt="GitHub Issues">
   </a>
-  <img src="https://img.shields.io/badge/STATUS-PRE--ALPHA-ff9100?style=for-the-badge&labelColor=000000" alt="Pre-Alpha">
+  <img src="https://img.shields.io/badge/STATUS-PUBLIC--ALPHA-ff9100?style=for-the-badge&labelColor=000000" alt="Public Alpha">
 </p>
 
 ---
@@ -251,7 +251,7 @@ Official sponsorship options will be published when available.
 | Area                 | Status             |
 | -------------------- | ------------------ |
 | Project              | Active development |
-| Release stage        | Public Alpha (v0.1.0) |
+| Release stage        | Public Alpha (v0.1.1) |
 | Production ready     | No (Early community evaluation) |
 | API stability        | Maturing toward V1 |
 | V1 development       | In progress        |
