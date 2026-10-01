@@ -8,6 +8,7 @@ export default defineConfig({
     server: 'src/server.ts',
     plugin: 'src/plugin.ts',
     'server-only': 'src/server-only.ts',
+    'bin/ranu': 'src/bin/ranu.ts',
   },
   format: ['esm'],
   dts: true,
@@ -16,12 +17,16 @@ export default defineConfig({
   external: [
     'react',
     'react-dom',
-    '@ranu/config',
-    '@ranu/core',
-    '@ranu/plugin',
-    '@ranu/react',
-    '@ranu/runtime-node',
-    '@ranu/server',
+    'esbuild',
+    'dotenv',
+    'typescript',
   ],
+  noExternal: [/@ranu\/.*/],
+  banner: ({ entry }) => {
+    if (entry && (entry.includes('bin') || entry.includes('ranu.ts') || entry.includes('ranu.js'))) {
+      return { js: '#!/usr/bin/env node\n' };
+    }
+    return {};
+  },
   tsconfig: 'tsconfig.build.json',
 });

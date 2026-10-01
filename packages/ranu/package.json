@@ -1,11 +1,14 @@
 {
   "name": "@hoslift/ranu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework",
   "license": "MIT",
   "type": "module",
   "private": false,
   "sideEffects": false,
+  "bin": {
+    "ranu": "./dist/bin/ranu.js"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
@@ -47,14 +50,25 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@ranu/config": "workspace:*",
-    "@ranu/core": "workspace:*",
-    "@ranu/plugin": "workspace:*",
-    "@ranu/react": "workspace:*",
-    "@ranu/runtime-node": "workspace:*",
-    "@ranu/server": "workspace:*"
+    "dotenv": "^16.4.7",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@ranu/build": "workspace:*",
+    "@ranu/cli": "workspace:*",
+    "@ranu/config": "workspace:*",
+    "@ranu/core": "workspace:*",
+    "@ranu/dev": "workspace:*",
+    "@ranu/diagnostics": "workspace:*",
+    "@ranu/manifests": "workspace:*",
+    "@ranu/plugin": "workspace:*",
+    "@ranu/react": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/runtime": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
+    "@ranu/server": "workspace:*",
+    "@types/node": "^22.20.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.2.5",
     "rimraf": "^6.0.1",

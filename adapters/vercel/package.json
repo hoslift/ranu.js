@@ -1,6 +1,6 @@
 {
   "name": "@hoslift/adapter-vercel",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Ranu.js Vercel deployment adapter",
   "license": "MIT",
   "type": "module",
@@ -23,12 +23,12 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@ranu/core": "workspace:*",
-    "@ranu/manifests": "workspace:*",
-    "@ranu/runtime-node": "workspace:*",
     "esbuild": "^0.28.2"
   },
   "devDependencies": {
+    "@ranu/core": "workspace:*",
+    "@ranu/manifests": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

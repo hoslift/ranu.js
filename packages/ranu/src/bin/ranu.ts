@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from '../cli.js';
+import { runCli } from '@ranu/cli';
 
 /**
  * Runs the CLI with the provided arguments and exits with its status code.

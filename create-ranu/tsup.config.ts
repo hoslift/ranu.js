@@ -12,8 +12,8 @@ export default defineConfig({
   platform: 'node',
   tsconfig: 'tsconfig.build.json',
   banner: ({ entry }) => {
-    if (entry === 'bin/create-ranu') {
-      return { js: '#!/usr/bin/env node' };
+    if (entry && (entry.includes('bin') || entry.includes('create-ranu'))) {
+      return { js: '#!/usr/bin/env node\n' };
     }
     return {};
   },

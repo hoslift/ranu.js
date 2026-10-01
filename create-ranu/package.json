@@ -1,13 +1,12 @@
 {
   "name": "@hoslift/create-ranu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Create a new Ranu.js project",
   "license": "MIT",
   "type": "module",
   "private": false,
   "bin": {
-    "create-ranu": "./dist/bin/create-ranu.js",
-    "@hoslift/create-ranu": "./dist/bin/create-ranu.js"
+    "create-ranu": "./dist/bin/create-ranu.js"
   },
   "exports": {
     ".": {
