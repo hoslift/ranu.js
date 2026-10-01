@@ -578,4 +578,19 @@ describe('@ranu/cli commands comprehensive', () => {
       debugSpy.mockRestore();
     });
   });
+
+  describe('cli build configuration', () => {
+    it('configures external dependencies including @hoslift/adapter-vercel', async () => {
+      const tsupConfig = await import('../tsup.config.js');
+      const config =
+        typeof tsupConfig.default === 'function'
+          ? await (tsupConfig.default as (options: Record<string, unknown>) => Promise<any> | any)({})
+          : tsupConfig.default;
+      expect(config.external).toContain('@hoslift/adapter-vercel');
+      if (typeof config.banner === 'function') {
+        expect(config.banner({ entry: 'src/bin/ranu.ts' })).toEqual({ js: '#!/usr/bin/env node' });
+        expect(config.banner({ entry: 'src/index.ts' })).toEqual({});
+      }
+    });
+  });
 });
