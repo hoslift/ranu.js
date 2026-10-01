@@ -4,7 +4,7 @@ import path from 'path';
 const publishedPackages = [
   { 
     dir: 'packages/ranu', 
-    name: 'ranu', 
+    name: '@hoslift/ranu', 
     canonicalExports: ['.', './config', './react', './server', './plugin'], 
     technicalExports: ['./server-only'] 
   },
@@ -16,7 +16,7 @@ const publishedPackages = [
   },
   { 
     dir: 'adapters/vercel', 
-    name: '@ranu/adapter-vercel', 
+    name: '@hoslift/adapter-vercel', 
     canonicalExports: ['.'],
     technicalExports: []
   }

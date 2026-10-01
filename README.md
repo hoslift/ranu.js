@@ -164,6 +164,12 @@ npm install
 npm run dev
 ```
 
+To install `@hoslift/ranu` into an existing project:
+
+```bash
+npm install @hoslift/ranu
+```
+
 ---
 
 ## Development Roadmap

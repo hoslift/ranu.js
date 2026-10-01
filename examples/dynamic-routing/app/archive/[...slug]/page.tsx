@@ -1,4 +1,4 @@
-import { Link } from 'ranu/react';
+import { Link } from '@hoslift/ranu/react';
 
 export default function ArchiveCatchAllPage({
   params,

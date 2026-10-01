@@ -1,4 +1,4 @@
-import { useRouter, usePathname, useSearchParams } from 'ranu/react';
+import { useRouter, usePathname, useSearchParams } from '@hoslift/ranu/react';
 
 export default function ProgrammaticNavigationPage() {
   const router = useRouter();

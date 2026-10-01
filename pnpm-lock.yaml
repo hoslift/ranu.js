@@ -102,7 +102,7 @@ importers:
 
   examples/api-routes:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -127,7 +127,7 @@ importers:
 
   examples/client-components:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -152,7 +152,7 @@ importers:
 
   examples/deployment-node:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -177,10 +177,10 @@ importers:
 
   examples/deployment-vercel:
     dependencies:
-      '@ranu/adapter-vercel':
+      '@hoslift/adapter-vercel':
         specifier: workspace:*
         version: link:../../adapters/vercel
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -205,7 +205,7 @@ importers:
 
   examples/dynamic-routing:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -230,7 +230,7 @@ importers:
 
   examples/full-stack-dashboard:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -255,7 +255,7 @@ importers:
 
   examples/hello-world:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -280,7 +280,7 @@ importers:
 
   examples/middleware:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -305,13 +305,13 @@ importers:
 
   examples/minimal:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
 
   examples/plugin-basic:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -336,7 +336,7 @@ importers:
 
   examples/routing:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -361,7 +361,7 @@ importers:
 
   examples/ssg:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -386,7 +386,7 @@ importers:
 
   examples/ssr:
     dependencies:
-      ranu:
+      '@hoslift/ranu':
         specifier: workspace:*
         version: link:../../packages/ranu
       react:
@@ -468,7 +468,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@ranu/adapter-vercel':
+      '@hoslift/adapter-vercel':
         specifier: workspace:*
         version: link:../../adapters/vercel
       '@ranu/build':

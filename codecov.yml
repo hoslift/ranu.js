@@ -13,3 +13,4 @@ ignore:
   - 'fixtures/**'
   - 'playwright.config.ts'
   - 'eslint.config.js'
+  - '**/tsup.config.ts'

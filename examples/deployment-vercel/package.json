@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ranu": "workspace:*",
-    "@ranu/adapter-vercel": "workspace:*",
+    "@hoslift/ranu": "workspace:*",
+    "@hoslift/adapter-vercel": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

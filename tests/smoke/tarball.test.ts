@@ -59,10 +59,10 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         else if (f.startsWith('ranu-server-')) tarballPaths['@ranu/server'] = fullPath;
         else if (f.startsWith('ranu-react-')) tarballPaths['@ranu/react'] = fullPath;
         else if (f.startsWith('ranu-plugin-')) tarballPaths['@ranu/plugin'] = fullPath;
-        else if (f.startsWith('ranu-')) tarballPaths['ranu'] = fullPath;
+        else if (f.startsWith('hoslift-ranu-') || f.startsWith('ranu-')) tarballPaths['@hoslift/ranu'] = fullPath;
       }
 
-      expect(tarballPaths['ranu']).toBeDefined();
+      expect(tarballPaths['@hoslift/ranu']).toBeDefined();
       expect(tarballPaths['@ranu/server']).toBeDefined();
       expect(tarballPaths['@ranu/core']).toBeDefined();
 
@@ -76,7 +76,7 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         private: true,
         type: 'module',
         dependencies: {
-          ranu: `file:${tarballPaths['ranu'].replace(/\\/g, '/')}`,
+          '@hoslift/ranu': `file:${tarballPaths['@hoslift/ranu'].replace(/\\/g, '/')}`,
         },
       };
       fs.writeFileSync(path.join(standaloneDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
@@ -115,12 +115,12 @@ module.exports = {
 
       // Verify node_modules contains installed package tarball
       const nodeModules = path.join(standaloneDir, 'node_modules');
-      expect(fs.existsSync(path.join(nodeModules, 'ranu'))).toBe(true);
+      expect(fs.existsSync(path.join(nodeModules, '@hoslift', 'ranu')) || fs.existsSync(path.join(nodeModules, 'ranu'))).toBe(true);
 
       // 5. Test canonical import resolution from installed standalone package
       const testImportScript = [
-        'import { defineConfig } from "ranu";',
-        'import { redirect, notFound } from "ranu/server";',
+        'import { defineConfig } from "@hoslift/ranu";',
+        'import { redirect, notFound } from "@hoslift/ranu/server";',
         'const config = defineConfig({});',
         'if (typeof defineConfig !== "function" || typeof redirect !== "function" || typeof notFound !== "function") process.exit(1);',
         'process.exit(0);',
