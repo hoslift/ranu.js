@@ -20,9 +20,21 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
         let vercelMod: any;
         try {
           vercelMod = await import('@ranujs/adapter-vercel');
-        } catch {
-          const legacyAdapterPkg = '@hoslift/adapter-vercel';
-          vercelMod = await import(/* @vite-ignore */ legacyAdapterPkg);
+        } catch (err: unknown) {
+          const code = (err as { code?: string })?.code;
+          const msg = (err as Error)?.message ?? '';
+          const isMissingModule =
+            code === 'ERR_MODULE_NOT_FOUND' ||
+            code === 'MODULE_NOT_FOUND' ||
+            msg.includes('Cannot find package') ||
+            msg.includes('Cannot find module');
+
+          if (isMissingModule) {
+            const legacyAdapterPkg = '@hoslift/adapter-vercel';
+            vercelMod = await import(/* @vite-ignore */ legacyAdapterPkg);
+          } else {
+            throw err;
+          }
         }
         const loadedAdapter =
           typeof vercelMod.createVercelAdapter === 'function'

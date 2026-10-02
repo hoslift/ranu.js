@@ -257,6 +257,48 @@ describe('@ranu/cli commands comprehensive', () => {
       vi.doUnmock('@ranu/adapter-vercel');
     });
 
+    it('falls back to @hoslift/adapter-vercel when @ranujs/adapter-vercel is not found', async () => {
+      const adapt = vi.fn().mockResolvedValue({ outputDirectory: '/legacy-output' });
+      const createVercelAdapter = vi.fn(() => ({ name: 'vercel-legacy', adapt }));
+
+      vi.doMock('@ranujs/adapter-vercel', () => {
+        const err = new Error('Cannot find package @ranujs/adapter-vercel');
+        (err as any).code = 'ERR_MODULE_NOT_FOUND';
+        throw err;
+      });
+      vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter }));
+
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+      const logger = createCliLogger({ quiet: true });
+
+      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(0);
+      expect(createVercelAdapter).toHaveBeenCalledOnce();
+
+      vi.doUnmock('@ranujs/adapter-vercel');
+      vi.doUnmock('@hoslift/adapter-vercel');
+    });
+
+    it('does not fall back if @ranujs/adapter-vercel throws non-missing module error', async () => {
+      vi.doMock('@ranujs/adapter-vercel', () => {
+        throw new Error('Initialization crash in adapter');
+      });
+      const legacyFactory = vi.fn();
+      vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter: legacyFactory }));
+
+      vi.resetModules();
+      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+      const logger = createCliLogger({ quiet: true });
+      const error = vi.spyOn(logger, 'error');
+
+      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(1);
+      expect(legacyFactory).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledWith('Failed to load adapter "vercel": Initialization crash in adapter');
+
+      vi.doUnmock('@ranujs/adapter-vercel');
+      vi.doUnmock('@hoslift/adapter-vercel');
+    });
+
     it('rejects unsupported CLI adapters in text and JSON modes', async () => {
       const logger = createCliLogger({ quiet: true });
       const error = vi.spyOn(logger, 'error');
