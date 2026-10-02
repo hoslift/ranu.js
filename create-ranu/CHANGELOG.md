@@ -1,4 +1,16 @@
-# create-ranu
+# @hoslift/create-ranu
+
+## 0.1.2
+
+### Patch Changes
+
+- 75c7692: Add CLI shebang to create-ranu executable and synchronize dependencies.
+
+## 0.1.1
+
+### Patch Changes
+
+- 6b891e6: Bump all packages to v0.1.1 under @hoslift organization.
 
 ## 0.1.0
 

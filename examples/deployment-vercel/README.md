@@ -1,6 +1,6 @@
 # Ranu.js Vercel Serverless Deployment Example
 
-This example demonstrates how to build and deploy a **Ranu.js** application to Vercel using the official `@ranu/adapter-vercel` adapter.
+This example demonstrates how to build and deploy a **Ranu.js** application to Vercel using the official `@hoslift/adapter-vercel` adapter.
 
 ## Concepts Demonstrated
 
