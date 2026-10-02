@@ -20,7 +20,6 @@ export async function loadVercelAdapter(
 
     if (isMissingModule) {
       try {
-        // @ts-expect-error Backward-compatible fallback for legacy scoped adapter
         return await importer('@hoslift/adapter-vercel');
       } catch {
         throw err;
