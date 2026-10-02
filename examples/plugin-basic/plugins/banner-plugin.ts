@@ -1,4 +1,4 @@
-import { definePlugin } from 'ranu/plugin';
+import { definePlugin } from '@ranujs/core/plugin';
 
 export function bannerPlugin(options: { text: string }) {
   return definePlugin({

@@ -1,4 +1,4 @@
-import { defineConfig } from 'ranu/config';
+import { defineConfig } from '@ranujs/core/config';
 import { vercelAdapter } from '@ranujs/adapter-vercel';
 
 export default defineConfig({

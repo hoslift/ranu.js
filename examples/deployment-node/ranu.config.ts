@@ -1,4 +1,4 @@
-import { defineConfig } from 'ranu/config';
+import { defineConfig } from '@ranujs/core/config';
 
 export default defineConfig({
   server: {

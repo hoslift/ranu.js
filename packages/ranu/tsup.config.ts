@@ -9,6 +9,7 @@ export default defineConfig({
     plugin: 'src/plugin.ts',
     'server-only': 'src/server-only.ts',
     'bin/ranu': 'src/bin/ranu.ts',
+    'bin/ranujs': 'src/bin/ranu.ts',
   },
   format: ['esm'],
   dts: true,
