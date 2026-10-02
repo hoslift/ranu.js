@@ -21,7 +21,8 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
         try {
           vercelMod = await import('@ranujs/adapter-vercel');
         } catch {
-          vercelMod = await import('@hoslift/adapter-vercel');
+          const legacyAdapterPkg = '@hoslift/adapter-vercel';
+          vercelMod = await import(/* @vite-ignore */ legacyAdapterPkg);
         }
         const loadedAdapter =
           typeof vercelMod.createVercelAdapter === 'function'
