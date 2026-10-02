@@ -1,4 +1,4 @@
-import { definePlugin } from '@hoslift/ranu/plugin';
+import { definePlugin } from 'ranu/plugin';
 
 export function bannerPlugin(options: { text: string }) {
   return definePlugin({

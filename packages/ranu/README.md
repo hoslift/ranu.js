@@ -1,4 +1,4 @@
-# @hoslift/ranu
+# ranu
 
 Ranu.js — JavaScript/TypeScript Full-Stack Web Framework.
 
@@ -7,17 +7,17 @@ Ranu.js — JavaScript/TypeScript Full-Stack Web Framework.
 ## Installation
 
 ```bash
-npm install @hoslift/ranu
+npm install ranu
 ```
 
 ## Public API
 
-- `@hoslift/ranu` — main framework entry
-- `@hoslift/ranu/config` — `defineConfig()`
-- `@hoslift/ranu/react` — React components and hooks
-- `@hoslift/ranu/server` — server-side helpers
-- `@hoslift/ranu/plugin` — `definePlugin()`
-- `@hoslift/ranu/server-only` — server-only boundary marker
+- `ranu` — main framework entry
+- `ranu/config` — `defineConfig()`
+- `ranu/react` — React components and hooks
+- `ranu/server` — server-side helpers
+- `ranu/plugin` — `definePlugin()`
+- `ranu/server-only` — server-only boundary marker
 
 ## License
 

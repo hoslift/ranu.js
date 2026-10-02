@@ -20,6 +20,7 @@ const sharedAliases = {
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
   '@ranu/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
+  '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@hoslift/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@hoslift/ranu/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
   '@hoslift/ranu/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),

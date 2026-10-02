@@ -15,9 +15,14 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
   // CLI flag override: --adapter vercel / @ranu/adapter-vercel
   if (args.adapter) {
     const adapterName = String(args.adapter).toLowerCase();
-    if (adapterName === 'vercel' || adapterName === '@hoslift/adapter-vercel' || adapterName === '@ranu/adapter-vercel') {
+    if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel' || adapterName === '@hoslift/adapter-vercel' || adapterName === '@ranu/adapter-vercel') {
       try {
-        const vercelMod = await import('@hoslift/adapter-vercel');
+        let vercelMod: any;
+        try {
+          vercelMod = await import('@ranujs/adapter-vercel');
+        } catch {
+          vercelMod = await import('@hoslift/adapter-vercel');
+        }
         const loadedAdapter =
           typeof vercelMod.createVercelAdapter === 'function'
             ? vercelMod.createVercelAdapter()
@@ -58,11 +63,11 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
     }
     logger.warn('No deployment adapter configured in ranu.config.ts.');
     logger.log(
-      'To deploy to a cloud provider, configure an adapter (e.g. @hoslift/adapter-vercel) in your ranu.config.ts:',
+      'To deploy to a cloud provider, configure an adapter (e.g. @ranujs/adapter-vercel) in your ranu.config.ts:',
     );
     logger.log(`
 import { defineConfig } from 'ranu/config';
-import vercelAdapter from '@hoslift/adapter-vercel';
+import vercelAdapter from '@ranujs/adapter-vercel';
 
 export default defineConfig({
   deployment: {

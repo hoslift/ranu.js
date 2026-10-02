@@ -1,4 +1,4 @@
-import { defineConfig } from '@hoslift/ranu/config';
+import { defineConfig } from 'ranu/config';
 
 export default defineConfig({
   server: {

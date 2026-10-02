@@ -106,8 +106,8 @@ const targets = [
     file: 'create-ranu/src/template.ts',
     rules: [
       {
-        pattern: /'@hoslift\/ranu': '\^[0-9]+\.[0-9]+\.[0-9]+[^']*'/g,
-        replacement: `'@hoslift/ranu': '^${version}'`,
+        pattern: /'ranu': '\^[0-9]+\.[0-9]+\.[0-9]+[^']*'/g,
+        replacement: `'ranu': '^${version}'`,
         description: 'create-ranu scaffold template dependency version',
       },
     ],
@@ -152,7 +152,7 @@ if (isCheckMode) {
     console.error('\n❌ Version check failed! Run "pnpm sync:docs" to synchronize markdown files and templates.');
     process.exit(1);
   } else {
-    console.log('✓ All documentation version references are synchronized with @hoslift/ranu@' + version);
+    console.log('✓ All documentation version references are synchronized with ranu@' + version);
     process.exit(0);
   }
 } else {

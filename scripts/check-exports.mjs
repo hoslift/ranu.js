@@ -4,19 +4,19 @@ import path from 'path';
 const publishedPackages = [
   { 
     dir: 'packages/ranu', 
-    name: '@hoslift/ranu', 
+    name: 'ranu', 
     canonicalExports: ['.', './config', './react', './server', './plugin'], 
     technicalExports: ['./server-only'] 
   },
   { 
     dir: 'create-ranu', 
-    name: '@hoslift/create-ranu', 
+    name: 'create-ranu', 
     canonicalExports: ['.'],
     technicalExports: []
   },
   { 
     dir: 'adapters/vercel', 
-    name: '@hoslift/adapter-vercel', 
+    name: '@ranujs/adapter-vercel', 
     canonicalExports: ['.'],
     technicalExports: []
   }

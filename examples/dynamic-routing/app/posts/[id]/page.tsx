@@ -1,4 +1,4 @@
-import { Link } from '@hoslift/ranu/react';
+import { Link } from 'ranu/react';
 
 export default function PostPage({ params }: { params?: { id?: string } }) {
   const postId = params?.id ?? 'Unknown';

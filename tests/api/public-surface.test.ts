@@ -11,9 +11,9 @@ const rootDir = path.resolve(__dirname, '../..');
 
 describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
   describe('1. Canonical Public Entrypoints and Convenience Re-Exports', () => {
-    it('resolves root "@hoslift/ranu" with version and convenience defineConfig re-export', async () => {
-      const ranu = await import('@hoslift/ranu');
-      const ranuConfig = await import('@hoslift/ranu/config');
+    it('resolves root "ranu" with version and convenience defineConfig re-export', async () => {
+      const ranu = await import('ranu');
+      const ranuConfig = await import('ranu/config');
 
       expect(ranu.RANU_VERSION).toBe('0.0.0');
       expect(ranu.defineConfig).toBeTypeOf('function');
@@ -25,8 +25,8 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(resolved).toEqual({ server: { port: 8080 } });
     });
 
-    it('resolves canonical "@hoslift/ranu/config" configuration helper', async () => {
-      const { defineConfig } = await import('@hoslift/ranu/config');
+    it('resolves canonical "ranu/config" configuration helper', async () => {
+      const { defineConfig } = await import('ranu/config');
       expect(defineConfig).toBeTypeOf('function');
 
       const fnConfig = defineConfig((ctx) => ({
@@ -35,16 +35,16 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(typeof fnConfig).toBe('function');
     });
 
-    it('resolves "@hoslift/ranu/react" client components and navigation hooks', async () => {
-      const reactApi = await import('@hoslift/ranu/react');
+    it('resolves "ranu/react" client components and navigation hooks', async () => {
+      const reactApi = await import('ranu/react');
       expect(reactApi.Link).toBeDefined();
       expect(reactApi.useRouter).toBeTypeOf('function');
       expect(reactApi.usePathname).toBeTypeOf('function');
       expect(reactApi.useSearchParams).toBeTypeOf('function');
     });
 
-    it('resolves "@hoslift/ranu/server" server helpers and navigation utilities', async () => {
-      const serverApi = await import('@hoslift/ranu/server');
+    it('resolves "ranu/server" server helpers and navigation utilities', async () => {
+      const serverApi = await import('ranu/server');
       expect(serverApi.cookies).toBeTypeOf('function');
       expect(serverApi.headers).toBeTypeOf('function');
       expect(serverApi.redirect).toBeTypeOf('function');
@@ -54,8 +54,8 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(serverApi.getRequestContext).toBeTypeOf('function');
     });
 
-    it('resolves "@hoslift/ranu/plugin" plugin authoring API', async () => {
-      const pluginApi = await import('@hoslift/ranu/plugin');
+    it('resolves "ranu/plugin" plugin authoring API', async () => {
+      const pluginApi = await import('ranu/plugin');
       expect(pluginApi.definePlugin).toBeTypeOf('function');
 
       const plugin = pluginApi.definePlugin({
@@ -67,8 +67,8 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(plugin.name).toBe('test-public-plugin');
     });
 
-    it('resolves "@hoslift/ranu/server-only" technical export safely', async () => {
-      const serverOnly = await import('@hoslift/ranu/server-only');
+    it('resolves "ranu/server-only" technical export safely', async () => {
+      const serverOnly = await import('ranu/server-only');
       expect(serverOnly).toBeDefined();
     });
   });
@@ -108,10 +108,10 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       const requireFromPkg = createRequire(path.join(rootDir, 'packages/ranu/package.json'));
 
       const invalidImports = [
-        '@hoslift/ranu/dist/index.js',
-        '@hoslift/ranu/src/index.ts',
-        '@hoslift/ranu/src/index.js',
-        '@hoslift/ranu/internal',
+        'ranu/dist/index.js',
+        'ranu/src/index.ts',
+        'ranu/src/index.js',
+        'ranu/internal',
       ];
 
       for (const deepImport of invalidImports) {
@@ -124,26 +124,26 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
     it('verifies that actual consumer import attempts for invalid deep imports are blocked by Node package exports', () => {
       const consumerDir = path.join(rootDir, 'examples/minimal');
 
-      // Attempt actual import of @hoslift/ranu/dist/index.js
+      // Attempt actual import of ranu/dist/index.js
       const resultDist = spawnSync(
         process.execPath,
         [
           '--input-type=module',
           '-e',
-          'try { await import("@hoslift/ranu/dist/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
+          'try { await import("ranu/dist/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
         ],
         { cwd: consumerDir, encoding: 'utf8' },
       );
       expect(resultDist.status).toBe(42);
       expect(resultDist.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
 
-      // Attempt actual import of @hoslift/ranu/src/index.js
+      // Attempt actual import of ranu/src/index.js
       const resultSrc = spawnSync(
         process.execPath,
         [
           '--input-type=module',
           '-e',
-          'try { await import("@hoslift/ranu/src/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
+          'try { await import("ranu/src/index.js"); process.exit(0); } catch (e) { process.stderr.write(e.code || e.message); process.exit(42); }',
         ],
         { cwd: consumerDir, encoding: 'utf8' },
       );
@@ -158,7 +158,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         [
           '--input-type=module',
           '-e',
-          'await Promise.all([import("@hoslift/ranu"), import("@hoslift/ranu/config"), import("@hoslift/ranu/react"), import("@hoslift/ranu/server"), import("@hoslift/ranu/plugin"), import("@hoslift/ranu/server-only")]); process.exit(0);',
+          'await Promise.all([import("ranu"), import("ranu/config"), import("ranu/react"), import("ranu/server"), import("ranu/plugin"), import("ranu/server-only")]); process.exit(0);',
         ],
         { cwd: consumerDir, encoding: 'utf8' },
       );
@@ -254,7 +254,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
 
   describe('5. Runtime Domain Boundaries Enforcement', () => {
     it('throws when request-context helpers are invoked outside server request context', async () => {
-      const { cookies, headers, getRequestContext } = await import('@hoslift/ranu/server');
+      const { cookies, headers, getRequestContext } = await import('ranu/server');
 
       expect(() => cookies()).toThrow(/request/i);
       expect(() => headers()).toThrow(/request/i);
@@ -262,7 +262,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
     });
 
     it('triggers navigation control flow signals for redirect, notFound, and rewrite', async () => {
-      const { redirect, notFound, rewrite } = await import('@hoslift/ranu/server');
+      const { redirect, notFound, rewrite } = await import('ranu/server');
 
       expect(() => redirect('/somewhere')).toThrow(/Redirect to \/somewhere/i);
       expect(() => notFound()).toThrow(/Not Found/i);
@@ -270,7 +270,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
     });
 
     it('throws when client navigation hooks are invoked outside React execution context', async () => {
-      const { useRouter, usePathname, useSearchParams } = await import('@hoslift/ranu/react');
+      const { useRouter, usePathname, useSearchParams } = await import('ranu/react');
 
       expect(() => useRouter()).toThrow();
       expect(() => usePathname()).toThrow();

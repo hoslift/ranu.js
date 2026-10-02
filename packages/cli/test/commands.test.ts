@@ -125,6 +125,7 @@ describe('@ranu/cli commands comprehensive', () => {
         .fn()
         .mockResolvedValue({ outputDirectory: '/vercel-output', files: ['config.json'] });
       const createVercelAdapter = vi.fn(() => ({ name: 'vercel', adapt }));
+      vi.doMock('@ranujs/adapter-vercel', () => ({ createVercelAdapter }));
       vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter }));
       vi.doMock('@ranu/adapter-vercel', () => ({ createVercelAdapter }));
       vi.resetModules();
@@ -139,7 +140,7 @@ describe('@ranu/cli commands comprehensive', () => {
 
       expect(
         await runWithMock(
-          { args: [], root: tempDir, adapter: '@hoslift/adapter-vercel', json: true },
+          { args: [], root: tempDir, adapter: '@ranujs/adapter-vercel', json: true },
           logger,
         ),
       ).toBe(0);
@@ -151,6 +152,7 @@ describe('@ranu/cli commands comprehensive', () => {
           files: ['config.json'],
         }),
       );
+      vi.doUnmock('@ranujs/adapter-vercel');
       vi.doUnmock('@hoslift/adapter-vercel');
       vi.doUnmock('@ranu/adapter-vercel');
     });
@@ -158,6 +160,10 @@ describe('@ranu/cli commands comprehensive', () => {
     it('falls back to the Vercel default factory', async () => {
       const adapt = vi.fn().mockResolvedValue({ success: true });
       const defaultFactory = vi.fn(() => ({ name: 'vercel-default', adapt }));
+      vi.doMock('@ranujs/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: defaultFactory,
+      }));
       vi.doMock('@hoslift/adapter-vercel', () => ({
         createVercelAdapter: undefined,
         default: defaultFactory,
@@ -177,6 +183,7 @@ describe('@ranu/cli commands comprehensive', () => {
       ).toBe(0);
       expect(defaultFactory).toHaveBeenCalledOnce();
       expect(adapt).toHaveBeenCalledOnce();
+      vi.doUnmock('@ranujs/adapter-vercel');
       vi.doUnmock('@hoslift/adapter-vercel');
       vi.doUnmock('@ranu/adapter-vercel');
     });
@@ -184,6 +191,10 @@ describe('@ranu/cli commands comprehensive', () => {
     it('falls back to a Vercel default adapter object', async () => {
       const adapt = vi.fn().mockResolvedValue({ success: true });
       const defaultAdapter = { name: 'vercel-default', adapt };
+      vi.doMock('@ranujs/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: defaultAdapter,
+      }));
       vi.doMock('@hoslift/adapter-vercel', () => ({
         createVercelAdapter: undefined,
         default: defaultAdapter,
@@ -202,11 +213,18 @@ describe('@ranu/cli commands comprehensive', () => {
         ),
       ).toBe(0);
       expect(adapt).toHaveBeenCalledOnce();
+      vi.doUnmock('@ranujs/adapter-vercel');
       vi.doUnmock('@hoslift/adapter-vercel');
       vi.doUnmock('@ranu/adapter-vercel');
     });
 
     it('reports Vercel adapter load failures in text and JSON modes', async () => {
+      vi.doMock('@ranujs/adapter-vercel', () => ({
+        createVercelAdapter: undefined,
+        default: () => {
+          throw new Error('adapter unavailable');
+        },
+      }));
       vi.doMock('@hoslift/adapter-vercel', () => ({
         createVercelAdapter: undefined,
         default: () => {
@@ -234,6 +252,7 @@ describe('@ranu/cli commands comprehensive', () => {
         success: false,
         error: 'Failed to load adapter "vercel": adapter unavailable',
       });
+      vi.doUnmock('@ranujs/adapter-vercel');
       vi.doUnmock('@hoslift/adapter-vercel');
       vi.doUnmock('@ranu/adapter-vercel');
     });
@@ -580,12 +599,13 @@ describe('@ranu/cli commands comprehensive', () => {
   });
 
   describe('cli build configuration', () => {
-    it('configures external dependencies including @hoslift/adapter-vercel', async () => {
+    it('configures external dependencies including @ranujs/adapter-vercel', async () => {
       const tsupConfig = await import('../tsup.config.js');
       const config =
         typeof tsupConfig.default === 'function'
           ? await (tsupConfig.default as (options: Record<string, unknown>) => Promise<any> | any)({})
           : tsupConfig.default;
+      expect(config.external).toContain('@ranujs/adapter-vercel');
       expect(config.external).toContain('@hoslift/adapter-vercel');
       if (typeof config.banner === 'function') {
         expect(config.banner({ entry: 'src/bin/ranu.ts' })).toEqual({ js: '#!/usr/bin/env node' });

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as cliModule from '@ranu/cli';
 import { runBin } from '../src/bin/ranu.js';
 
-describe('@hoslift/ranu bin entrypoint', () => {
+describe('ranu bin entrypoint', () => {
   it('invokes runCli and calls process.exit with resolved code', async () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
     const runCliSpy = vi.spyOn(cliModule, 'runCli').mockResolvedValue(0);

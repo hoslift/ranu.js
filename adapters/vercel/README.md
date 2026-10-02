@@ -1,4 +1,4 @@
-# @hoslift/adapter-vercel
+# @ranujs/adapter-vercel
 
 Vercel deployment adapter for Ranu.js.
 
@@ -7,7 +7,7 @@ Vercel deployment adapter for Ranu.js.
 ## Installation
 
 ```bash
-npm install @hoslift/adapter-vercel
+npm install @ranujs/adapter-vercel
 ```
 
 ## Usage
@@ -15,8 +15,8 @@ npm install @hoslift/adapter-vercel
 Configure the adapter in `ranu.config.ts`:
 
 ```typescript
-import { defineConfig } from '@hoslift/ranu/config';
-import vercelAdapter from '@hoslift/adapter-vercel';
+import { defineConfig } from 'ranu/config';
+import vercelAdapter from '@ranujs/adapter-vercel';
 
 export default defineConfig({
   deployment: {

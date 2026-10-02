@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from '@hoslift/ranu/react';
+import { Link } from 'ranu/react';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

@@ -1,5 +1,5 @@
 {
-  "name": "@hoslift/create-ranu",
+  "name": "create-ranu",
   "version": "0.1.2",
   "description": "Create a new Ranu.js project",
   "license": "MIT",

@@ -158,16 +158,16 @@ pnpm dev
 To create a new Ranu.js application:
 
 ```bash
-npm create @hoslift/ranu@latest my-app
+npm create ranu@latest my-app
 cd my-app
 npm install
 npm run dev
 ```
 
-To install `@hoslift/ranu` into an existing project:
+To install `ranu` into an existing project:
 
 ```bash
-npm install @hoslift/ranu
+npm install ranu
 ```
 
 ---

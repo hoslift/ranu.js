@@ -1,5 +1,5 @@
-import { defineConfig } from '@hoslift/ranu/config';
-import { vercelAdapter } from '@hoslift/adapter-vercel';
+import { defineConfig } from 'ranu/config';
+import { vercelAdapter } from '@ranujs/adapter-vercel';
 
 export default defineConfig({
   deployment: {

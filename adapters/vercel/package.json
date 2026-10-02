@@ -1,5 +1,5 @@
 {
-  "name": "@hoslift/adapter-vercel",
+  "name": "@ranujs/adapter-vercel",
   "version": "0.1.2",
   "description": "Ranu.js Vercel deployment adapter",
   "license": "MIT",
