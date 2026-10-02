@@ -1,4 +1,4 @@
-# @hoslift/create-ranu
+# create-ranu
 
 Scaffolding CLI for creating new Ranu.js applications.
 
@@ -7,9 +7,9 @@ Scaffolding CLI for creating new Ranu.js applications.
 ## Usage
 
 ```bash
-npm create @hoslift/ranu@latest my-app
+npm create ranu@latest my-app
 # or
-npx @hoslift/create-ranu my-app
+npx create-ranu my-app
 ```
 
 Generated apps include:

@@ -25,7 +25,7 @@
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/build": "workspace:*",
-    "@hoslift/adapter-vercel": "workspace:*",
+    "@ranujs/adapter-vercel": "workspace:*",
     "@ranu/dev": "workspace:*",
     "@ranu/runtime-node": "workspace:*"
   },
