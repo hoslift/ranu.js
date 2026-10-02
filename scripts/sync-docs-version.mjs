@@ -106,9 +106,9 @@ const targets = [
     file: 'create-ranu/src/template.ts',
     rules: [
       {
-        pattern: /(?:'ranu'|ranu):\s*'\^[0-9]+\.[0-9]+\.[0-9]+[^']*'/g,
-        replacement: `ranu: '^${version}'`,
-        description: 'create-ranu scaffold template dependency version',
+        pattern: /(?:'@ranujs\/core'|@ranujs\/core):\s*'\^[0-9]+\.[0-9]+\.[0-9]+[^']*'/g,
+        replacement: `'@ranujs/core': '^${version}'`,
+        description: 'create-ranujs scaffold template dependency version',
       },
     ],
   },

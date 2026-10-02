@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'ranu/react';
+import { Link } from '@ranujs/core/react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (

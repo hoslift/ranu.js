@@ -4,13 +4,13 @@ import path from 'path';
 const publishedPackages = [
   { 
     dir: 'packages/ranu', 
-    name: 'ranu', 
+    name: '@ranujs/core', 
     canonicalExports: ['.', './config', './react', './server', './plugin'], 
     technicalExports: ['./server-only'] 
   },
   { 
     dir: 'create-ranu', 
-    name: 'create-ranu', 
+    name: 'create-ranujs', 
     canonicalExports: ['.'],
     technicalExports: []
   },

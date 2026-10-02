@@ -27,7 +27,13 @@ const sharedAliases = {
   '@hoslift/ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
   '@hoslift/ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   '@hoslift/ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
-  '@hoslift/ranu': path.resolve(__dirname, 'packages/ranu/src/index.ts'),
+  '@ranujs/core/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
+  '@ranujs/core/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
+  '@ranujs/core/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
+  '@ranujs/core/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
+  '@ranujs/core/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
+  '@ranujs/core': path.resolve(__dirname, 'packages/ranu/src/index.ts'),
+  'create-ranujs': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   'ranu/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
   'ranu/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
   'ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
@@ -91,6 +97,14 @@ export default defineWorkspace([
     },
     resolve: {
       alias: [
+        {
+          find: /^@ranujs\/core$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        },
+        {
+          find: /^@ranujs\/core\/(.*)$/,
+          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
+        },
         {
           find: /^@hoslift\/ranu$/,
           replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),

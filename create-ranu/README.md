@@ -1,4 +1,4 @@
-# create-ranu
+# create-ranujs
 
 Scaffolding CLI for creating new Ranu.js applications.
 
@@ -7,9 +7,9 @@ Scaffolding CLI for creating new Ranu.js applications.
 ## Usage
 
 ```bash
-npm create ranu@latest my-app
+npm create ranujs@latest my-app
 # or
-npx create-ranu my-app
+npx create-ranujs my-app
 ```
 
 Generated apps include:

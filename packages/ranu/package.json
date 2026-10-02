@@ -1,5 +1,5 @@
 {
-  "name": "ranu",
+  "name": "@ranujs/core",
   "version": "0.1.2",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework",
   "license": "MIT",
@@ -7,7 +7,8 @@
   "private": false,
   "sideEffects": false,
   "bin": {
-    "ranu": "./dist/bin/ranu.js"
+    "ranu": "./dist/bin/ranu.js",
+    "ranujs": "./dist/bin/ranu.js"
   },
   "engines": {
     "node": ">=22.0.0"

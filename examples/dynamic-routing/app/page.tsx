@@ -1,4 +1,4 @@
-import { Link } from 'ranu/react';
+import { Link } from '@ranujs/core/react';
 
 export default function HomePage() {
   return (

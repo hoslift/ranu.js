@@ -1,11 +1,12 @@
 {
-  "name": "create-ranu",
+  "name": "create-ranujs",
   "version": "0.1.2",
   "description": "Create a new Ranu.js project",
   "license": "MIT",
   "type": "module",
   "private": false,
   "bin": {
+    "create-ranujs": "./dist/bin/create-ranu.js",
     "create-ranu": "./dist/bin/create-ranu.js"
   },
   "exports": {

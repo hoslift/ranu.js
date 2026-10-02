@@ -122,7 +122,7 @@ pnpm format
 
 ## Official Examples
 
-The repository includes standalone, idiomatic example applications demonstrating core framework capabilities using canonical public APIs (`ranu`, `ranu/react`, `ranu/server`, `ranu/config`, `ranu/plugin`).
+The repository includes standalone, idiomatic example applications demonstrating core framework capabilities using canonical public APIs (`@ranujs/core`, `@ranujs/core/react`, `@ranujs/core/server`, `@ranujs/core/config`, `@ranujs/core/plugin`).
 
 | Example                                                            | Description                    | Key APIs & Concepts                                                          |
 | :----------------------------------------------------------------- | :----------------------------- | :--------------------------------------------------------------------------- |
@@ -136,7 +136,7 @@ The repository includes standalone, idiomatic example applications demonstrating
 | [`examples/client-components`](./examples/client-components)       | Interactive React 19 hydration | Client state, `useRouter()`, `usePathname()`, `useSearchParams()`            |
 | [`examples/full-stack-dashboard`](./examples/full-stack-dashboard) | Complete full-stack reference  | SSR dashboard, SSG about, API metrics, client widgets, middleware            |
 | [`examples/deployment-node`](./examples/deployment-node)           | Standalone Node.js server      | Multi-stage production `Dockerfile`, non-root container, healthcheck         |
-| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranu/adapter-vercel`, Vercel Build Output API v3                           |
+| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranujs/adapter-vercel`, Vercel Build Output API v3                          |
 | [`examples/plugin-basic`](./examples/plugin-basic)                 | Extensible plugin architecture | `definePlugin()`, build lifecycle hooks, config customization                |
 
 To run any example locally:
@@ -158,16 +158,16 @@ pnpm dev
 To create a new Ranu.js application:
 
 ```bash
-npm create ranu@latest my-app
+npm create ranujs@latest my-app
 cd my-app
 npm install
 npm run dev
 ```
 
-To install `ranu` into an existing project:
+To install `@ranujs/core` into an existing project:
 
 ```bash
-npm install ranu
+npm install @ranujs/core
 ```
 
 ---

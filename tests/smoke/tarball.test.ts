@@ -28,7 +28,7 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
       expect(packRes.code).toBe(0);
 
       const tarballs = fs.readdirSync(tempDir).filter((f) => f.endsWith('.tgz'));
-      const ranuTarball = tarballs.find((f) => f.startsWith('hoslift-ranu-') || f.startsWith('ranu-'));
+      const ranuTarball = tarballs.find((f) => f.startsWith('ranujs-core-') || f.startsWith('hoslift-ranu-') || f.startsWith('ranu-'));
       expect(ranuTarball).toBeDefined();
       const ranuTarballPath = path.join(tempDir, ranuTarball!);
 
@@ -42,7 +42,7 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
         private: true,
         type: 'module',
         dependencies: {
-          ranu: `file:${ranuTarballPath.replace(/\\/g, '/')}`,
+          '@ranujs/core': `file:${ranuTarballPath.replace(/\\/g, '/')}`,
         },
       };
       fs.writeFileSync(path.join(standaloneDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
@@ -73,12 +73,16 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
 
       // Verify node_modules contains installed package tarball
       const nodeModules = path.join(standaloneDir, 'node_modules');
-      expect(fs.existsSync(path.join(nodeModules, 'ranu')) || fs.existsSync(path.join(nodeModules, '@hoslift', 'ranu'))).toBe(true);
+      expect(
+        fs.existsSync(path.join(nodeModules, '@ranujs', 'core')) ||
+        fs.existsSync(path.join(nodeModules, 'ranu')) ||
+        fs.existsSync(path.join(nodeModules, '@hoslift', 'ranu'))
+      ).toBe(true);
 
       // 5. Test canonical import resolution from installed standalone package
       const testImportScript = [
-        'import { defineConfig } from "ranu";',
-        'import { redirect, notFound } from "ranu/server";',
+        'import { defineConfig } from "@ranujs/core";',
+        'import { redirect, notFound } from "@ranujs/core/server";',
         'const config = defineConfig({});',
         'if (typeof defineConfig !== "function" || typeof redirect !== "function" || typeof notFound !== "function") process.exit(1);',
         'process.exit(0);',
@@ -97,9 +101,11 @@ describe('Phase 28 — Tarball Release Validation Smoke', () => {
       expect(execRes.code).toBe(0);
 
       // 6. Test CLI binary invocation from installed standalone package
-      const cliBinPath = fs.existsSync(path.join(standaloneDir, 'node_modules', 'ranu', 'dist', 'bin', 'ranu.js'))
-        ? path.join(standaloneDir, 'node_modules', 'ranu', 'dist', 'bin', 'ranu.js')
-        : path.join(standaloneDir, 'node_modules', '@hoslift', 'ranu', 'dist', 'bin', 'ranu.js');
+      const cliBinPath = fs.existsSync(path.join(standaloneDir, 'node_modules', '@ranujs', 'core', 'dist', 'bin', 'ranu.js'))
+        ? path.join(standaloneDir, 'node_modules', '@ranujs', 'core', 'dist', 'bin', 'ranu.js')
+        : fs.existsSync(path.join(standaloneDir, 'node_modules', 'ranu', 'dist', 'bin', 'ranu.js'))
+          ? path.join(standaloneDir, 'node_modules', 'ranu', 'dist', 'bin', 'ranu.js')
+          : path.join(standaloneDir, 'node_modules', '@hoslift', 'ranu', 'dist', 'bin', 'ranu.js');
       expect(fs.existsSync(cliBinPath)).toBe(true);
 
       const cliRes = await runCommand(process.execPath, [cliBinPath, '--help'], {

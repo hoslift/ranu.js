@@ -32,7 +32,7 @@ export function generateTemplateFiles(
         start: 'ranu start',
       },
       dependencies: {
-        ranu: '^0.1.2',
+        '@ranujs/core': '^0.1.2',
         react: '^19.0.0',
         'react-dom': '^19.0.0',
       },
@@ -47,7 +47,7 @@ export function generateTemplateFiles(
     2
   );
 
-  const ranuConfig = `import { defineConfig } from 'ranu/config';
+  const ranuConfig = `import { defineConfig } from '@ranujs/core/config';
 
 export default defineConfig({
   server: {

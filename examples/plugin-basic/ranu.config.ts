@@ -1,5 +1,5 @@
-import { defineConfig } from 'ranu/config';
-import { definePlugin } from 'ranu/plugin';
+import { defineConfig } from '@ranujs/core/config';
+import { definePlugin } from '@ranujs/core/plugin';
 
 export const bannerPlugin = (options: { text: string }) =>
   definePlugin({

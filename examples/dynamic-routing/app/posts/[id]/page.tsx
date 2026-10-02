@@ -1,4 +1,4 @@
-import { Link } from 'ranu/react';
+import { Link } from '@ranujs/core/react';
 
 export default function PostPage({ params }: { params?: { id?: string } }) {
   const postId = params?.id ?? 'Unknown';
