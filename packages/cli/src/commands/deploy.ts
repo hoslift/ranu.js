@@ -2,6 +2,35 @@ import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
 /**
+ * Loads the official Vercel deployment adapter, falling back to legacy scoped package if uninstalled.
+ */
+export async function loadVercelAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  try {
+    return await importer('@ranujs/adapter-vercel');
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code;
+    const msg = (err as Error)?.message ?? '';
+    const isMissingModule =
+      code === 'ERR_MODULE_NOT_FOUND' ||
+      code === 'MODULE_NOT_FOUND' ||
+      msg.includes('Cannot find package') ||
+      msg.includes('Cannot find module');
+
+    if (isMissingModule) {
+      try {
+        // @ts-expect-error Backward-compatible fallback for legacy scoped adapter
+        return await importer('@hoslift/adapter-vercel');
+      } catch {
+        throw err;
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * Executes the configured deployment adapter for the production project.
  *
  * @param args - Command-line options controlling output format
@@ -17,29 +46,7 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
     const adapterName = String(args.adapter).toLowerCase();
     if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel' || adapterName === '@hoslift/adapter-vercel' || adapterName === '@ranu/adapter-vercel') {
       try {
-        let vercelMod: any;
-        try {
-          vercelMod = await import('@ranujs/adapter-vercel');
-        } catch (err: unknown) {
-          const code = (err as { code?: string })?.code;
-          const msg = (err as Error)?.message ?? '';
-          const isMissingModule =
-            code === 'ERR_MODULE_NOT_FOUND' ||
-            code === 'MODULE_NOT_FOUND' ||
-            msg.includes('Cannot find package') ||
-            msg.includes('Cannot find module');
-
-          if (isMissingModule) {
-            try {
-              // @ts-expect-error Backward-compatible fallback for legacy scoped adapter
-              vercelMod = await import('@hoslift/adapter-vercel');
-            } catch {
-              throw err;
-            }
-          } else {
-            throw err;
-          }
-        }
+        const vercelMod = await loadVercelAdapter();
         const loadedAdapter =
           typeof vercelMod.createVercelAdapter === 'function'
             ? vercelMod.createVercelAdapter()

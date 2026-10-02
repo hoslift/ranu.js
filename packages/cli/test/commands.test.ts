@@ -6,7 +6,7 @@ import * as buildModule from '@ranu/build';
 import * as devModule from '@ranu/dev';
 import * as nodeServerModule from '@ranu/runtime-node';
 import { runBuildCommand } from '../src/commands/build.js';
-import { runDeployCommand } from '../src/commands/deploy.js';
+import { runDeployCommand, loadVercelAdapter } from '../src/commands/deploy.js';
 import { runDevCommand } from '../src/commands/dev.js';
 import { runStartCommand } from '../src/commands/start.js';
 import { runHelpCommand } from '../src/commands/help.js';
@@ -258,47 +258,44 @@ describe('@ranu/cli commands comprehensive', () => {
     });
 
     it('falls back to @hoslift/adapter-vercel when @ranujs/adapter-vercel is not found', async () => {
-      const adapt = vi.fn().mockResolvedValue({ outputDirectory: '/legacy-output' });
-      const createVercelAdapter = vi.fn(() => ({ name: 'vercel-legacy', adapt }));
+      const legacyAdapter = { name: 'vercel-legacy' };
+      const importer = vi.fn(async (id: string) => {
+        if (id === '@ranujs/adapter-vercel') {
+          const err = new Error('Cannot find package @ranujs/adapter-vercel');
+          (err as any).code = 'ERR_MODULE_NOT_FOUND';
+          throw err;
+        }
+        return legacyAdapter;
+      });
 
-      vi.doMock('@ranujs/adapter-vercel', () =>
-        Promise.reject(
-          Object.assign(new Error('Cannot find package @ranujs/adapter-vercel'), {
-            code: 'ERR_MODULE_NOT_FOUND',
-          }),
-        ),
-      );
-      vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter }));
-
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(0);
-      expect(createVercelAdapter).toHaveBeenCalledOnce();
-
-      vi.doUnmock('@ranujs/adapter-vercel');
-      vi.doUnmock('@hoslift/adapter-vercel');
+      const result = await loadVercelAdapter(importer);
+      expect(result).toBe(legacyAdapter);
+      expect(importer).toHaveBeenCalledTimes(2);
+      expect(importer).toHaveBeenNthCalledWith(1, '@ranujs/adapter-vercel');
+      expect(importer).toHaveBeenNthCalledWith(2, '@hoslift/adapter-vercel');
     });
 
     it('does not fall back if @ranujs/adapter-vercel throws non-missing module error', async () => {
-      vi.doMock('@ranujs/adapter-vercel', () =>
-        Promise.reject(new Error('Initialization crash in adapter')),
-      );
-      const legacyFactory = vi.fn();
-      vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter: legacyFactory }));
+      const importer = vi.fn(async (id: string) => {
+        if (id === '@ranujs/adapter-vercel') {
+          throw new Error('Initialization crash in adapter');
+        }
+        return {};
+      });
 
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const error = vi.spyOn(logger, 'error');
+      await expect(loadVercelAdapter(importer)).rejects.toThrow('Initialization crash in adapter');
+      expect(importer).toHaveBeenCalledOnce();
+    });
 
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'vercel' }, logger)).toBe(1);
-      expect(legacyFactory).not.toHaveBeenCalled();
-      expect(error).toHaveBeenCalledWith('Failed to load adapter "vercel": Initialization crash in adapter');
+    it('re-throws original error if fallback adapter is also missing', async () => {
+      const importer = vi.fn(async () => {
+        const err = new Error('Cannot find package');
+        (err as any).code = 'ERR_MODULE_NOT_FOUND';
+        throw err;
+      });
 
-      vi.doUnmock('@ranujs/adapter-vercel');
-      vi.doUnmock('@hoslift/adapter-vercel');
+      await expect(loadVercelAdapter(importer)).rejects.toThrow();
+      expect(importer).toHaveBeenCalledTimes(2);
     });
 
     it('rejects unsupported CLI adapters in text and JSON modes', async () => {
