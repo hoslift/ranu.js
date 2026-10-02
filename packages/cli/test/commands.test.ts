@@ -261,11 +261,13 @@ describe('@ranu/cli commands comprehensive', () => {
       const adapt = vi.fn().mockResolvedValue({ outputDirectory: '/legacy-output' });
       const createVercelAdapter = vi.fn(() => ({ name: 'vercel-legacy', adapt }));
 
-      vi.doMock('@ranujs/adapter-vercel', () => {
-        const err = new Error('Cannot find package @ranujs/adapter-vercel');
-        (err as any).code = 'ERR_MODULE_NOT_FOUND';
-        throw err;
-      });
+      vi.doMock('@ranujs/adapter-vercel', () =>
+        Promise.reject(
+          Object.assign(new Error('Cannot find package @ranujs/adapter-vercel'), {
+            code: 'ERR_MODULE_NOT_FOUND',
+          }),
+        ),
+      );
       vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter }));
 
       vi.resetModules();
@@ -280,9 +282,9 @@ describe('@ranu/cli commands comprehensive', () => {
     });
 
     it('does not fall back if @ranujs/adapter-vercel throws non-missing module error', async () => {
-      vi.doMock('@ranujs/adapter-vercel', () => {
-        throw new Error('Initialization crash in adapter');
-      });
+      vi.doMock('@ranujs/adapter-vercel', () =>
+        Promise.reject(new Error('Initialization crash in adapter')),
+      );
       const legacyFactory = vi.fn();
       vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter: legacyFactory }));
 

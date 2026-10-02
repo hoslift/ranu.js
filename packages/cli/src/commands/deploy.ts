@@ -30,8 +30,12 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
             msg.includes('Cannot find module');
 
           if (isMissingModule) {
-            const legacyAdapterPkg = '@hoslift/adapter-vercel';
-            vercelMod = await import(/* @vite-ignore */ legacyAdapterPkg);
+            try {
+              // @ts-expect-error Backward-compatible fallback for legacy scoped adapter
+              vercelMod = await import('@hoslift/adapter-vercel');
+            } catch {
+              throw err;
+            }
           } else {
             throw err;
           }
