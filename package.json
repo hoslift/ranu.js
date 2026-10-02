@@ -1,6 +1,7 @@
 {
   "name": "ranu-monorepo",
   "private": true,
+  "type": "module",
   "workspaces": [
     "packages/*",
     "adapters/*",
