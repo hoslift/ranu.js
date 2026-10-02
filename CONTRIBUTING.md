@@ -7,7 +7,7 @@ Ranu.js is an open-source project, and contributions from the community are welc
 > [!NOTE]
 > **Early Development**
 >
-> Ranu.js is currently in **pre-alpha development**. APIs, architecture, package boundaries, and development workflows may change as the project matures.
+> Ranu.js is currently in **public alpha development (v0.1.2)**. APIs, architecture, package boundaries, and development workflows may change as the project matures.
 
 ## Before You Start
 
@@ -102,7 +102,7 @@ The repository is organized around the following areas:
 | `rfcs/`        | Public architectural proposals where applicable |
 | `tooling/`     | Internal repository tooling                     |
 
-The repository structure may evolve during pre-alpha development.
+The repository structure may evolve during public alpha development.
 
 ---
 
@@ -220,7 +220,7 @@ Changes that introduce or modify public behavior should update the relevant docu
 
 Examples and documentation should use **public Ranu.js APIs** rather than relying on internal implementation details.
 
-Because the project is still pre-alpha, documentation may evolve alongside the implementation.
+Because the project is still in public alpha, documentation may evolve alongside the implementation.
 
 ---
 

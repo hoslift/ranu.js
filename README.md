@@ -25,7 +25,7 @@
 > [!WARNING]
 > **Early Development**
 >
-> Ranu.js is currently in **pre-alpha development**. APIs are not stable and may change as development progresses. Ranu.js is **not yet suitable for production use**.
+> Ranu.js is currently in **public alpha development**. APIs are not stable and may change as development progresses. Ranu.js is **not yet suitable for production use**.
 
 ## About Ranu.js
 
@@ -62,7 +62,7 @@ The current Ranu.js V1 target includes:
   - Containers
   - Vercel
 
-> These capabilities are development targets for V1. Individual features may be incomplete, experimental, or subject to change during pre-alpha development.
+> These capabilities are development targets for V1. Individual features may be incomplete, experimental, or subject to change during public alpha development.
 
 ---
 
@@ -152,7 +152,7 @@ pnpm dev
 ## Getting Started
 
 > [!NOTE]
-> **Ranu.js is currently in Public Alpha (v0.1.1).**
+> **Ranu.js is currently in Public Alpha (v0.1.2).**
 > Community testing, feedback, and early evaluation are welcome.
 
 To create a new Ranu.js application:
@@ -251,7 +251,7 @@ Official sponsorship options will be published when available.
 | Area                 | Status             |
 | -------------------- | ------------------ |
 | Project              | Active development |
-| Release stage        | Public Alpha (v0.1.1) |
+| Release stage        | Public Alpha (v0.1.2) |
 | Production ready     | No (Early community evaluation) |
 | API stability        | Maturing toward V1 |
 | V1 development       | In progress        |

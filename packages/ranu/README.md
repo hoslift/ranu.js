@@ -2,7 +2,7 @@
 
 Ranu.js — JavaScript/TypeScript Full-Stack Web Framework.
 
-> ⚠️ **Public Alpha (v0.1.1)**: Early release for community evaluation and feedback.
+> ⚠️ **Public Alpha (v0.1.2)**: Early release for community evaluation and feedback.
 
 ## Installation
 
