@@ -6,7 +6,7 @@ This example demonstrates the file-based routing system of **Ranu.js**, includin
 
 - **File-based route mapping**: Directory structure automatically defines URL hierarchy (`app/about/page.tsx` -> `/about`)
 - **Nested layouts**: `app/dashboard/layout.tsx` nests inside `app/layout.tsx` without re-rendering the parent shell
-- **Client navigation**: `<Link>` component from `ranu/react` providing instant client-side transitions
+- **Client navigation**: `<Link>` component from `@ranujs/core/react` providing instant client-side transitions
 - **Custom 404 page**: `app/404.tsx` handling unmatched paths gracefully
 
 ## Project Structure

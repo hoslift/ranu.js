@@ -9,7 +9,7 @@ body:
       value: |
         Thank you for helping improve Ranu.js.
 
-        Ranu.js is currently in pre-alpha development. Before submitting a bug report, please search existing issues to make sure the problem has not already been reported.
+        Ranu.js is currently in public alpha development. Before submitting a bug report, please search existing issues to make sure the problem has not already been reported.
 
         **Do not report security vulnerabilities here.** Please follow the private reporting process described in SECURITY.md.
 
