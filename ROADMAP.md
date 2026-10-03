@@ -95,7 +95,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 * Server build graph and production server bundles
 * Client/server module boundary classification and `"use client"` detection
 * Transitive client graph propagation and security boundary enforcement
-* `ranu/server-only` boundary validation
+* `packages/ranu` / `@ranujs/core/server-only` boundary validation
 * Route, server, client, and static build manifests
 * Production entry generation and Node.js SSR production artifact
 * Cross-platform build and asset packaging behavior

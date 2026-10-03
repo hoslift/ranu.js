@@ -103,6 +103,20 @@ const targets = [
     ],
   },
   {
+    file: 'CONTRIBUTING.md',
+    rules: [
+      {
+        pattern: /public alpha development \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/gi,
+        replacement: (match) => {
+          return match.startsWith('P')
+            ? `Public Alpha development (v${version})`
+            : `public alpha development (v${version})`;
+        },
+        description: 'CONTRIBUTING early development note',
+      },
+    ],
+  },
+  {
     file: 'create-ranu/src/template.ts',
     rules: [
       {

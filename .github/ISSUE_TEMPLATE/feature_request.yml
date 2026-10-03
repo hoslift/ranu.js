@@ -9,7 +9,7 @@ body:
       value: |
         Thank you for helping shape Ranu.js.
 
-        Ranu.js is currently in pre-alpha development. Please search existing issues before proposing a new feature.
+        Ranu.js is currently in public alpha development. Please search existing issues before proposing a new feature.
 
         Major architectural or breaking changes may require further discussion before implementation.
 
@@ -56,5 +56,5 @@ body:
       options:
         - label: I searched existing issues and could not find an existing request for this feature.
           required: true
-        - label: I understand that Ranu.js is currently in pre-alpha development and APIs may change.
+        - label: I understand that Ranu.js is currently in public alpha development and APIs may change.
           required: true
