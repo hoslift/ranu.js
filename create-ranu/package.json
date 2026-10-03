@@ -1,6 +1,6 @@
 {
   "name": "create-ranujs",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Create a new Ranu.js project",
   "license": "MIT",
   "type": "module",
@@ -17,7 +17,6 @@
   },
   "files": [
     "dist",
-    "templates",
     "README.md",
     "LICENSE"
   ],

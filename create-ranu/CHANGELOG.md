@@ -1,4 +1,10 @@
-# @hoslift/create-ranu
+# create-ranujs
+
+## 0.1.3
+
+### Patch Changes
+
+- Fix CLI direct execution in bundled environment when invoked via npm create / npx and align examples to npm create ranujs@latest.
 
 ## 0.1.2
 

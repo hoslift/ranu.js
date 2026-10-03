@@ -1,4 +1,10 @@
-# @hoslift/ranu
+# @ranujs/core
+
+## 0.1.3
+
+### Patch Changes
+
+- Bump version to v0.1.3 and synchronize workspace dependencies.
 
 ## 0.1.2
 
