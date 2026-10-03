@@ -4,6 +4,15 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.1.3 (Public Alpha)
+
+### Core Improvements & Scaffolder Fixes
+
+- Resolved `create-ranujs` CLI execution bug where binary exited silently due to code-splitting chunk mismatch; aligned direct execution with `NODE_ENV !== 'test'`.
+- Corrected CLI help text usage examples to canonical `npm create ranujs@latest`.
+- Synchronized canonical configuration import in `@ranujs/adapter-vercel` documentation to `@ranujs/core/config`.
+- Bumped all packages to `v0.1.3` and synchronized documentation references across the monorepo.
+
 ## 0.1.2 (Public Alpha)
 
 ### Core Improvements & Bundle Packaging

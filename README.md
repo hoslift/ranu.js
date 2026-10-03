@@ -152,7 +152,7 @@ pnpm dev
 ## Getting Started
 
 > [!NOTE]
-> **Ranu.js is currently in Public Alpha (v0.1.2).**
+> **Ranu.js is currently in Public Alpha (v0.1.3).**
 > Community testing, feedback, and early evaluation are welcome.
 
 To create a new Ranu.js application:
@@ -251,7 +251,7 @@ Official sponsorship options will be published when available.
 | Area                 | Status             |
 | -------------------- | ------------------ |
 | Project              | Active development |
-| Release stage        | Public Alpha (v0.1.2) |
+| Release stage        | Public Alpha (v0.1.3) |
 | Production ready     | No (Early community evaluation) |
 | API stability        | Maturing toward V1 |
 | V1 development       | In progress        |
