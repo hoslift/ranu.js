@@ -7,7 +7,7 @@ Ranu.js is an open-source project, and contributions from the community are welc
 > [!NOTE]
 > **Early Development**
 >
-> Ranu.js is currently in **public alpha development (v0.1.2)**. APIs, architecture, package boundaries, and development workflows may change as the project matures.
+> Ranu.js is currently in **public alpha development (v0.1.3)**. APIs, architecture, package boundaries, and development workflows may change as the project matures.
 
 ## Before You Start
 

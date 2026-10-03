@@ -8,6 +8,13 @@ updates:
     groups:
       devDependencies:
         dependency-type: "development"
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+

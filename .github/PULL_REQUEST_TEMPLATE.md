@@ -109,4 +109,4 @@ Examples:
 - [ ] I have reviewed the relevant contribution guidelines.
 - [ ] This pull request is focused on a single logical change or closely related set of changes.
 - [ ] I have not included unrelated changes.
-- [ ] I understand that Ranu.js is currently in pre-alpha development and APIs may continue to evolve.
+- [ ] I understand that Ranu.js is currently in public alpha development and APIs may continue to evolve.

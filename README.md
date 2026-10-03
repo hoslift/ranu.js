@@ -1,6 +1,10 @@
 <p align="center">
   <a href="https://hoslift.com">
-    <img src="logo.svg" alt="Ranu.js Logo" width="577.5" height="115">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg">
+      <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg" alt="Ranu.js Logo" width="580">
+    </picture>
   </a>
 </p>
 
@@ -136,7 +140,7 @@ The repository includes standalone, idiomatic example applications demonstrating
 | [`examples/client-components`](./examples/client-components)       | Interactive React 19 hydration | Client state, `useRouter()`, `usePathname()`, `useSearchParams()`            |
 | [`examples/full-stack-dashboard`](./examples/full-stack-dashboard) | Complete full-stack reference  | SSR dashboard, SSG about, API metrics, client widgets, middleware            |
 | [`examples/deployment-node`](./examples/deployment-node)           | Standalone Node.js server      | Multi-stage production `Dockerfile`, non-root container, healthcheck         |
-| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranujs/adapter-vercel`, Vercel Build Output API v3                          |
+| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranujs/adapter-vercel`, Vercel Build Output API v3                         |
 | [`examples/plugin-basic`](./examples/plugin-basic)                 | Extensible plugin architecture | `definePlugin()`, build lifecycle hooks, config customization                |
 
 To run any example locally:
@@ -152,7 +156,7 @@ pnpm dev
 ## Getting Started
 
 > [!NOTE]
-> **Ranu.js is currently in Public Alpha (v0.1.2).**
+> **Ranu.js is currently in Public Alpha (v0.1.3).**
 > Community testing, feedback, and early evaluation are welcome.
 
 To create a new Ranu.js application:
@@ -248,15 +252,15 @@ Official sponsorship options will be published when available.
 
 ## Project Status
 
-| Area                 | Status             |
-| -------------------- | ------------------ |
-| Project              | Active development |
-| Release stage        | Public Alpha (v0.1.2) |
+| Area                 | Status                          |
+| -------------------- | ------------------------------- |
+| Project              | Active development              |
+| Release stage        | Public Alpha (v0.1.3)           |
 | Production ready     | No (Early community evaluation) |
-| API stability        | Maturing toward V1 |
-| V1 development       | In progress        |
-| Public documentation | Coming soon        |
-| Stable release       | Not yet available  |
+| API stability        | Maturing toward V1              |
+| V1 development       | In progress                     |
+| Public documentation | Coming soon                     |
+| Stable release       | Not yet available               |
 
 ---
 
@@ -267,6 +271,12 @@ Ranu.js is open-source software distributed under the **MIT License**.
 See [`LICENSE`](./LICENSE) for the full license text.
 
 ---
+## Contributors
+
+<a href="https://github.com/hoslift/ranu.js/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hoslift/ranu.js" alt="Contributors" />
+</a>
+
 
 <p align="center">
   <strong>Ranu.js</strong><br>

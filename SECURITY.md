@@ -2,7 +2,7 @@
 
 Security is an important part of the development of **Ranu.js**.
 
-Ranu.js is currently in public alpha development (v0.1.2). APIs, internal architecture, and security boundaries may continue to evolve as the framework progresses toward its first stable release.
+Ranu.js is currently in public alpha development (v0.1.3). APIs, internal architecture, and security boundaries may continue to evolve as the framework progresses toward its first stable release.
 
 ## Supported Versions
 
@@ -10,8 +10,8 @@ Security fixes are currently applied to the latest published version of Ranu.js.
 
 | Version              | Supported |
 | -------------------- | --------- |
-| 0.1.2 (Public Alpha) | ✅         |
-| < 0.1.2              | ❌         |
+| 0.1.3 (Public Alpha) | ✅         |
+| < 0.1.3              | ❌         |
 
 ## Reporting a Vulnerability
 
@@ -150,4 +150,4 @@ For development progress, see [`ROADMAP.md`](./ROADMAP.md).
 ---
 
 **Ranu.js — Security Policy**
-*Public Alpha development (v0.1.2)*
+*Public Alpha development (v0.1.3)*

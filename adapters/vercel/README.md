@@ -2,7 +2,7 @@
 
 Vercel deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.2)**: Official Vercel deployment adapter for Ranu.js.
+> **Public Alpha (v0.1.3)**: Official Vercel deployment adapter for Ranu.js.
 
 ## Installation
 
@@ -15,7 +15,7 @@ npm install @ranujs/adapter-vercel
 Configure the adapter in `ranu.config.ts`:
 
 ```typescript
-import { defineConfig } from 'ranu/config';
+import { defineConfig } from '@ranujs/core/config';
 import vercelAdapter from '@ranujs/adapter-vercel';
 
 export default defineConfig({

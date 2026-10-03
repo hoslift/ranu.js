@@ -2,7 +2,7 @@
 
 Scaffolding CLI for creating new Ranu.js applications.
 
-> **Public Alpha (v0.1.2)**: Official project initializer for Ranu.js.
+> **Public Alpha (v0.1.3)**: Official project initializer for Ranu.js.
 
 ## Usage
 

@@ -135,11 +135,11 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
  */
 export function printHelp(): void {
   console.log(`
-create-ranu — Canonical project scaffolder for Ranu.js
+create-ranujs — Canonical project scaffolder for Ranu.js
 
 Usage:
-  $ create-ranu <project-directory> [options]
-  $ npm create ranu@latest <project-directory> [options]
+  $ create-ranujs <project-directory> [options]
+  $ npm create ranujs@latest <project-directory> [options]
 
 Options:
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)
@@ -154,9 +154,9 @@ Options:
   -v, --version                 Show create-ranu version
 
 Examples:
-  $ npm create ranu@latest my-app
-  $ pnpm create ranu my-app --package-manager pnpm
-  $ create-ranu ./web-app --git
+  $ npm create ranujs@latest my-app
+  $ pnpm create ranujs my-app --package-manager pnpm
+  $ create-ranujs ./web-app --git
 `);
 }
 
@@ -258,18 +258,7 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
 }
 
 /* v8 ignore start */
-function checkDirectExecution(): boolean {
-  if (process.argv[1] === undefined) return false;
-  try {
-    const realArgv1 = fs.realpathSync(process.argv[1]);
-    const modulePath = fileURLToPath(import.meta.url);
-    return modulePath === realArgv1 || modulePath === path.resolve(process.argv[1]);
-  } catch {
-    return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
-  }
-}
-
-if (checkDirectExecution()) {
+if (process.env.NODE_ENV !== 'test') {
   try {
     const code = runCreateRanu();
     process.exit(code);
@@ -278,3 +267,4 @@ if (checkDirectExecution()) {
   }
 }
 /* v8 ignore stop */
+

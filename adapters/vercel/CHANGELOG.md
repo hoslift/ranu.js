@@ -1,4 +1,10 @@
-# @hoslift/adapter-vercel
+# @ranujs/adapter-vercel
+
+## 0.1.3
+
+### Patch Changes
+
+- Bump version to v0.1.3 and fix configuration import documentation.
 
 ## 0.1.2
 
