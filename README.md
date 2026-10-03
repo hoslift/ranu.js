@@ -271,6 +271,12 @@ Ranu.js is open-source software distributed under the **MIT License**.
 See [`LICENSE`](./LICENSE) for the full license text.
 
 ---
+## Contributors
+
+<a href="https://github.com/hoslift/ranu.js/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hoslift/ranu.js" alt="Contributors" />
+</a>
+
 
 <p align="center">
   <strong>Ranu.js</strong><br>
