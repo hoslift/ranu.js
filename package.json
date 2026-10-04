@@ -12,6 +12,7 @@
   ],
   "version": "0.0.0",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework (monorepo root)",
+  "license": "MIT",
   "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=22.0.0",
