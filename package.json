@@ -13,6 +13,16 @@
   "version": "0.0.0",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework (monorepo root)",
   "license": "MIT",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/draj256"
+    },
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ"
+    }
+  ],
   "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=22.0.0",

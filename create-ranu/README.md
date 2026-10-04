@@ -31,6 +31,7 @@
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D22.0.0-339933?style=flat&logo=node.js&logoColor=white" alt="Node Version"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://github.com/sponsors/draj256"><img src="https://img.shields.io/badge/Sponsor-draj256-ea4aaa?style=flat&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub"></a>
+  <a href="https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat&logo=paypal&logoColor=white" alt="Donate with PayPal"></a>
 </p>
 
 ---
@@ -117,6 +118,10 @@ Ranu.js is an independent open-source framework created and maintained by [Hosli
 <p align="center">
   <a href="https://github.com/sponsors/draj256">
     <img src="https://img.shields.io/badge/Sponsor_on_GitHub-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ">
+    <img src="https://img.shields.io/badge/Donate_via_PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate via PayPal">
   </a>
 </p>
 
