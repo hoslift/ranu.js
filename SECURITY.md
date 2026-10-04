@@ -19,10 +19,10 @@ Ranu.js is currently in active development (**v0.1.x Public Alpha**). Security b
 
 Security fixes and maintenance patches are applied exclusively to the latest published release on npm.
 
-| Version Line | Release State         |  Security Support  | Status                                            |
-| :----------- | :-------------------- | :----------------: | :------------------------------------------------ |
-| **`0.1.x`**  | Public Alpha          | :white_check_mark: | **Active Maintenance** (Latest published release) |
-| `< 0.1.3`    | Development Pre-alpha |        :x:         | Unsupported / End of Life                         |
+| Version              |  Security Support  | Status                                            |
+| :------------------- | :----------------: | :------------------------------------------------ |
+| 0.1.3 (Public Alpha) | :white_check_mark: | **Active Maintenance** (Latest published release) |
+| < 0.1.3              |        :x:         | Unsupported / End of Life                         |
 
 > [!NOTE]
 > We strongly recommend keeping your dependencies pinned to the latest available `ranu` patch release (`npm install ranu@latest`) to ensure all security patches are active.
