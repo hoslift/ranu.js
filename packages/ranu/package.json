@@ -61,9 +61,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "esbuild": "^0.28.2",
-    "typescript": "^5.9.3"
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "@ranu/build": "workspace:*",
@@ -82,6 +80,7 @@
     "@types/node": "^22.20.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.2.5",
+    "esbuild": "^0.28.2",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
