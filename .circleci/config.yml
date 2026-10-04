@@ -27,6 +27,9 @@ jobs:
           paths:
             - ~/.pnpm-store
       - run:
+          name: Check documentation version sync
+          command: node scripts/sync-docs-version.mjs --check
+      - run:
           name: Validate Ranu.js
           command: pnpm ci:verify
 
