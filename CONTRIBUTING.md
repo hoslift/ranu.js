@@ -1,108 +1,96 @@
 # Contributing to Ranu.js
 
+<p align="center">
+  <a href="https://github.com/hoslift/ranu.js/blob/main/CONTRIBUTING.md">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs Welcome">
+  </a>
+  <a href="./CODE_OF_CONDUCT.md">
+    <img src="https://img.shields.io/badge/Contributor%20Covenant-v2.1-4baaaa.svg?style=flat" alt="Code of Conduct">
+  </a>
+  <a href="./SECURITY.md">
+    <img src="https://img.shields.io/badge/Security-Policy-blue.svg?style=flat" alt="Security Policy">
+  </a>
+  <a href="https://conventionalcommits.org">
+    <img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=flat" alt="Conventional Commits">
+  </a>
+</p>
+
+---
+
 Thank you for your interest in contributing to **Ranu.js**!
 
-Ranu.js is an open-source project, and contributions from the community are welcome.
+Ranu.js is an open-source project, and contributions from the community are warmly welcomed. Whether you are fixing typos, improving documentation, submitting bug fixes, or proposing new framework features, this guide will help you get started smoothly.
 
 > [!NOTE]
-> **Early Development**
->
-> Ranu.js is currently in **public alpha development (v0.1.3)**. APIs, architecture, package boundaries, and development workflows may change as the project matures.
+> **Public Alpha Stage**  
+> Ranu.js is currently in **Public Alpha development**. Architecture, APIs, package boundaries, and internal workflows are actively evolving as the project progresses toward the stable V1 milestone.
 
-## Before You Start
+---
 
-Because Ranu.js is still in early development, significant changes to core framework behavior should be discussed before implementation.
+## Quick Contribution Decision Matrix
 
-Before working on a large feature, architectural change, or breaking API change:
+To save your time and keep contributions streamlined, refer to this quick guide:
 
-1. Check existing GitHub Issues and pull requests.
-2. Open an issue describing the proposed change if one does not already exist.
-3. Explain the problem, proposed approach, and expected impact.
-4. Allow maintainers and contributors to discuss the proposal before beginning substantial implementation.
-
-Small bug fixes, documentation improvements, tests, and other clearly scoped changes generally do not require a separate proposal.
+| Type of Contribution | Issue Required First? | Changeset Required? | Example Commit Prefix |
+| :--- | :---: | :---: | :--- |
+| **Documentation / Typo Fixes** | ❌ No (Direct PR) | ❌ No | `docs: fix routing example typo` |
+| **Small Bug Fix (Clear & scoped)** | ❌ No (Direct PR) | ✅ Yes (if in published package) | `fix(router): resolve dynamic segment matching` |
+| **New Feature / API Change** | ✅ Yes (Open Issue/RFC first) | ✅ Yes | `feat(runtime): add response streaming support` |
+| **Tests & Internal Tooling** | ❌ No (Direct PR) | ❌ No | `test: add unit tests for cookie parsing` |
+| **Refactoring (No external API change)** | Optional | ❌ No | `refactor(build): simplify module graph traversal` |
 
 ---
 
 ## Development Setup
 
-### Requirements
+Ranu.js is developed as a `pnpm` monorepo.
+
+### Prerequisites
 
 * **Node.js** >= 22.0.0
 * **pnpm** >= 11.0.0
 
-### Clone the Repository
+To enable or install `pnpm`:
 
-Enable Corepack for consistent pnpm usage:
-
-```bash id="ry7m19"
+```bash
+# Option 1: Using Corepack (recommended)
 corepack enable
+
+# Option 2: Using npm globally
+npm install -g pnpm
 ```
 
-Clone Ranu.js:
+### Clone and Bootstrap
 
-```bash id="ap2k5b"
+```bash
+# 1. Clone the repository
 git clone https://github.com/hoslift/ranu.js.git
 cd ranu.js
-```
 
-Install all workspace dependencies:
-
-```bash id="s4d0qf"
+# 2. Install dependencies across all packages
 pnpm install
-```
 
-Build all packages:
-
-```bash id="q6v6tw"
+# 3. Build all workspace packages
 pnpm build
-```
-
-Run the test suite:
-
-```bash id="y8nh1w"
-pnpm test
-```
-
-Run TypeScript type checking:
-
-```bash id="f7l6e8"
-pnpm typecheck
-```
-
-Run linting:
-
-```bash id="rwj06h"
-pnpm lint
-```
-
-Run the formatting check:
-
-```bash id="08d3r3"
-pnpm format:check
 ```
 
 ---
 
 ## Repository Structure
 
-Ranu.js is developed as a monorepo.
+The monorepo is organized cleanly into modular packages and directories:
 
-The repository is organized around the following areas:
-
-| Directory      | Purpose                                         |
-| -------------- | ----------------------------------------------- |
-| `packages/`    | Core framework packages                         |
-| `adapters/`    | Deployment adapter packages                     |
-| `create-ranu/` | Project scaffolder                              |
-| `examples/`    | Official usage examples using public APIs       |
-| `fixtures/`    | Internal test applications                      |
-| `tests/`       | Cross-package integration and end-to-end tests  |
-| `docs/`        | Public project and framework documentation      |
-| `rfcs/`        | Public architectural proposals where applicable |
-| `tooling/`     | Internal repository tooling                     |
-
-The repository structure may evolve during public alpha development.
+| Directory | Purpose |
+| :--- | :--- |
+| `packages/` | Core framework packages (`router`, `react`, `runtime`, `build`, `server`, etc.) |
+| `adapters/` | Deployment adapters (e.g., `@ranujs/adapter-vercel`) |
+| `create-ranu/` | The official CLI scaffolder (`create-ranujs`) |
+| `examples/` | Standalone, canonical reference applications using public APIs |
+| `fixtures/` | Internal test applications used by test harnesses |
+| `tests/` | End-to-end, API contract, security, and performance test suites |
+| `docs/` | Specifications and public documentation |
+| `rfcs/` | Architectural proposals and Request for Comments |
+| `tooling/` | Internal repository configs and build tools |
 
 ---
 
@@ -110,173 +98,175 @@ The repository structure may evolve during public alpha development.
 
 ### 1. Create a Branch
 
-Create a focused branch for your change.
+Always create a dedicated feature or fix branch from `main`:
 
-Common branch prefixes include:
-
-```text id="0utnm9"
-feat/<name>
-fix/<name>
-docs/<name>
-test/<name>
-refactor/<name>
-chore/<name>
+```bash
+git checkout -b <type>/<short-description>
 ```
 
-Examples:
+Branch naming conventions:
+* `feat/<feature-name>` (e.g., `feat/edge-adapter`)
+* `fix/<bug-name>` (e.g., `fix/cookie-parsing`)
+* `docs/<topic>` (e.g., `docs/quickstart-guide`)
+* `test/<component>` (e.g., `test/ssr-streaming`)
+* `chore/<task>` (e.g., `chore/bump-deps`)
 
-```text id="10md7h"
-feat/router-middleware
-fix/dynamic-route-matching
-docs/contributing-guide
+---
+
+### 2. Commit Message Guidelines
+
+Ranu.js follows the **Conventional Commits** standard. Please use structured commit messages:
+
+```text
+<type>(<scope>): <short description>
 ```
 
-### 2. Make Your Changes
+#### Allowed Types:
+* `feat`: A new feature or capability
+* `fix`: A bug fix
+* `docs`: Documentation changes only
+* `test`: Adding or correcting tests
+* `refactor`: Code change that neither fixes a bug nor adds a feature
+* `perf`: Performance improvement
+* `chore`: Maintenance tasks, dependency updates, tooling
 
-Keep changes focused on the issue, feature, or improvement being addressed.
+#### Examples:
+* `feat(react): support custom error boundaries in nested layouts`
+* `fix(router): sanitize regex in dynamic path generation`
+* `docs: update npm-first quick start instructions`
+* `test(security): add test suite for server-only boundaries`
 
-Avoid unrelated refactoring or formatting changes in the same pull request unless they are required by the implementation.
+---
 
-### 3. Add or Update Tests
+### 3. Adding or Updating Tests
 
-Changes that affect framework behavior should include appropriate tests.
+Any code change that alters framework runtime behavior or fixes a bug **must include tests**.
 
-Tests should cover:
+```bash
+# Run all tests
+pnpm test
 
-* Expected behavior
-* Relevant edge cases
-* Regression scenarios where applicable
+# Run unit tests only
+pnpm test:unit
 
-### 4. Validate Your Changes
+# Run API contract tests
+pnpm test:api
 
-Before opening a pull request, run the full CI validation suite locally:
-
-```bash id="qk7sj9"
-pnpm ci:clean
+# Run integration tests
+pnpm test:integration
 ```
 
-This command cleans all generated build outputs, reinstalls dependencies from
-the frozen lockfile, and then runs the complete validation pipeline (typecheck,
-build, lint, tests, integration tests, dependency-cycle check, and export-map
-check) — the same checks that run on GitHub Actions.
+---
 
-For a faster re-run after the initial clean (e.g., during iterative development):
+### 4. Validating Your Changes (Pre-PR Check)
 
-```bash id="z9q3m2"
-pnpm ci:verify
-```
+Before opening a pull request, run the local validation pipeline to ensure all checks pass:
 
-You can also use the short alias:
-
-```bash id="p2r8s1"
+```bash
+# Complete local validation (same as CI pipeline)
 pnpm prepr
 ```
 
-### 5. Add a Changeset
+Alternatively, you can run individual checks:
 
-If your change affects a package intended for publication, add a Changeset:
+```bash
+pnpm typecheck       # TypeScript type checking
+pnpm lint            # ESLint code analysis
+pnpm format:check    # Prettier formatting check
+pnpm ci:verify       # Verification suite without cleaning
+```
 
-```bash id="81r3p4"
+---
+
+### 5. Adding a Changeset
+
+If your pull request introduces changes to packages that are published to npm (e.g., `@ranujs/core`, `create-ranujs`, or adapters), you must include a Changeset:
+
+```bash
 pnpm changeset
 ```
 
-Follow the prompts to describe the change and select the appropriate version impact.
+Follow the interactive prompts:
+1. Select the packages affected by your change (use arrow keys and space).
+2. Choose the version impact:
+   * **patch:** Bug fixes and minor internal updates.
+   * **minor:** New backward-compatible features.
+   * **major:** Breaking changes (discuss with maintainers first).
+3. Write a clear, concise summary of the change. This summary will be automatically added to `CHANGELOG.md` upon release.
 
-Changes that do not affect published packages may not require a Changeset.
-
-### 6. Open a Pull Request
-
-Open a pull request against the appropriate development branch.
-
-Your pull request should explain:
-
-* What changed
-* Why the change is needed
-* How the change was implemented
-* How it was tested
-* Any known limitations or follow-up work
-
-Keep pull requests focused and reasonably sized whenever possible.
+> Changes affecting only `docs/`, `tests/`, `examples/`, or internal tooling **do not require a Changeset**.
 
 ---
 
-## Architectural Changes
+### 6. Opening a Pull Request (PR)
 
-Changes that significantly affect Ranu.js architecture, public APIs, framework behavior, package boundaries, or compatibility should be discussed before substantial implementation begins.
-
-Depending on the scope of the proposal, maintainers may request further discussion through:
-
-* A GitHub Issue
-* A dedicated RFC
-* An existing architectural discussion
-
-This helps prevent conflicting implementations and ensures major changes remain aligned with the direction of Ranu.js.
-
----
-
-## Documentation
-
-Changes that introduce or modify public behavior should update the relevant documentation where appropriate.
-
-Examples and documentation should use **public Ranu.js APIs** rather than relying on internal implementation details.
-
-Because the project is still in public alpha, documentation may evolve alongside the implementation.
+1. Push your branch to your fork or repository:
+   ```bash
+   git push origin <branch-name>
+   ```
+2. Open a Pull Request targeting the `main` branch.
+3. Complete the PR template with:
+   * A clear explanation of what changed and why.
+   * Links to relevant issues (e.g., `Closes #123`).
+   * How the change was tested.
 
 ---
 
-## Reporting Bugs
+## Contributor Checklist
 
-Before reporting a bug:
+Before submitting your pull request, verify:
 
-1. Search existing GitHub Issues to check whether it has already been reported.
-2. Confirm that the issue occurs on the latest relevant development version.
-3. Collect the smallest reproducible example possible.
-
-A useful bug report should include:
-
-* A clear description of the problem
-* Steps to reproduce it
-* Expected behavior
-* Actual behavior
-* Relevant environment information
-* A minimal reproduction where practical
-
-Use [GitHub Issues](https://github.com/hoslift/ranu.js/issues) for regular bug reports.
+- [ ] Changes are focused and do not include unrelated code or formatting changes.
+- [ ] Code follows project conventions and passes `pnpm lint`.
+- [ ] TypeScript compiles cleanly with `pnpm typecheck`.
+- [ ] Relevant unit or integration tests are added/updated and pass (`pnpm test`).
+- [ ] Changeset is added via `pnpm changeset` (if published packages were modified).
+- [ ] Local pre-PR validation passes (`pnpm prepr`).
 
 ---
 
-## Security
+## Frequently Asked Questions (FAQ)
 
-**Do not report security vulnerabilities through public GitHub Issues or Discussions.**
+### Q: Where can I find beginner-friendly tasks?
+Check our [GitHub Issues](https://github.com/hoslift/ranu.js/issues) and filter by labels:
+* `good first issue` — Perfect for new contributors.
+* `help wanted` — Community contributions welcome.
+* `documentation` — Improvements to guides, docstrings, and examples.
 
-Please follow the responsible disclosure process documented in [`SECURITY.md`](./SECURITY.md).
+### Q: What should I do if CI fails on my PR?
+Don't worry! Click **Details** on the failing GitHub Actions job to view the error log. You can reproduce the exact check locally by running:
+```bash
+pnpm prepr
+```
+Fix the reported error, commit, and push to your PR branch.
+
+### Q: Do I need to create a Changeset for documentation or test updates?
+**No.** Changesets are only required when modifying code inside published packages (`packages/` or `adapters/`).
+
+### Q: Can I submit a large new feature directly as a PR?
+For substantial features, architectural modifications, or breaking API changes, please **open an issue or RFC first**. This ensures community and maintainer alignment before you invest time writing code.
 
 ---
 
 ## Code of Conduct
 
-All contributors are expected to follow the project Code of Conduct.
+All contributors are expected to uphold our standards of a welcoming, inclusive, and harassment-free community. Please review [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) before participating.
 
-Please read [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) before participating in the Ranu.js community.
+---
+
+## Security
+
+Please do not report security vulnerabilities through public GitHub Issues. Review our [`SECURITY.md`](./SECURITY.md) policy for responsible private disclosure.
 
 ---
 
 ## License
 
-Ranu.js is distributed under the MIT License.
-
-By contributing to Ranu.js, you agree that your contributions will be licensed under the **MIT License**.
-
-See [`LICENSE`](./LICENSE) for the full license text.
+By contributing to Ranu.js, you agree that your contributions will be licensed under the [MIT License](./LICENSE).
 
 ---
 
-## Thank You
-
-Every contribution helps Ranu.js move forward.
-
-Whether you contribute code, documentation, tests, bug reports, ideas, or technical feedback, thank you for helping build Ranu.js.
-
----
-
-**Ranu.js — Rethinking the Full-Stack Web.**
+<p align="center">
+  <strong>Ranu.js</strong> — Rethinking the Full-Stack Web.<br>
+  Maintained by <a href="https://hoslift.com">Hoslift</a>.
+</p>
