@@ -48,6 +48,7 @@
   <a href="./SECURITY.md"><img src="https://img.shields.io/badge/Security-Policy-brightgreen.svg?style=flat" alt="Security Policy"></a>
   <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=flat" alt="Contributor Covenant"></a>
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs Welcome"></a>
+  <a href="https://github.com/sponsors/draj256"><img src="https://img.shields.io/badge/Sponsor-draj256-ea4aaa?style=flat&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub"></a>
   <a href="https://github.com/hoslift/ranu.js/issues"><img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=flat&color=ffd43b" alt="GitHub Issues"></a>
   <a href="https://github.com/hoslift/ranu.js/pulls"><img src="https://img.shields.io/github/issues-pr/hoslift/ranu.js?style=flat" alt="GitHub PRs"></a>
   <a href="https://github.com/hoslift/ranu.js/commits/main"><img src="https://img.shields.io/github/last-commit/hoslift/ranu.js?style=flat" alt="Last Commit"></a>
@@ -72,11 +73,11 @@ Modern web engineering often requires developers to manually stitch together unr
 
 ## How Ranu.js Solves Developer Challenges
 
-* **Unified Application Architecture:** Eliminates tool fatigue by integrating file-based routing, React 19 streaming SSR, static site generation (SSG), client hydration, API routes, middleware, and styling into a single, cohesive framework.
-* **True Deployment Portability:** Designed from the ground up to be hosting-agnostic. Applications build into portable, deterministic artifacts that run identically on self-hosted Node.js servers, Docker containers, virtual machines, or serverless cloud environments via dedicated adapters.
-* **Explicit Execution Boundaries & Security:** Enforces strict compile-time boundaries between client and server code. Modules marked with `ranu/server-only` prevent accidental exposure of sensitive backend logic, database credentials, or environment secrets to client bundles.
-* **Web Standards Native:** Built directly on top of standard platform primitives (`Request`, `Response`, `URL`, `Headers`, `ReadableStream`), ensuring long-term code resilience and minimal framework-specific lock-in.
-* **Progressive Complexity:** Offers zero-configuration simplicity for straightforward applications while providing fine-grained plugin hooks, custom manifests, and runtime controls as system requirements grow.
+- **Unified Application Architecture:** Eliminates tool fatigue by integrating file-based routing, React 19 streaming SSR, static site generation (SSG), client hydration, API routes, middleware, and styling into a single, cohesive framework.
+- **True Deployment Portability:** Designed from the ground up to be hosting-agnostic. Applications build into portable, deterministic artifacts that run identically on self-hosted Node.js servers, Docker containers, virtual machines, or serverless cloud environments via dedicated adapters.
+- **Explicit Execution Boundaries & Security:** Enforces strict compile-time boundaries between client and server code. Modules marked with `ranu/server-only` prevent accidental exposure of sensitive backend logic, database credentials, or environment secrets to client bundles.
+- **Web Standards Native:** Built directly on top of standard platform primitives (`Request`, `Response`, `URL`, `Headers`, `ReadableStream`), ensuring long-term code resilience and minimal framework-specific lock-in.
+- **Progressive Complexity:** Offers zero-configuration simplicity for straightforward applications while providing fine-grained plugin hooks, custom manifests, and runtime controls as system requirements grow.
 
 ---
 
@@ -269,11 +270,11 @@ export async function GET() {
 
 Ranu.js provides an intuitive CLI for everyday development:
 
-| Command | Description | Default Port / Flags |
-| :--- | :--- | :--- |
-| `ranu dev` | Starts local development server with Fast Refresh & HMR | `http://localhost:3000` (`-p, --port`, `-H, --host`) |
-| `ranu build` | Compiles production server, client bundles, and manifests | Generates `.ranu/` production directory |
-| `ranu start` | Launches optimized standalone Node.js production server | Runs production build on configured port |
+| Command      | Description                                               | Default Port / Flags                                 |
+| :----------- | :-------------------------------------------------------- | :--------------------------------------------------- |
+| `ranu dev`   | Starts local development server with Fast Refresh & HMR   | `http://localhost:3000` (`-p, --port`, `-H, --host`) |
+| `ranu build` | Compiles production server, client bundles, and manifests | Generates `.ranu/` production directory              |
+| `ranu start` | Launches optimized standalone Node.js production server   | Runs production build on configured port             |
 
 ---
 
@@ -281,20 +282,20 @@ Ranu.js provides an intuitive CLI for everyday development:
 
 The repository includes standalone reference applications demonstrating idiomatic Ranu.js patterns:
 
-| Example | Description | Key APIs & Highlights |
-| :--- | :--- | :--- |
-| [`examples/hello-world`](./examples/hello-world) | Minimal baseline application | Root layout, page routing, `defineConfig` |
-| [`examples/routing`](./examples/routing) | Nested file-based routing | Multi-level layouts, static subpages, custom 404 |
-| [`examples/dynamic-routing`](./examples/dynamic-routing) | Parameterized route patterns | `[id]`, `[category]/[productId]`, `[...slug]` |
-| [`examples/ssr`](./examples/ssr) | Dynamic Server-Side Rendering | `render = 'server'`, request headers, runtime context |
-| [`examples/ssg`](./examples/ssg) | Static Site Generation | `render = 'static'`, pre-rendered HTML generation |
-| [`examples/api-routes`](./examples/api-routes) | Backend REST API endpoints | `GET`, `POST`, `Response.json()`, body parsing |
-| [`examples/middleware`](./examples/middleware) | Request interception & guards | Route protection, auth redirects, URL rewriting |
-| [`examples/client-components`](./examples/client-components) | Interactive React 19 hydration | Client state, `useRouter()`, `usePathname()`, `useSearchParams()` |
-| [`examples/full-stack-dashboard`](./examples/full-stack-dashboard) | Complete full-stack reference | SSR dashboard, SSG about, API metrics, client widgets |
-| [`examples/deployment-node`](./examples/deployment-node) | Standalone Node.js server | Multi-stage production `Dockerfile`, non-root container |
-| [`examples/deployment-vercel`](./examples/deployment-vercel) | Serverless cloud deployment | `@ranujs/adapter-vercel`, Vercel Build Output API v3 |
-| [`examples/plugin-basic`](./examples/plugin-basic) | Extensible plugin architecture | `definePlugin()`, build lifecycle hooks, config customization |
+| Example                                                            | Description                    | Key APIs & Highlights                                             |
+| :----------------------------------------------------------------- | :----------------------------- | :---------------------------------------------------------------- |
+| [`examples/hello-world`](./examples/hello-world)                   | Minimal baseline application   | Root layout, page routing, `defineConfig`                         |
+| [`examples/routing`](./examples/routing)                           | Nested file-based routing      | Multi-level layouts, static subpages, custom 404                  |
+| [`examples/dynamic-routing`](./examples/dynamic-routing)           | Parameterized route patterns   | `[id]`, `[category]/[productId]`, `[...slug]`                     |
+| [`examples/ssr`](./examples/ssr)                                   | Dynamic Server-Side Rendering  | `render = 'server'`, request headers, runtime context             |
+| [`examples/ssg`](./examples/ssg)                                   | Static Site Generation         | `render = 'static'`, pre-rendered HTML generation                 |
+| [`examples/api-routes`](./examples/api-routes)                     | Backend REST API endpoints     | `GET`, `POST`, `Response.json()`, body parsing                    |
+| [`examples/middleware`](./examples/middleware)                     | Request interception & guards  | Route protection, auth redirects, URL rewriting                   |
+| [`examples/client-components`](./examples/client-components)       | Interactive React 19 hydration | Client state, `useRouter()`, `usePathname()`, `useSearchParams()` |
+| [`examples/full-stack-dashboard`](./examples/full-stack-dashboard) | Complete full-stack reference  | SSR dashboard, SSG about, API metrics, client widgets             |
+| [`examples/deployment-node`](./examples/deployment-node)           | Standalone Node.js server      | Multi-stage production `Dockerfile`, non-root container           |
+| [`examples/deployment-vercel`](./examples/deployment-vercel)       | Serverless cloud deployment    | `@ranujs/adapter-vercel`, Vercel Build Output API v3              |
+| [`examples/plugin-basic`](./examples/plugin-basic)                 | Extensible plugin architecture | `definePlugin()`, build lifecycle hooks, config customization     |
 
 To run any example locally:
 
@@ -310,9 +311,9 @@ pnpm dev
 
 The long-term vision of Ranu.js extends beyond a conventional frontend layer. The objective is to cultivate a self-sustaining, full-stack application ecosystem:
 
-* **Integrated Application Primitives:** Built-in conventions for data access layers, background workers, scheduled jobs, and session management.
-* **Multi-Runtime Ecosystem:** Official adapters for edge environments, Cloudflare Workers, AWS Lambda, Fastly Edge, Deno, and Bun.
-* **Community-Driven Open Governance:** Transparent RFC processes, community roadmaps, and vendor-neutral development.
+- **Integrated Application Primitives:** Built-in conventions for data access layers, background workers, scheduled jobs, and session management.
+- **Multi-Runtime Ecosystem:** Official adapters for edge environments, Cloudflare Workers, AWS Lambda, Fastly Edge, Deno, and Bun.
+- **Community-Driven Open Governance:** Transparent RFC processes, community roadmaps, and vendor-neutral development.
 
 ### Release Milestones
 
@@ -375,7 +376,21 @@ pnpm format:check
 
 ## Contributing
 
-We welcome contributions from the community! Please read our [Contributing Guide](./CONTRIBUTING.md) and [Code of Conduct](./CODE_OF_CONDUCT.md) before submitting pull requests.
+---
+
+## 💖 Sponsors & Backers
+
+Ranu.js is an independent open-source framework created and maintained by [Hoslift](https://hoslift.com). Generous support from individuals and organizations helps sustain continuous development, security audits, and ecosystem maintenance.
+
+<p align="center">
+  <a href="https://github.com/sponsors/draj256">
+    <img src="https://img.shields.io/badge/Sponsor_on_GitHub-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub">
+  </a>
+</p>
+
+<!-- Future Sponsor Logos and Backers will be displayed here -->
+
+---
 
 ## Contributors
 
