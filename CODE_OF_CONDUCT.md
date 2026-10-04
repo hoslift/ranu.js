@@ -105,7 +105,7 @@ Please do not post Code of Conduct complaints publicly through GitHub Issues or 
 
 To submit a report, please email:
 
-📧 **`community@hoslift.com`**
+📧 [**community@hoslift.com**](mailto:community@hoslift.com)
 
 To help us investigate effectively, please include as much relevant context as possible:
 
