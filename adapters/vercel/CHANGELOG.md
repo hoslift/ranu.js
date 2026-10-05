@@ -1,5 +1,11 @@
 # @ranujs/adapter-vercel
 
+## 0.1.4
+
+### Patch Changes
+
+- Modernize documentation, bundle MIT LICENSE, and update metadata.
+
 ## 0.1.3
 
 ### Patch Changes

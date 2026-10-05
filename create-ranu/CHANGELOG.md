@@ -1,5 +1,11 @@
 # create-ranujs
 
+## 0.1.4
+
+### Patch Changes
+
+- Modernize documentation, bundle MIT LICENSE, and synchronize scaffold templates to @ranujs/core v0.1.4.
+
 ## 0.1.3
 
 ### Patch Changes

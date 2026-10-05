@@ -1,6 +1,6 @@
 # Ranu.js Roadmap
 
-> **Status:** Public Alpha (v0.1.3)
+> **Status:** Public Alpha (v0.1.4)
 > **Current Phase:** Phase 32 — Open-Source Repository & Release Infrastructure ✅ Completed
 > **Target:** Ranu.js 1.0.0
 
