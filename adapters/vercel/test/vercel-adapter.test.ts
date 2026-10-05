@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { pathToFileURL } from 'node:url';
+import type * as esbuild from 'esbuild';
 import {
   createVercelAdapter,
   adapterName,
@@ -13,7 +14,7 @@ import {
 } from '../src/index.js';
 
 vi.mock('esbuild', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('esbuild')>();
+  const actual = await importOriginal<typeof esbuild>();
   const nodeFs = await import('node:fs');
 
   return {

@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scaffoldProject } from '../scaffold.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
 import type { PackageManager } from '../types.js';

@@ -1,4 +1,4 @@
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   return Response.json({ message: 'Hello from Ranu API' });
 }
 
