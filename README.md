@@ -1,10 +1,6 @@
 <p align="center">
   <a href="https://hoslift.com">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg">
-      <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg" alt="Ranu.js Logo" width="580">
-    </picture>
+    <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/assets/banner.png" alt="Ranu.js Cover Banner" width="100%">
   </a>
 </p>
 
