@@ -1,0 +1,43 @@
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**', 'scripts/**']
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '**/*.md']
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '**/package.json']
+
+security:
+  - changed-files:
+      - any-glob-to-any-file: ['SECURITY.md', '.github/workflows/dependency-review.yml']
+
+area: cli:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/cli/**']
+
+area: core:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/core/**', 'packages/ranu/**']
+
+area: react:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/react/**']
+
+area: runtime:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/runtime/**', 'packages/runtime-node/**']
+
+area: router:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/router/**']
+
+area: adapter-vercel:
+  - changed-files:
+      - any-glob-to-any-file: ['adapters/vercel/**']
+
+area: create-ranu:
+  - changed-files:
+      - any-glob-to-any-file: ['create-ranu/**']
