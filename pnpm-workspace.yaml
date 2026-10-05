@@ -7,3 +7,9 @@ packages:
   - "tooling/*"
 allowBuilds:
   esbuild: true
+overrides:
+  "brace-expansion@1": "1.1.21"
+  "brace-expansion@2": "2.1.7"
+  "brace-expansion@>=4.0.0": "5.0.12"
+  esbuild: ">=0.28.2"
+

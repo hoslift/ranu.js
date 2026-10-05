@@ -5,7 +5,7 @@
  * Internal package — not public application API.
  */
 
-export * from './types.js';
+export type * from './types.js';
 export * from './loader.js';
 export * from './sanitizer.js';
 export * from './metadata.js';

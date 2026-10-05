@@ -41,6 +41,10 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Security audit production dependencies
+      if: runner.os == 'Linux'
+      run: pnpm audit --prod --audit-level high
+
     # On Ubuntu (Linux): Run core validation (excluding CLI, deployment, security, perf, smoke, browser E2E)
     - name: TypeScript typecheck
       if: runner.os == 'Linux'

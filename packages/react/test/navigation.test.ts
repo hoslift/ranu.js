@@ -153,7 +153,7 @@ describe('Phase 14 Stage 14B: Browser Navigation Coordinator & History API', () 
     });
 
     it('falls back to native window.location for cross-origin targets on push', () => {
-      let currentState: RouterState = {
+      const currentState: RouterState = {
         pathname: '/initial',
         searchParams: createReadonlySearchParams(),
         routeId: 'page-1',

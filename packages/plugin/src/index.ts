@@ -6,7 +6,7 @@
  * Exposed through Ranu.js/plugin public subpath.
  */
 
-export * from './types.js';
+export type * from './types.js';
 export * from './define.js';
 export * from './logger.js';
 export * from './manager.js';

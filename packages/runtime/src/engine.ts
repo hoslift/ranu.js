@@ -98,7 +98,7 @@ export class RanuServerRuntime {
       return new Response('Bad Request', { status: 400 });
     }
 
-    let pathname = url.pathname;
+    const pathname = url.pathname;
     try {
       decodeURIComponent(pathname);
     } catch {
