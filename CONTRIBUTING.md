@@ -196,6 +196,15 @@ Follow the interactive prompts:
 
 > Changes affecting only `docs/`, `tests/`, `examples/`, or internal tooling **do not require a Changeset**.
 
+#### Package Versioning & Adapter Lifecycle Architecture
+
+Ranu.js employs a structured hybrid release architecture:
+* **Core Framework (`@ranujs/core` & `create-ranujs`):** Kept in synchronized lockstep. When core framework releases an update, the CLI scaffolder updates alongside it so newly created projects always target the latest core engine.
+* **Adapters Ecosystem (`adapters/*`):** Independently versioned deployment plugins.
+  * **Public Alpha (`v0.1.x`):** Existing and newly authored adapters start at `v0.1.0` (or the active alpha line) to facilitate early iteration.
+  * **`v1.0.0` Milestone:** Upon official General Availability, the entire ecosystem (Core, CLI, and all active adapters) aligns to `v1.0.0`. Alpha (`v0.1.x`) is officially retired.
+  * **Post-`v1.0.0` Era:** Any newly authored adapter begins directly at `v1.0.0` with `peerDependencies: { "@ranujs/core": ">=1.0.0" }`. Adapters may receive independent patch or minor updates without triggering an artificial core release.
+
 ---
 
 ### 6. Opening a Pull Request (PR)

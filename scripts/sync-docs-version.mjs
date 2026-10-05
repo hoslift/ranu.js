@@ -58,16 +58,7 @@ const targets = [
       },
     ],
   },
-  {
-    file: 'adapters/vercel/README.md',
-    rules: [
-      {
-        pattern: /Public Alpha \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
-        replacement: `Public Alpha (v${version})`,
-        description: 'Public Alpha (v...) badges and notes',
-      },
-    ],
-  },
+
   {
     file: 'ROADMAP.md',
     rules: [
@@ -127,6 +118,37 @@ const targets = [
     ],
   },
 ];
+
+// Dynamically discover and register adapters from adapters/ directory
+const adaptersDir = path.join(rootDir, 'adapters');
+if (fs.existsSync(adaptersDir)) {
+  const adapterFolders = fs.readdirSync(adaptersDir).filter((f) => {
+    return fs.statSync(path.join(adaptersDir, f)).isDirectory();
+  });
+
+  for (const folder of adapterFolders) {
+    const pkgPath = path.join(adaptersDir, folder, 'package.json');
+    const readmeRelPath = path.join('adapters', folder, 'README.md');
+    if (fs.existsSync(pkgPath) && fs.existsSync(path.join(rootDir, readmeRelPath))) {
+      try {
+        const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        const adapterVersion = pkgData.version || version;
+        targets.push({
+          file: readmeRelPath,
+          rules: [
+            {
+              pattern: /Public Alpha \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
+              replacement: `Public Alpha (v${adapterVersion})`,
+              description: `${folder} adapter Public Alpha badge`,
+            },
+          ],
+        });
+      } catch {
+        // Fallback to core version if package.json cannot be parsed
+      }
+    }
+  }
+}
 
 let hasDiscrepancy = false;
 let updatedFilesCount = 0;
