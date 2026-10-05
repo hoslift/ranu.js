@@ -14,30 +14,30 @@ security:
   - changed-files:
       - any-glob-to-any-file: ['SECURITY.md', '.github/workflows/dependency-review.yml']
 
-area: cli:
+'area: cli':
   - changed-files:
       - any-glob-to-any-file: ['packages/cli/**']
 
-area: core:
+'area: core':
   - changed-files:
       - any-glob-to-any-file: ['packages/core/**', 'packages/ranu/**']
 
-area: react:
+'area: react':
   - changed-files:
       - any-glob-to-any-file: ['packages/react/**']
 
-area: runtime:
+'area: runtime':
   - changed-files:
       - any-glob-to-any-file: ['packages/runtime/**', 'packages/runtime-node/**']
 
-area: router:
+'area: router':
   - changed-files:
       - any-glob-to-any-file: ['packages/router/**']
 
-area: adapter-vercel:
+'area: adapter-vercel':
   - changed-files:
       - any-glob-to-any-file: ['adapters/vercel/**']
 
-area: create-ranu:
+'area: create-ranu':
   - changed-files:
       - any-glob-to-any-file: ['create-ranu/**']

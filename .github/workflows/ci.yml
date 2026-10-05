@@ -82,8 +82,8 @@ jobs:
       if: runner.os == 'Linux'
       run: pnpm test:coverage
 
-    - name: Upload coverage to Codecov
-      if: runner.os == 'Linux'
+    - name: Upload coverage to Codecov (main branch only)
+      if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
