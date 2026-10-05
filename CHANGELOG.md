@@ -4,6 +4,16 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.1.4 (Public Alpha)
+
+### Documentation & Repository Modernization
+
+- Comprehensive README redesign with an npm-first quick start guide, framework architectural vision, and responsive dark/light mode logos.
+- Modernized documentation across package readmes, `CONTRIBUTING.md`, `SECURITY.md`, and `CODE_OF_CONDUCT.md` with contributor guidelines and response SLAs.
+- Bundled MIT `LICENSE` across all publishable packages (`@ranujs/core`, `create-ranujs`, `@ranujs/adapter-vercel`).
+- Added financial contributor links and funding metadata (`.github/FUNDING.yml`).
+- Scoped Dependabot major version rules in `.github/dependabot.yml` to preserve ecosystem security update PRs.
+
 ## 0.1.3 (Public Alpha)
 
 ### Core Improvements & Scaffolder Fixes
