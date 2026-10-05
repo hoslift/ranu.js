@@ -34,6 +34,12 @@
   <a href="https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat&logo=paypal&logoColor=white" alt="Donate with PayPal"></a>
 </p>
 
+<p align="center">
+  <a href="https://hoslift.com">
+    <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/assets/banner.png" alt="Ranu.js Cover Banner" width="100%">
+  </a>
+</p>
+
 ---
 
 > [!NOTE]
