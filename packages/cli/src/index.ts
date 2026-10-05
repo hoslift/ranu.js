@@ -5,7 +5,7 @@
  * Internal package — not public application API.
  */
 
-export * from './types.js';
+export type * from './types.js';
 export * from './args.js';
 export * from './logger.js';
 export * from './context.js';
