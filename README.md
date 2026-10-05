@@ -1,6 +1,10 @@
 <p align="center">
   <a href="https://hoslift.com">
-    <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/assets/banner.png" alt="Ranu.js Cover Banner" width="100%">
+ <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg">
+      <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/logo-light.svg" alt="Ranu.js Logo" width="540">
+    </picture>
   </a>
 </p>
 
@@ -49,6 +53,12 @@
   <a href="https://github.com/hoslift/ranu.js/issues"><img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=flat&color=ffd43b" alt="GitHub Issues"></a>
   <a href="https://github.com/hoslift/ranu.js/pulls"><img src="https://img.shields.io/github/issues-pr/hoslift/ranu.js?style=flat" alt="GitHub PRs"></a>
   <a href="https://github.com/hoslift/ranu.js/commits/main"><img src="https://img.shields.io/github/last-commit/hoslift/ranu.js?style=flat" alt="Last Commit"></a>
+</p>
+
+<p align="center">
+  <a href="https://hoslift.com">
+    <img src="https://raw.githubusercontent.com/hoslift/ranu.js/main/assets/banner.png" alt="Ranu.js Cover Banner" width="100%">
+  </a>
 </p>
 
 ---
