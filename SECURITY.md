@@ -25,7 +25,7 @@ Security fixes and maintenance patches are applied exclusively to the latest pub
 | < 0.1.4              |        :x:         | Unsupported / End of Life                         |
 
 > [!NOTE]
-> We strongly recommend keeping your dependencies pinned to the latest available `ranu` patch release (`npm install ranu@latest`) to ensure all security patches are active.
+> We strongly recommend keeping your dependencies pinned to the latest available `@ranujs/core` patch release (`npm install @ranujs/core@latest`) to ensure all security patches are active.
 
 ---
 
@@ -55,7 +55,7 @@ If you cannot access GitHub Private Vulnerability Reporting, or wish to include 
 To help our security team investigate and remediate the issue efficiently, please include:
 
 - **Description:** A concise explanation of the vulnerability and its potential impact.
-- **Affected Component:** The specific package (e.g., `ranu`, `create-ranu`, `@ranujs/adapter-vercel`) or runtime module.
+- **Affected Component:** The specific package (e.g., `@ranujs/core`, `create-ranujs`, `@ranujs/adapter-vercel`) or runtime module.
 - **Reproduction Steps:** Step-by-step instructions or a minimal proof-of-concept repository/script.
 - **Environment:** Node.js version, operating system, and installed Ranu.js version (`npx ranu -v`).
 - **Threat Model Assessment:** What an attacker could achieve (e.g., secret exfiltration, Denial of Service, path traversal).

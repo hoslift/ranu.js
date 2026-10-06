@@ -83,10 +83,10 @@ You can automate project scaffolding in CI/CD or scripts using command-line flag
 
 ```bash
 # Scaffold and automatically install dependencies using pnpm
-npx create-ranujs my-app --package-manager pnpm --install
+npx create-ranujs@latest my-app --package-manager pnpm --install
 
 # Scaffold without initializing a Git repository
-npx create-ranujs my-app --no-git
+npx create-ranujs@latest my-app --no-git
 ```
 
 | Flag                | Shorthand | Description                                  | Supported Values             |
