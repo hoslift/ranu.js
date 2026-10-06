@@ -54,12 +54,15 @@ Create a new application with the interactive setup wizard:
 
 ```bash
 # Using npm (recommended — pre-installed with Node.js)
-npm create ranujs my-app
+npx create-ranujs@latest my-app
+
+# Or using npm's initializer syntax
+npm create ranujs@latest my-app
 
 # Or using alternative package managers
-pnpm create ranujs my-app
-yarn create ranujs my-app
-bun create ranujs my-app
+pnpm create ranujs@latest my-app
+yarn create ranujs@latest my-app
+bun create ranujs@latest my-app
 ```
 
 Then navigate to your project and start the development server:
