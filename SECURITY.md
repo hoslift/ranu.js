@@ -55,7 +55,7 @@ If you cannot access GitHub Private Vulnerability Reporting, or wish to include 
 To help our security team investigate and remediate the issue efficiently, please include:
 
 - **Description:** A concise explanation of the vulnerability and its potential impact.
-- **Affected Component:** The specific package (e.g., `ranu`, `create-ranu`, `@ranu/adapter-vercel`) or runtime module.
+- **Affected Component:** The specific package (e.g., `ranu`, `create-ranu`, `@ranujs/adapter-vercel`) or runtime module.
 - **Reproduction Steps:** Step-by-step instructions or a minimal proof-of-concept repository/script.
 - **Environment:** Node.js version, operating system, and installed Ranu.js version (`npx ranu -v`).
 - **Threat Model Assessment:** What an attacker could achieve (e.g., secret exfiltration, Denial of Service, path traversal).
