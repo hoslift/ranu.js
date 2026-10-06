@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { RANU_VERSION, defineConfig as rootDefineConfig } from '../src/index.js';
 import { defineConfig as configDefineConfig } from '../src/config.js';
@@ -13,10 +14,14 @@ import {
 } from '../src/server.js';
 import { definePlugin } from '../src/plugin.js';
 
+const packageVersion = JSON.parse(
+  fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+).version;
+
 describe('Ranu.js package public entry points', () => {
   describe('root entry ("ranu")', () => {
     it('exports RANU_VERSION', () => {
-      expect(RANU_VERSION).toBe('0.0.0');
+      expect(RANU_VERSION).toBe(packageVersion);
     });
 
     it('exports defineConfig convenience helper matching ranu/config', () => {

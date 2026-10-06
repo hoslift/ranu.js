@@ -7,7 +7,7 @@ export default function VercelDeploymentPage() {
       <p>Compiled to Vercel Build Output API v3 with atomic serverless edge routing.</p>
       <ul>
         <li>
-          Adapter: <code>@ranu/adapter-vercel</code>
+          Adapter: <code>@ranujs/adapter-vercel</code>
         </li>
         <li>
           Function Target: <code>nodejs22.x</code>

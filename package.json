@@ -46,7 +46,7 @@
     "prepr": "pnpm ci:clean",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm sync:docs",
-    "release": "pnpm -r publish --access public --no-git-checks",
+    "release": "pnpm build && pnpm -r publish --access public --no-git-checks",
     "sync:docs": "node scripts/sync-docs-version.mjs",
     "check-cycles": "node scripts/check-cycles.mjs",
     "check-exports": "node scripts/check-exports.mjs",

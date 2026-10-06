@@ -2,31 +2,12 @@ import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
 
 /**
- * Loads the official Vercel deployment adapter, falling back to legacy scoped package if uninstalled.
+ * Loads the official Vercel deployment adapter.
  */
 export async function loadVercelAdapter(
   importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
 ): Promise<any> {
-  try {
-    return await importer('@ranujs/adapter-vercel');
-  } catch (err: unknown) {
-    const code = (err as { code?: string })?.code;
-    const msg = (err as Error)?.message ?? '';
-    const isMissingModule =
-      code === 'ERR_MODULE_NOT_FOUND' ||
-      code === 'MODULE_NOT_FOUND' ||
-      msg.includes('Cannot find package') ||
-      msg.includes('Cannot find module');
-
-    if (isMissingModule) {
-      try {
-        return await importer('@hoslift/adapter-vercel');
-      } catch {
-        throw err;
-      }
-    }
-    throw err;
-  }
+  return importer('@ranujs/adapter-vercel');
 }
 
 /**
@@ -40,10 +21,10 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
 
   let adapter = ctx.config.deployment?.adapter;
 
-  // CLI flag override: --adapter vercel / @ranu/adapter-vercel
+  // CLI flag override: --adapter vercel / @ranujs/adapter-vercel
   if (args.adapter) {
     const adapterName = String(args.adapter).toLowerCase();
-    if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel' || adapterName === '@hoslift/adapter-vercel' || adapterName === '@ranu/adapter-vercel') {
+    if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel') {
       try {
         const vercelMod = await loadVercelAdapter();
         const loadedAdapter =

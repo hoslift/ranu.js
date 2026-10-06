@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { build } from '@ranu/build';
-import { createVercelAdapter } from '@ranu/adapter-vercel';
+import { createVercelAdapter } from '@ranujs/adapter-vercel';
 
 describe('Integration: Phase 26 Vercel Adapter', () => {
   let tempDir: string;

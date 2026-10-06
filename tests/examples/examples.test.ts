@@ -84,11 +84,8 @@ describe('Phase 31 — Official Examples Suite and Conformance Harness', () => {
       expect(pkg.scripts?.build).toBe('ranu build');
       expect(pkg.scripts?.start).toBe('ranu start');
 
-      // Dependencies should include @ranujs/core, @hoslift/ranu, or ranu
-      const ranuDep =
-        pkg.dependencies?.['@ranujs/core'] ??
-        pkg.dependencies?.['@hoslift/ranu'] ??
-        pkg.dependencies?.ranu;
+      // Examples must consume the canonical public package.
+      const ranuDep = pkg.dependencies?.['@ranujs/core'];
       expect(ranuDep).toBeDefined();
 
       // tsconfig.json integrity

@@ -123,7 +123,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 * Middleware
 * Plugin API v1
 * `Ranu.js` CLI
-* `create-ranu` scaffolder
+* `create-ranujs` scaffolder
 
 ---
 
@@ -131,7 +131,7 @@ Ranu.js is currently under active development. APIs, internal architecture, and 
 
 * Generic Node.js production
 * Container deployment
-* Vercel adapter (`@ranu/adapter-vercel`)
+* Vercel adapter (`@ranujs/adapter-vercel`)
 
 ---
 
