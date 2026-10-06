@@ -17,7 +17,6 @@ export default defineConfig({
     '@ranu/dev',
     '@ranu/runtime-node',
     '@ranujs/adapter-vercel',
-    '@hoslift/adapter-vercel',
   ],
   platform: 'node',
   banner: ({ entry }) => {
