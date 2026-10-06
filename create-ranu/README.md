@@ -66,6 +66,7 @@ Then navigate to your project and start the development server:
 
 ```bash
 cd my-app
+npm install
 npm run dev
 ```
 
