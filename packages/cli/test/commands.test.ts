@@ -126,8 +126,6 @@ describe('@ranu/cli commands comprehensive', () => {
         .mockResolvedValue({ outputDirectory: '/vercel-output', files: ['config.json'] });
       const createVercelAdapter = vi.fn(() => ({ name: 'vercel', adapt }));
       vi.doMock('@ranujs/adapter-vercel', () => ({ createVercelAdapter }));
-      vi.doMock('@hoslift/adapter-vercel', () => ({ createVercelAdapter }));
-      vi.doMock('@ranu/adapter-vercel', () => ({ createVercelAdapter }));
       vi.resetModules();
       const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
       const logger = createCliLogger({ quiet: true });
@@ -153,8 +151,6 @@ describe('@ranu/cli commands comprehensive', () => {
         }),
       );
       vi.doUnmock('@ranujs/adapter-vercel');
-      vi.doUnmock('@hoslift/adapter-vercel');
-      vi.doUnmock('@ranu/adapter-vercel');
     });
 
     it('falls back to the Vercel default factory', async () => {
