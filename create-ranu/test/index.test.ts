@@ -15,7 +15,7 @@ import {
 
 describe('create-ranu index public exports', () => {
   it('exports SCAFFOLDER_VERSION and all expected functions', () => {
-    expect(SCAFFOLDER_VERSION).toBe('0.0.0');
+    expect(SCAFFOLDER_VERSION).toBe('0.1.4');
     expect(typeof scaffoldProject).toBe('function');
     expect(typeof validateProjectName).toBe('function');
     expect(typeof validateTargetDirectory).toBe('function');
