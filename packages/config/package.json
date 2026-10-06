@@ -23,7 +23,7 @@
   "dependencies": {
     "@ranu/core": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
-    "dotenv": "16.6.1",
+    "dotenv": "18.0.5",
     "typescript": "5.9.3"
   },
   "devDependencies": {
