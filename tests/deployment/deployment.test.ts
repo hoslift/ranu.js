@@ -136,7 +136,7 @@ describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
       expect(buildRes.code).toBe(0);
 
       // Emulate Vercel adapter compilation
-      const { default: vercelAdapter } = await import('@ranu/adapter-vercel');
+      const { default: vercelAdapter } = await import('@ranujs/adapter-vercel');
       const adapter = vercelAdapter();
 
       await adapter.adapt({
