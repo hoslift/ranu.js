@@ -26,8 +26,44 @@ if (!version || typeof version !== 'string') {
 
 console.log(`[sync-docs-version] Canonical framework version: v${version}`);
 
+const createRanuPkgPath = path.join(rootDir, 'create-ranu', 'package.json');
+if (!fs.existsSync(createRanuPkgPath)) {
+  console.error(`[sync-docs-version] Error: cannot find ${createRanuPkgPath}`);
+  process.exit(1);
+}
+
+const createRanuPkg = JSON.parse(fs.readFileSync(createRanuPkgPath, 'utf8'));
+const scaffolderVersion = createRanuPkg.version;
+
+if (!scaffolderVersion || typeof scaffolderVersion !== 'string') {
+  console.error('[sync-docs-version] Error: invalid version in create-ranu/package.json');
+  process.exit(1);
+}
+
+console.log(`[sync-docs-version] Canonical scaffolder version: v${scaffolderVersion}`);
+
 // 2. Define targets and substitution rules
 const targets = [
+  {
+    file: 'packages/ranu/src/index.ts',
+    rules: [
+      {
+        pattern: /export const RANU_VERSION = '[^']+';/,
+        replacement: `export const RANU_VERSION = '${version}';`,
+        description: 'RANU_VERSION public source constant',
+      },
+    ],
+  },
+  {
+    file: 'create-ranu/src/index.ts',
+    rules: [
+      {
+        pattern: /export const SCAFFOLDER_VERSION = '[^']+';/,
+        replacement: `export const SCAFFOLDER_VERSION = '${scaffolderVersion}';`,
+        description: 'SCAFFOLDER_VERSION public source constant',
+      },
+    ],
+  },
   {
     file: 'README.md',
     rules: [

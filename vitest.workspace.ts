@@ -19,14 +19,7 @@ const sharedAliases = {
   '@ranu/dev': path.resolve(__dirname, 'packages/dev/src/index.ts'),
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
-  '@ranu/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
-  '@hoslift/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
-  '@hoslift/ranu/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
-  '@hoslift/ranu/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
-  '@hoslift/ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
-  '@hoslift/ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
-  '@hoslift/ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
   '@ranujs/core/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
   '@ranujs/core/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
   '@ranujs/core/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
@@ -39,7 +32,6 @@ const sharedAliases = {
   'ranu/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
   'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   'ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
-  '@hoslift/create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   'create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
@@ -103,14 +95,6 @@ export default defineWorkspace([
         },
         {
           find: /^@ranujs\/core\/(.*)$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
-        },
-        {
-          find: /^@hoslift\/ranu$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
-        },
-        {
-          find: /^@hoslift\/ranu\/(.*)$/,
           replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
         },
         {

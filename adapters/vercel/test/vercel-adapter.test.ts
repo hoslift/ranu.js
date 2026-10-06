@@ -28,7 +28,7 @@ vi.mock('esbuild', async (importOriginal) => {
   };
 });
 
-describe('@ranu/adapter-vercel', () => {
+describe('@ranujs/adapter-vercel', () => {
   let tempDir: string;
   let buildDir: string;
 
