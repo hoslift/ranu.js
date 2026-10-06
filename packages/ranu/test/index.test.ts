@@ -16,7 +16,7 @@ import { definePlugin } from '../src/plugin.js';
 describe('Ranu.js package public entry points', () => {
   describe('root entry ("ranu")', () => {
     it('exports RANU_VERSION', () => {
-      expect(RANU_VERSION).toBe('0.0.0');
+      expect(RANU_VERSION).toBe('0.1.4');
     });
 
     it('exports defineConfig convenience helper matching ranu/config', () => {
