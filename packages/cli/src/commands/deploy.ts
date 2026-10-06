@@ -21,7 +21,7 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
 
   let adapter = ctx.config.deployment?.adapter;
 
-  // CLI flag override: --adapter vercel / @ranu/adapter-vercel
+  // CLI flag override: --adapter vercel / @ranujs/adapter-vercel
   if (args.adapter) {
     const adapterName = String(args.adapter).toLowerCase();
     if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel') {
