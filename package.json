@@ -79,6 +79,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/hoslift/ranu.js.git"
-  },
-  "license": "MIT"
+  }
 }
