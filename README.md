@@ -48,9 +48,6 @@
   <a href="./SECURITY.md"><img src="https://img.shields.io/badge/Security-Policy-brightgreen.svg?style=flat" alt="Security Policy"></a>
   <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=flat" alt="Contributor Covenant"></a>
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs Welcome"></a>
-  <a href="https://github.com/sponsors/draj256"><img src="https://img.shields.io/badge/Sponsor-draj256-ea4aaa?style=flat&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub"></a>
-  <a href="https://opencollective.com/ranujs"><img src="https://img.shields.io/badge/Open_Collective-ranujs-7FADF2?style=flat&logo=open-collective&logoColor=white" alt="Open Collective"></a>
-  <a href="https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?style=flat&logo=paypal&logoColor=white" alt="Donate with PayPal"></a>
   <a href="https://github.com/hoslift/ranu.js/issues"><img src="https://img.shields.io/github/issues/hoslift/ranu.js?style=flat&color=ffd43b" alt="GitHub Issues"></a>
   <a href="https://github.com/hoslift/ranu.js/pulls"><img src="https://img.shields.io/github/issues-pr/hoslift/ranu.js?style=flat" alt="GitHub PRs"></a>
   <a href="https://github.com/hoslift/ranu.js/commits/main"><img src="https://img.shields.io/github/last-commit/hoslift/ranu.js?style=flat" alt="Last Commit"></a>
