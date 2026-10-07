@@ -1,5 +1,11 @@
 # @ranujs/adapter-vercel
 
+## 0.1.5
+
+### Patch Changes
+
+- Upgrade Vitest to v4.1.11, update peer dependency version metadata, and synchronize documentation.
+
 ## 0.1.4
 
 ### Patch Changes

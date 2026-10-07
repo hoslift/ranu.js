@@ -4,6 +4,17 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.1.5 (Public Alpha)
+
+### Security Hardening & Tooling Stabilization
+
+- Remediated transitive security advisories across dev tooling: tinypool Prototype Pollution (RCE), js-yaml DoS, and source-map-js DoS via pnpm overrides.
+- Upgraded Vitest and `@vitest/coverage-v8` to `v4.1.11` across all workspace packages to remediate path traversal vulnerabilities.
+- Migrated monorepo workspace test configuration to root `vitest.config.ts` with `test.projects` support for Vitest 4.
+- Hardened Vite 7 alias compatibility with explicit string mapping in `vitest.workspace.ts`.
+- Narrowed `MiddlewareHeadersInit` to `[string, string][]` tuple type for `@types/node` v26 compatibility.
+- Resolved 24 out of 25 Dependabot security alerts across repository manifests and lockfiles.
+
 ## 0.1.4 (Public Alpha)
 
 ### Documentation & Repository Modernization
