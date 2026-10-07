@@ -79,13 +79,13 @@
     "@ranu/runtime": "workspace:*",
     "@ranu/runtime-node": "workspace:*",
     "@ranu/server": "workspace:*",
-    "@types/node": "^22.20.4",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.2.5",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",
