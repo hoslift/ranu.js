@@ -1,5 +1,11 @@
 # @ranujs/core
 
+## 0.1.5
+
+### Patch Changes
+
+- Upgrade Vitest to v4.1.11, harden Vite 7 module aliases, and update package version metadata.
+
 ## 0.1.4
 
 ### Patch Changes

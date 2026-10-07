@@ -21,8 +21,8 @@ Security fixes and maintenance patches are applied exclusively to the latest pub
 
 | Version              |  Security Support  | Status                                            |
 | :------------------- | :----------------: | :------------------------------------------------ |
-| 0.1.4 (Public Alpha) | :white_check_mark: | **Active Maintenance** (Latest published release) |
-| < 0.1.4              |        :x:         | Unsupported / End of Life                         |
+| 0.1.5 (Public Alpha) | :white_check_mark: | **Active Maintenance** (Latest published release) |
+| < 0.1.5              |        :x:         | Unsupported / End of Life                         |
 
 > [!NOTE]
 > We strongly recommend keeping your dependencies pinned to the latest available `@ranujs/core` patch release (`npm install @ranujs/core@latest`) to ensure all security patches are active.

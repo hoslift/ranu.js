@@ -1,5 +1,11 @@
 # create-ranujs
 
+## 0.1.5
+
+### Patch Changes
+
+- Synchronize scaffold templates and dependency version constraints to @ranujs/core v0.1.5.
+
 ## 0.1.4
 
 ### Patch Changes
