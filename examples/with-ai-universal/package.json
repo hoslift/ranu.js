@@ -1,0 +1,23 @@
+{
+  "name": "example-with-ai-universal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ranu dev",
+    "build": "ranu build",
+    "start": "ranu start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ranujs/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.3"
+  }
+}
