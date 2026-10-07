@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineWorkspace } from 'vitest/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +39,7 @@ const sharedTestConfig = {
   setupFiles: [path.resolve(__dirname, 'tests/setup.ts')],
 };
 
-export default defineWorkspace([
+export default [
   {
     test: {
       ...sharedTestConfig,
@@ -88,28 +87,34 @@ export default defineWorkspace([
       include: ['tests/api/**/*.test.ts'],
     },
     resolve: {
-      alias: [
-        {
-          find: /^@ranujs\/core$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
-        },
-        {
-          find: /^@ranujs\/core\/(.*)$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
-        },
-        {
-          find: /^ranu$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
-        },
-        {
-          find: /^ranu\/(.*)$/,
-          replacement: path.resolve(__dirname, 'packages/ranu/dist/$1.js'),
-        },
-        {
-          find: /^@ranu\/(.*)$/,
-          replacement: path.resolve(__dirname, 'packages/$1/dist/index.js'),
-        },
-      ],
+      alias: {
+        '@ranujs/core/config': path.resolve(__dirname, 'packages/ranu/dist/config.js'),
+        '@ranujs/core/react': path.resolve(__dirname, 'packages/ranu/dist/react.js'),
+        '@ranujs/core/server': path.resolve(__dirname, 'packages/ranu/dist/server.js'),
+        '@ranujs/core/plugin': path.resolve(__dirname, 'packages/ranu/dist/plugin.js'),
+        '@ranujs/core/server-only': path.resolve(__dirname, 'packages/ranu/dist/server-only.js'),
+        '@ranujs/core': path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/dist/index.js'),
+        'ranu/config': path.resolve(__dirname, 'packages/ranu/dist/config.js'),
+        'ranu/react': path.resolve(__dirname, 'packages/ranu/dist/react.js'),
+        'ranu/server': path.resolve(__dirname, 'packages/ranu/dist/server.js'),
+        'ranu/plugin': path.resolve(__dirname, 'packages/ranu/dist/plugin.js'),
+        'ranu/server-only': path.resolve(__dirname, 'packages/ranu/dist/server-only.js'),
+        ranu: path.resolve(__dirname, 'packages/ranu/dist/index.js'),
+        '@ranu/core': path.resolve(__dirname, 'packages/core/dist/index.js'),
+        '@ranu/diagnostics': path.resolve(__dirname, 'packages/diagnostics/dist/index.js'),
+        '@ranu/manifests': path.resolve(__dirname, 'packages/manifests/dist/index.js'),
+        '@ranu/config': path.resolve(__dirname, 'packages/config/dist/index.js'),
+        '@ranu/router': path.resolve(__dirname, 'packages/router/dist/index.js'),
+        '@ranu/runtime': path.resolve(__dirname, 'packages/runtime/dist/index.js'),
+        '@ranu/runtime-node': path.resolve(__dirname, 'packages/runtime-node/dist/index.js'),
+        '@ranu/server': path.resolve(__dirname, 'packages/server/dist/index.js'),
+        '@ranu/react': path.resolve(__dirname, 'packages/react/dist/index.js'),
+        '@ranu/build': path.resolve(__dirname, 'packages/build/dist/index.js'),
+        '@ranu/dev': path.resolve(__dirname, 'packages/dev/dist/index.js'),
+        '@ranu/cli': path.resolve(__dirname, 'packages/cli/dist/index.js'),
+        '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/dist/index.js'),
+      },
     },
   },
   {
@@ -184,4 +189,4 @@ export default defineWorkspace([
       alias: sharedAliases,
     },
   },
-]);
+];
