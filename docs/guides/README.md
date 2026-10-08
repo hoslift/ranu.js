@@ -16,6 +16,7 @@ flowchart TD
     Guides --> Auth[Auth & Access Control]
     Guides --> DB[Databases & ORMs]
     Guides --> Style[Styling & UI Assets]
+    Guides --> Deploy[Deployment & Operations]
     Guides --> AI[AI & Intelligent Systems]
 ```
 
@@ -69,6 +70,25 @@ Design production interfaces with zero-runtime CSS modules, utility systems, and
 Integrate diverse foundational models with zero vendor lock-in using pure Web Standards:
 - **[Universal AI Engineering Series](./ai/README.md)** — 6-part master guide covering Streaming Foundations, Model Adapters, Structured Outputs, Vector Retrieval, Agentic Workflows, and Security Gateways.
 - **[First-Party Machine Skills](../../skills/)** — Procedural rules for autonomous coding agents (`ai-universal-streaming`, `ai-model-adapters`, `ai-tool-calling`, `ai-vector-retrieval`, `ai-security-guardrails`).
+
+---
+
+## 7. 🚀 [Deployment & Production Operations](./deployment/01_NODE_SERVER.md)
+Ship applications with confidence across bare metal, Docker containers, and cloud serverless/edge environments:
+- **[Node.js Server Runbook](./deployment/01_NODE_SERVER.md)** — Production server lifecycle, PM2 clusters, and graceful shutdown.
+- **[Docker Containerization](./deployment/02_DOCKER_CONTAINER.md)** — Multi-stage Alpine Dockerfile and unprivileged user hardening.
+- **[Edge Runtimes & Custom Adapters](./deployment/03_EDGE_PLATFORMS.md)** — W3C Edge execution and `RanuDeploymentAdapter` contract.
+- **[Vercel Adapter](./deployment/04_VERCEL_ADAPTER.md)** — First-party `@ranujs/adapter-vercel` setup and Build Output API v3.
+
+---
+
+## 📚 Technical API Reference & Security
+- **[CLI Reference Manual](../reference/cli/README.md)** — Full command reference (`dev`, `build`, `start`, `deploy`) and flags.
+- **[Configuration Reference](../reference/config/README.md)** — `ranu.config.ts` schema and `defineConfig` options.
+- **[React Integration API](../reference/react/README.md)** — `<Link>`, navigation hooks, and metadata generators.
+- **[Server & Runtime API](../reference/runtime/README.md)** — `cookies()`, `headers()`, `redirect()`, and server execution helpers.
+- **[Security Policy & Vulnerabilities](../security/SECURITY_POLICY.md)** — Responsible disclosure, SLA, and safe harbor policy.
+- **[Compiler Boundaries](../security/COMPILER_BOUNDARIES.md)** — `@ranujs/core/server-only` guards, secret protection, and ReDoS defenses.
 
 ---
 
