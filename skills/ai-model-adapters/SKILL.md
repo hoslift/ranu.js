@@ -1,9 +1,11 @@
 ---
 name: ai-model-adapters
-description: Procedural patterns for creating model-agnostic, interchangeable inference adapters and failover routing in Ranu.js.
-version: 1.0.0
-compatibility: ranu >= 0.1.0
-tags: [ai, adapters, abstraction, multi-model, routing]
+description: Procedural patterns for creating model-agnostic, interchangeable inference adapters and failover routing in Ranu.js (@ranujs/core).
+triggers:
+  - 'ai model adapter'
+  - 'multi-provider'
+  - 'ai failover'
+  - 'model router'
 ---
 
 # Universal Model Adapters Skill

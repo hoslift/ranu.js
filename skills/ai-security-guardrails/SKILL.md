@@ -1,9 +1,11 @@
 ---
 name: ai-security-guardrails
-description: Hardening policies, threat mitigation, token rate-limiting, and runtime safety for production AI routes in Ranu.js.
-version: 1.0.0
-compatibility: ranu >= 0.1.0
-tags: [ai, security, guardrails, sanitization, rate-limiting]
+description: Hardening policies, threat mitigation, token rate-limiting, and runtime safety for production AI routes in Ranu.js (@ranujs/core).
+triggers:
+  - 'ai security'
+  - 'rate limiting'
+  - 'prompt injection'
+  - 'guardrails'
 ---
 
 # Universal AI Security Guardrails Skill

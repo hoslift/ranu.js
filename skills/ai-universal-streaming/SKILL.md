@@ -1,9 +1,11 @@
 ---
 name: ai-universal-streaming
-description: Procedural rules and best practices for building zero-dependency real-time streaming AI APIs in Ranu.js using native W3C Web Standards.
-version: 1.0.0
-compatibility: ranu >= 0.1.0
-tags: [ai, streaming, sse, web-streams, react19]
+description: Procedural rules and best practices for building zero-dependency real-time streaming AI APIs in Ranu.js (@ranujs/core) using native W3C Web Standards.
+triggers:
+  - 'ai streaming'
+  - 'sse'
+  - 'ReadableStream'
+  - 'server-sent events'
 ---
 
 # Universal AI Streaming Skill
