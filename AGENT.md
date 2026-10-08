@@ -14,6 +14,19 @@ Before writing, scaffolding, or refactoring code in this repository or in any do
 
 ---
 
+## 🤖 Native Specialized AI & Engineering Skills (`skills/`)
+
+When generating code or designing AI-enabled features in Ranu.js, adhere to the corresponding domain skills:
+
+* **Core Architecture:** [`skills/ranu-architect/SKILL.md`](skills/ranu-architect/SKILL.md)
+* **Real-time Streaming & SSE:** [`skills/ai-universal-streaming/SKILL.md`](skills/ai-universal-streaming/SKILL.md)
+* **Multi-Model Adapters & Routing:** [`skills/ai-model-adapters/SKILL.md`](skills/ai-model-adapters/SKILL.md)
+* **Tool Calling & Schema Validation:** [`skills/ai-tool-calling/SKILL.md`](skills/ai-tool-calling/SKILL.md)
+* **Vector Retrieval & Embeddings (RAG):** [`skills/ai-vector-retrieval/SKILL.md`](skills/ai-vector-retrieval/SKILL.md)
+* **Security Guardrails & Hardening:** [`skills/ai-security-guardrails/SKILL.md`](skills/ai-security-guardrails/SKILL.md)
+
+---
+
 ## Quick Reference Summary
 
 ### 1. Framework Identity & Dependencies
