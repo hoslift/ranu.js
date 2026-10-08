@@ -13,13 +13,10 @@ flowchart TD
     Guides[Ranu.js Developer Guides]
     Guides --> Routing[Routing & Layouts]
     Guides --> Data[Data Fetching & APIs]
+    Guides --> Auth[Auth & Access Control]
+    Guides --> DB[Databases & ORMs]
+    Guides --> Style[Styling & UI Assets]
     Guides --> AI[AI & Intelligent Systems]
-    Routing --> R1[Pages & Layouts]
-    Routing --> R2[Dynamic Routes]
-    Data --> D1[API Routes]
-    Data --> D2[Form Actions]
-    AI --> A1[Streaming & Adapters]
-    AI --> A2[Tools & Security]
 ```
 
 ---
@@ -42,7 +39,33 @@ Build REST endpoints, handle React 19 form actions, stream chunked responses, an
 
 ---
 
-## 3. 🤖 [AI & Intelligent Systems](./ai/README.md)
+## 3. 🔐 [Authentication & Access Control](./auth/01_SESSION_COOKIES.md)
+Secure user sessions, safeguard downstream routes with middleware, and implement standards-compliant OAuth:
+- **[Session Cookies](./auth/01_SESSION_COOKIES.md)** — Native HTTP-only `cookies()` session storage and token rotation.
+- **[Protected Routes](./auth/02_PROTECTED_ROUTES.md)** — Edge `middleware.ts` guards, path matching, and redirect controls.
+- **[OAuth 2.0 Integration](./auth/03_OAUTH_INTEGRATION.md)** — Vendor-neutral Authorization Code Flow with PKCE.
+- **[CSRF Protection](./auth/04_CSRF_PROTECTION.md)** — Double-submit cookies, `SameSite` policies, and origin validation.
+
+---
+
+## 4. 🗄️ [Databases & ORMs](./database/01_SQLITE_LOCAL.md)
+Persist state across embedded engines and production relational clusters with strict server isolation:
+- **[Embedded SQLite](./database/01_SQLITE_LOCAL.md)** — WAL mode, zero configuration, and embedded file persistence.
+- **[Production PostgreSQL](./database/02_POSTGRESQL.md)** — Connection pooling with `pg`, SSL security, and transactions.
+- **[Drizzle ORM](./database/03_DRIZZLE_ORM.md)** — End-to-end TypeScript schema definitions, kit migrations, and zero-codegen queries.
+- **[Prisma Setup](./database/04_PRISMA_SETUP.md)** — Declarative models, development HMR client caching, and server boundaries.
+
+---
+
+## 5. 🎨 [Styling & UI Assets](./styling/01_TAILWIND_CSS.md)
+Design production interfaces with zero-runtime CSS modules, utility systems, and fast HMR:
+- **[Tailwind CSS](./styling/01_TAILWIND_CSS.md)** — PostCSS pipeline, layout injection, and sub-second HMR updates.
+- **[CSS Modules](./styling/02_CSS_MODULES.md)** — Component-scoped class names, zero runtime footprint, and composition.
+- **[Static Assets & Fonts](./styling/03_ASSETS_AND_FONTS.md)** — `public/` assets, SVG vectors, and self-hosted `@font-face` optimization.
+
+---
+
+## 6. 🤖 [AI & Intelligent Systems](./ai/README.md)
 Integrate diverse foundational models with zero vendor lock-in using pure Web Standards:
 - **[Universal AI Engineering Series](./ai/README.md)** — 6-part master guide covering Streaming Foundations, Model Adapters, Structured Outputs, Vector Retrieval, Agentic Workflows, and Security Gateways.
 - **[First-Party Machine Skills](../../skills/)** — Procedural rules for autonomous coding agents (`ai-universal-streaming`, `ai-model-adapters`, `ai-tool-calling`, `ai-vector-retrieval`, `ai-security-guardrails`).
