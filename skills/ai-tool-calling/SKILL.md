@@ -1,9 +1,11 @@
 ---
 name: ai-tool-calling
-description: Procedural patterns for deterministic tool calling, structured JSON output extraction, and schema validation in Ranu.js.
-version: 1.0.0
-compatibility: ranu >= 0.1.0
-tags: [ai, tool-calling, structured-outputs, schema-validation, json]
+description: Procedural patterns for deterministic tool calling, structured JSON output extraction, and schema validation in Ranu.js (@ranujs/core).
+triggers:
+  - 'tool calling'
+  - 'function calling'
+  - 'structured outputs'
+  - 'json schema'
 ---
 
 # Universal AI Tool Calling Skill

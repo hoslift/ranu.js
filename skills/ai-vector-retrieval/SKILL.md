@@ -1,9 +1,11 @@
 ---
 name: ai-vector-retrieval
-description: Procedural patterns for text embeddings, similarity search, vector retrieval, and context augmentation (RAG) in Ranu.js.
-version: 1.0.0
-compatibility: ranu >= 0.1.0
-tags: [ai, embeddings, vector, rag, retrieval]
+description: Procedural patterns for text embeddings, similarity search, vector retrieval, and context augmentation (RAG) in Ranu.js (@ranujs/core).
+triggers:
+  - 'embeddings'
+  - 'vector retrieval'
+  - 'rag'
+  - 'cosine similarity'
 ---
 
 # Universal AI Vector Retrieval Skill
