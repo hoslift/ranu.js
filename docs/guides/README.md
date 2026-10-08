@@ -92,6 +92,17 @@ Ship applications with confidence across bare metal, Docker containers, and clou
 
 ---
 
+## 🌐 Ecosystem & Architecture Internals
+- **[Ecosystem Hub](../ecosystem/README.md)** — Ecosystem directory, plugins, storage adapters, and verified providers.
+- **[Plugin Specification](../ecosystem/plugins/PLUGIN_SPECIFICATION.md)** — Ranu Plugin API v1 contract and build extension hooks.
+- **[Cloud Object Storage](../ecosystem/storage/README.md)** — S3-compatible, Cloudflare R2, and persistent blob storage.
+- **[Verified Providers](../ecosystem/providers/README.md)** — Infrastructure partners directory and verification criteria.
+- **[React 19 SSR Architecture](../architecture/01_REACT_19_SSR.md)** — Streaming renderer lifecycle and state hydration protocol.
+- **[Build & HMR Engine](../architecture/02_BUILD_AND_HMR.md)** — Dual-pipeline compilation and development coordinator.
+- **[Deployment Adapter Contract](../architecture/03_ADAPTER_CONTRACT.md)** — Pluggable hosting runtime adapter transformation specs.
+
+---
+
 ## 🚀 Getting Started
 
 If you are brand new to Ranu.js, we recommend starting with the **[Getting Started Tutorials](../getting-started/01_OVERVIEW.md)** before exploring specific guide domains.
