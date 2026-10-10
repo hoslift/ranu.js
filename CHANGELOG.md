@@ -4,6 +4,14 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.1.6 (Public Alpha)
+
+### Test & Build Pipeline Stabilization
+
+- Standardized root and workspace test execution pipeline for Vitest v4 compatibility across all 16 monorepo packages.
+- Synchronized package version constants and template manifests to `v0.1.6`.
+- Verified 100% passage across all test suites (825/825 unit tests, 57 integration tests, 54 examples, performance benchmarks, and architecture audits).
+
 ## 0.1.5 (Public Alpha)
 
 ### Security Hardening & Tooling Stabilization

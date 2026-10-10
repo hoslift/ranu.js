@@ -32,7 +32,7 @@ export function generateTemplateFiles(
         start: 'ranu start',
       },
       dependencies: {
-        '@ranujs/core': '^0.1.5',
+        '@ranujs/core': '^0.1.6',
         react: '^19.0.0',
         'react-dom': '^19.0.0',
       },

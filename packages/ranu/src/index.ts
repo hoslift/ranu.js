@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-export const RANU_VERSION = '0.1.5';
+export const RANU_VERSION = '0.1.6';
 
 // Canonical configuration import is "ranu/config".
 // Convenience re-exports from root package per 11_PUBLIC_API_SPECIFICATION.md §11-12:
