@@ -87,7 +87,7 @@ export interface DeploymentResult {
 
 ## 3. Case Study: `@ranujs/adapter-vercel`
 
-The official Vercel adapter demonstrates how the contract translates standard Ranu artifacts into target cloud specifications:
+The Vercel adapter demonstrates how the contract translates standard Ranu artifacts into target cloud specifications:
 
 1. **Reads `.ranu/build/`:** Examines `build.json` to identify dynamic API routes and static pages.
 2. **Generates `.vercel/output/`:**
