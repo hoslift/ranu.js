@@ -8,7 +8,7 @@ This enables zero-configuration, production-grade deployments on Vercel with aut
 
 ## 1. Architectural Overview
 
-The `@ranujs/adapter-vercel` adapter implements the formal `RanuDeploymentAdapter` specification defined in `@ranu/core`. In strict compliance with the **Zero Re-Compilation Invariant**, the adapter does not re-bundle or re-compile your application source code (`.tsx`/`.ts`). Instead, it acts as a downstream consumer of `.ranu/build/`:
+The `@ranujs/adapter-vercel` adapter implements the formal `RanuDeploymentAdapter` specification defined in `@ranujs/core`. In strict compliance with the **Zero Re-Compilation Invariant**, the adapter does not re-bundle or re-compile your application source code (`.tsx`/`.ts`). Instead, it acts as a downstream consumer of `.ranu/build/`:
 
 ```
 .ranu/build/ (Compiled Artifacts & Manifests)

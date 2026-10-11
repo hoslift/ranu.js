@@ -8,7 +8,7 @@ Whether you are targeting an enterprise Kubernetes cluster, internal serverless 
 
 ## 1. Architectural Philosophy & The Two-Phase Lifecycle
 
-Ranu.js strictly separates **application compilation** from **platform deployment packaging** through the `RanuDeploymentAdapter` interface exported from `@ranu/core`.
+Ranu.js strictly separates **application compilation** from **platform deployment packaging** through the `RanuDeploymentAdapter` interface exported from `@ranujs/core`.
 
 ### The Zero Re-Compilation Invariant
 
@@ -61,7 +61,7 @@ flowchart TD
 
 ## 2. Core TypeScript Interface Contracts
 
-All adapters implement the formal contracts exported by `@ranu/core`.
+All adapters implement the formal contracts exported by `@ranujs/core`. Adapter packages declare `@ranujs/core` in `peerDependencies` and `devDependencies` to access these contract types without duplicating runtime code.
 
 ### 2.1 `RanuDeploymentAdapter`
 
@@ -602,7 +602,7 @@ import type {
   DeploymentCapabilities,
   DeploymentAdapterContext,
   DeploymentResult,
-} from '@ranu/core';
+} from '@ranujs/core';
 import type { BuildDescriptor } from '@ranu/manifests';
 
 export interface EnterpriseCloudAdapterOptions {
@@ -762,6 +762,38 @@ CMD ["node", "server.mjs"]
 }
 
 export default enterpriseCloudAdapter;
+```
+
+### Packaging & Dependency Specification (`package.json`)
+
+When distributing a custom adapter as a standalone npm package (e.g. `@my-org/adapter-enterprise`):
+
+1. **Adapter Dependency Boundaries:** Adapters must declare `@ranujs/core` in `peerDependencies` (e.g. `"@ranujs/core": ">=0.1.0"`) to ensure compatibility with the host application without bundling duplicate copies, and in `devDependencies` for TypeScript types and compilation. Adapters must never declare `@ranujs/core` in runtime `dependencies`.
+2. **End-User Installation:** Because deployment adapters operate exclusively during the build and packaging phase (`ranu deploy`), application consumers must install adapter packages as development dependencies using the `-D` flag:
+   ```bash
+   npm install -D @my-org/adapter-enterprise
+   # or
+   pnpm add -D @my-org/adapter-enterprise
+   yarn add -D @my-org/adapter-enterprise
+   ```
+
+Example `package.json` for a custom adapter package:
+
+```json
+{
+  "name": "@my-org/adapter-enterprise",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "peerDependencies": {
+    "@ranujs/core": ">=0.1.0"
+  },
+  "devDependencies": {
+    "@ranujs/core": "^0.1.6",
+    "typescript": "^5.0.0"
+  }
+}
 ```
 
 ### Registering the Custom Adapter in `ranu.config.ts`

@@ -9,6 +9,7 @@
   },
   "references": [
     { "path": "../config" },
+    { "path": "../core" },
     { "path": "../plugin" },
     { "path": "../react" },
     { "path": "../runtime-node" },

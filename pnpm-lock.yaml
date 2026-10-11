@@ -189,9 +189,6 @@ importers:
 
   examples/deployment-vercel:
     dependencies:
-      '@ranujs/adapter-vercel':
-        specifier: workspace:*
-        version: link:../../adapters/vercel
       '@ranujs/core':
         specifier: workspace:*
         version: link:../../packages/ranu
@@ -202,6 +199,9 @@ importers:
         specifier: ^19.0.0
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@ranujs/adapter-vercel':
+        specifier: workspace:*
+        version: link:../../adapters/vercel
       '@types/node':
         specifier: ^22.20.4
         version: 22.20.4

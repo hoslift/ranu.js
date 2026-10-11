@@ -1,6 +1,6 @@
 # Deployment Adapter Contract & Platform Transformation
 
-**Ranu.js** separates application compilation from platform deployment using a formal **Two-Phase Deployment Adapter Architecture** (`RanuDeploymentAdapter`) exported from `@ranu/core`.
+**Ranu.js** separates application compilation from platform deployment using a formal **Two-Phase Deployment Adapter Architecture** (`RanuDeploymentAdapter`) exported from `@ranujs/core`.
 
 This abstraction ensures that the core framework compiler remains completely platform-agnostic while enabling specialized adapters to transform production build outputs for any hosting target—including serverless runtimes (Vercel, AWS Lambda), edge V8 isolates (Cloudflare Workers), containerized daemons (Docker, Kubernetes), and modern JavaScript engines (Bun, Deno).
 
@@ -99,7 +99,7 @@ Executed on every live HTTP request in production:
 
 ## 3. Core TypeScript Interface Contracts
 
-The foundational adapter contracts are defined in `@ranu/core` and consumed across `@ranu/runtime`, `@ranu/cli`, and all deployment adapters.
+The foundational adapter contracts are defined in `@ranujs/core` and consumed across `@ranu/runtime`, `@ranu/cli`, and all deployment adapters.
 
 ### 3.1 `RanuDeploymentAdapter`
 
@@ -532,7 +532,7 @@ import type {
   DeploymentCapabilities,
   DeploymentAdapterContext,
   DeploymentResult,
-} from '@ranu/core';
+} from '@ranujs/core';
 import type { BuildDescriptor, RouteManifest } from '@ranu/manifests';
 
 export interface EnterpriseAdapterOptions {

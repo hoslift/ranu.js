@@ -21,3 +21,11 @@ export type {
   GenerateStaticParamsResult,
   GenerateStaticParams,
 } from '@ranu/core';
+
+export type {
+  RanuDeploymentAdapter,
+  DeploymentCapabilities,
+  DeploymentAdapterContext,
+  DeploymentResult,
+  FrameworkCapabilities,
+} from '@ranu/core';

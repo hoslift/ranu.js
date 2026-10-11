@@ -224,7 +224,7 @@ Ranu.js exposes platform lifetime extension via `RanuRequestContext.waitUntil()`
 
 ```typescript
 // src/routes/api/checkout/route.ts
-import { getRequestContext } from '@ranu/server';
+import { getRequestContext } from '@ranujs/core/server';
 
 export async function POST(request: Request) {
   const context = getRequestContext();

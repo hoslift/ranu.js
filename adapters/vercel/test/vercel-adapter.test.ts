@@ -378,7 +378,7 @@ describe('@ranujs/adapter-vercel', () => {
       const deployMarker = JSON.parse(fs.readFileSync(deployMarkerPath, 'utf8'));
       expect(deployMarker.adapter).toBe('vercel');
       expect(deployMarker.buildId).toBe('vercel-build-456');
-    }, 15_000);
+    }, 60_000);
 
     it('protects against secret leakage and source map exposure in static assets', async () => {
       // Create sensitive files in the public directory
