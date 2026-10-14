@@ -1,160 +1,48 @@
 # Deploying to Netlify (Edge & Serverless Functions)
 
-**Netlify** provides an advanced hybrid hosting infrastructure combining globally distributed edge compute with regional serverless microVMs. When deploying **Ranu.js** to Netlify, applications leverage this **Hybrid Two-Tier Model** to execute lightweight routing and authentication checks at the edge while delegating full-stack React 19 Streaming SSR to regional origin functions.
+**Netlify** provides an advanced hybrid hosting platform that combines a globally distributed edge Content Delivery Network (CDN) with regional serverless compute. When deploying **Ranu.js** to Netlify, applications take advantage of this architecture to serve immutable static assets and pre-rendered pages directly from edge points of presence, while routing dynamic Server-Side Rendering (SSR) and API routes through serverless compute with full Node.js 22 runtime support.
 
-This guide details the hybrid two-tier execution model, the multi-cookie header folding bug, the request body consumption trap (`request.bodyUsed = true`), dual cold-start mitigations, and production configuration recipes.
-
----
-
-## 1. The Hybrid Two-Tier Computing Infrastructure
-
-Netlify separates compute into two physically distinct hosting tiers:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Netlify Global CDN PoPs                         │
-│                                                                        │
-│   Incoming Client HTTP Request                                         │
-│                 │                                                      │
-│                 ▼                                                      │
-│   ┌───────────────────────────┐      Static Match?                     │
-│   │ Netlify Global CDN Cache  │ ────────────────────────► Return Asset │
-│   └─────────────┬─────────────┘                           (Cached)     │
-│                 │ Dynamic Route                                        │
-│                 ▼                                                      │
-│   ┌───────────────────────────┐                                        │
-│   │ Tier 1: Edge Functions    │ (Deno / V8 Edge Isolates)              │
-│   │   - Geolocation rewrites  │ Latency: < 15ms                        │
-│   │   - Auth gatekeeping      │ Worldwide CDN PoPs                     │
-│   │   - Defensive body clone  │                                        │
-│   └─────────────┬─────────────┘                                        │
-└─────────────────┼──────────────────────────────────────────────────────┘
-                  │ Forward Stream
-                  ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     AWS Lambda Regional Origin                         │
-│                                                                        │
-│   ┌───────────────────────────┐                                        │
-│   │ Tier 2: Serverless SSR    │ (Node.js 22 Runtime)                   │
-│   │   - React 19 Streaming SSR│ Regional Origin Compute                │
-│   │   - Relational DB queries │ Direct DB VPC Access                   │
-│   │   - Multi-cookie arrays   │                                        │
-│   └───────────────────────────┘                                        │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Tier Comparison
-
-| Dimension                    | Tier 1: Netlify Edge Functions             | Tier 2: Netlify Serverless Functions         |
-| :--------------------------- | :----------------------------------------- | :------------------------------------------- |
-| **Underlying Runtime**       | Deno / V8 Isolates                         | AWS Lambda (Node.js 22.x)                    |
-| **Geographic Location**      | Globally distributed edge CDN PoPs         | Single regional origin (e.g. `us-east-1`)    |
-| **Typical Startup TTFB**     | **< 15 ms**                                | ~150 ms (warm) / ~1,200 ms (cold)            |
-| **Execution Responsibility** | Geolocation routing, auth tokens, rewrites | React 19 Streaming SSR, database mutations   |
-| **Filesystem Access**        | None (in-memory isolate)                   | Read-only with `/tmp` (512 MB scratch space) |
+This guide covers Netlify's hybrid execution architecture, multi-cookie handling, edge middleware best practices, `netlify.toml` configuration, and production deployment workflows.
 
 ---
 
-## 2. Multi-Cookie Preservation & The Header Folding Bug
+## 1. Overview & Platform Prerequisites
 
-One of the most persistent bugs in edge-to-serverless proxy architectures is the **HTTP Header Folding Bug** for multiple `Set-Cookie` headers.
+### Platform Overview & Execution Model
 
-### 2.1 The Root Cause: RFC 2616 Folding Trap
+Netlify executes web applications across two distinct computing layers:
 
-Under the legacy RFC 2616 HTTP specification, intermediate proxies are permitted to fold multiple headers sharing the same key into a single comma-separated header:
+- **Global CDN & Edge Layer:** Serves pre-rendered pages and client bundles with automatic SSL, HTTP/3, and Brotli compression. Edge Functions (running on Deno/V8 isolates) can run lightweight middleware such as geolocation routing and authentication gating at the edge.
+- **Serverless Compute Layer:** Executes dynamic React 19 Streaming SSR and API Route Handlers in regional Node.js 22 microVMs (powered by AWS Lambda). Compute resources scale automatically with traffic.
 
-```http
-Set-Cookie: session=xyz123; Path=/; HttpOnly, csrf_token=abc456; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT
-```
+### Computing Tiers Comparison
 
-However, HTTP cookie `Expires` attributes **contain commas** in their standard RFC 1123 date format (`Wed, 21 Oct 2026`). When downstream browsers receive a comma-folded `Set-Cookie` header, their cookie parsers split on the date comma, corrupting the session token and invalidating the user's authentication state.
+| Dimension                | Tier 1: Netlify Edge Functions                    | Tier 2: Netlify Serverless Functions         |
+| :----------------------- | :------------------------------------------------ | :------------------------------------------- |
+| **Underlying Runtime**   | Deno / V8 Isolates                                | AWS Lambda (Node.js 22.x)                    |
+| **Geographic Location**  | Globally distributed edge PoPs                    | Regional compute origin                      |
+| **Typical Startup TTFB** | **< 15 ms**                                       | ~150 ms (warm) / ~1,200 ms (cold)            |
+| **Primary Role**         | Geolocation routing, auth guards, header rewrites | React 19 Streaming SSR, database mutations   |
+| **Filesystem Access**    | None (in-memory isolate)                          | Read-only with `/tmp` (512 MB scratch space) |
 
-### 2.2 Ranu.js Solution: Discrete Cookie Arrays via `Headers.getSetCookie()`
+### Preserving Multiple Cookies via Standard Headers
 
-Rather than relying on `response.headers.get('set-cookie')` (which returns a single comma-joined string), Ranu.js uses the modern W3C `Headers.prototype.getSetCookie()` API to extract cookie definitions as an array of discrete, un-joined strings:
+In edge-to-serverless architectures, legacy proxies often fold multiple `Set-Cookie` headers into a single comma-separated string, corrupting cookie `Expires` dates. Ranu.js avoids this trap by using the standard W3C `Headers.prototype.getSetCookie()` API, ensuring session cookies, CSRF tokens, and flash messages arrive at the browser as discrete, un-joined headers.
 
-```typescript
-// netlify/functions/ranu-ssr.ts
-import type { Handler, HandlerEvent, HandlerResponse } from '@netlify/functions';
-import { createProductionRuntime } from '@ranu/runtime-node';
-import { toWebRequest } from '@ranu/runtime-node';
+### Edge Middleware Body Consumption Guard
 
-const runtime = await createProductionRuntime();
-
-export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
-  const webRequest = toWebRequest(event);
-  const webResponse = await runtime.handle(webRequest);
-
-  // Extract cookies using standard getSetCookie() to avoid comma-folding
-  const setCookies = webResponse.headers.getSetCookie?.() ?? [];
-
-  // Assemble Netlify-compliant multiValueHeaders
-  const headers: Record<string, string> = {};
-  for (const [key, value] of webResponse.headers.entries()) {
-    if (key.toLowerCase() !== 'set-cookie') {
-      headers[key] = value;
-    }
-  }
-
-  const responseBody = await webResponse.text();
-
-  return {
-    statusCode: webResponse.status,
-    headers,
-    // Preserve discrete Set-Cookie entries without comma folding
-    multiValueHeaders: {
-      'Set-Cookie': setCookies,
-    },
-    body: responseBody,
-  };
-};
-```
-
-This guarantees that session cookies, CSRF tokens, and flash messages arrive at the client browser intact and correctly delimited.
-
----
-
-## 3. The Request Body Consumption Trap (`request.bodyUsed = true`)
-
-In Netlify's hybrid model, developers frequently deploy **Edge Functions** (Tier 1) as middleware to authenticate API requests or inspect payloads before forwarding them to **Serverless Functions** (Tier 2).
-
-### 3.1 The Failure Mode
-
-W3C `Request` bodies are backed by standard `ReadableStream` instances that can only be read once. If an edge function inspects the request body directly:
-
-```typescript
-// ❌ FATAL ERROR IN EDGE MIDDLEWARE
-export default async function middleware(request: Request, context: any) {
-  // Reading the body locks and drains the underlying stream
-  const payload = await request.json();
-
-  if (payload.role !== 'admin') {
-    return new Response('Unauthorized', { status: 403 });
-  }
-
-  // 💥 THROWS: TypeError: Request body is already used
-  return context.next(request);
-}
-```
-
-Because `request.bodyUsed` is now `true`, the runtime refuses to forward the stream to the origin serverless function, throwing an uncaught `TypeError`.
-
-### 3.2 The Mandatory `request.clone()` Guard
-
-Before reading or inspecting incoming request bodies in Netlify Edge Functions, developers must defensively clone the request:
+If you deploy a Netlify Edge Function as middleware to inspect incoming mutation payloads, remember that W3C `Request` streams can only be read once. Always defensively clone the request before consuming its body:
 
 ```typescript
 // netlify/edge-functions/auth-guard.ts
 import type { Config, Context } from '@netlify/edge-functions';
 
 export default async function middleware(request: Request, context: Context) {
-  // Only inspect mutations with bodies
-  if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-    // ✅ SAFE: Clone request before consuming stream
-    const clonedRequest = request.clone();
-
+  if (request.method === 'POST' || request.method === 'PUT') {
+    // Clone request before reading stream to keep original stream untouched
+    const cloned = request.clone();
     try {
-      const body = await clonedRequest.json();
+      const body = await cloned.json();
       if (!body.apiKey) {
         return Response.json({ error: 'Missing API key' }, { status: 401 });
       }
@@ -163,7 +51,7 @@ export default async function middleware(request: Request, context: Context) {
     }
   }
 
-  // The original `request` stream remains untouched and streamable to origin
+  // Forward original request to downstream serverless SSR
   return context.next();
 }
 
@@ -172,177 +60,162 @@ export const config: Config = {
 };
 ```
 
-Cloning creates a separate internal tee stream, preserving the original `ReadableStream` for downstream SSR execution.
+### Account & Developer Tools Prerequisites
+
+- A **Netlify Account** (Free, Pro, or Enterprise).
+- **Node.js 22 LTS** installed locally.
+- **Netlify CLI** installed globally or locally.
 
 ---
 
-## 4. Dual Cold-Start Latency & Mitigation Strategies
+## 2. Package Installation
 
-When an incoming request transitions through both compute tiers, cold starts can compound:
+Install `@ranujs/core` and React 19 in your application root:
 
-```
-Client Request ──► Edge Function Boot (15ms) ──► Origin Lambda Boot (1,200ms) ──► TTFB > 1.3s
-```
+### Using pnpm
 
-### 4.1 Mitigation 1: CDN Static Asset Bypass
+```bash
+# Runtime dependencies
+pnpm add @ranujs/core react react-dom
 
-Never route static client assets (`/_ranu/assets/*`), images, or pre-rendered pages through edge or serverless compute. Netlify's global CDN should serve these assets directly:
-
-```toml
-# netlify.toml
-# Ensure static assets bypass all compute layers
-[[headers]]
-  for = "/_ranu/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[redirects]]
-  from = "/_ranu/assets/*"
-  to = "/_ranu/assets/:splat"
-  status = 200
+# Development dependencies
+pnpm add -D netlify-cli typescript @types/node @types/react @types/react-dom
 ```
 
-### 4.2 Mitigation 2: Lean Serverless Bundling (< 10 MB)
+### Using npm
 
-AWS Lambda decompression and initialization latency scale directly with bundle size. Heavy server bundles (>50 MB) introduce 2,000ms+ cold starts.
+```bash
+# Runtime dependencies
+npm install @ranujs/core react react-dom
 
-Ranu.js utilizes an AST dead-code elimination pipeline in `@ranu/build` to ensure that serverless bundles remain under **10 MB**:
+# Development dependencies
+npm install -D netlify-cli typescript @types/node @types/react @types/react-dom
+```
 
-- Client-only components and third-party browser libraries are stripped from the server graph.
-- Heavy development tools (`esbuild`, TypeScript compiler) are excluded from production artifacts.
-- Keep Lambda cold start initialization under **150 milliseconds**.
+### Using yarn
 
-### 4.3 Mitigation 3: Edge Shell Streaming
+```bash
+# Runtime dependencies
+yarn add @ranujs/core react react-dom
 
-For highly dynamic pages, Tier 1 Edge Functions can stream the static HTML `<head>` and skeleton layout to the client browser immediately, while initiating the Tier 2 origin call asynchronously in the background.
+# Development dependencies
+yarn add -D netlify-cli typescript @types/node @types/react @types/react-dom
+```
+
+Authenticate Netlify CLI with your account:
+
+```bash
+npx netlify login
+```
 
 ---
 
-## 5. Production Configuration Recipes
+## 3. Configuration in `ranu.config.ts`
 
-### 5.1 `netlify.toml` Production Configuration
+Configure your project with standard `defineConfig` from `@ranujs/core/config`:
+
+```typescript
+// ranu.config.ts
+import { defineConfig } from '@ranujs/core/config';
+
+export default defineConfig({
+  routing: {
+    trailingSlash: 'never',
+  },
+  build: {
+    sourceMaps: false,
+    minify: true,
+  },
+});
+```
+
+### Configuration Options Reference
+
+| Option                  | Type                              | Default   | Description                                                 |
+| :---------------------- | :-------------------------------- | :-------- | :---------------------------------------------------------- |
+| `routing.trailingSlash` | `'always' \| 'never' \| 'ignore'` | `'never'` | Controls URL trailing slash normalization.                  |
+| `build.sourceMaps`      | `boolean`                         | `false`   | Emits source maps for production debugging.                 |
+| `build.minify`          | `boolean`                         | `true`    | Minifies JavaScript and CSS bundles for optimal load times. |
+
+---
+
+## 4. Build & Local Preview Commands
+
+### Step 1: Compile Application Build
+
+Compile your application source code into production artifacts:
+
+```bash
+pnpm ranu build
+```
+
+This compiles client and server graphs into `.ranu/build/`:
+
+- `.ranu/build/static/`: Static assets and pre-rendered SSG pages published directly to Netlify's CDN.
+- `.ranu/build/server/`: Compiled server-side route components and SSR runtime.
+
+### Step 2: Configure `netlify.toml`
+
+Create a `netlify.toml` file in your project root to configure the build pipeline, cache headers, and routing:
 
 ```toml
 # netlify.toml
 [build]
   command = "pnpm ranu build"
-  publish = ".ranu/build/client"
-  functions = ".netlify/functions-internal"
+  publish = ".ranu/build/static"
 
 [build.environment]
   NODE_VERSION = "22"
   NODE_ENV = "production"
 
-# Declare Edge Functions (Tier 1)
-[[edge_functions]]
-  path = "/api/*"
-  function = "ranu-edge"
+# Aggressive immutable caching for hashed client assets
+[[headers]]
+  for = "/_ranu/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
-# Declare Serverless Functions (Tier 2)
-[functions]
-  node_bundler = "esbuild"
-  included_files = [".ranu/build/server/**", ".ranu/build/build.json"]
-
-# Route dynamic traffic to origin SSR function
+# Static asset bypass
 [[redirects]]
   from = "/_ranu/assets/*"
   to = "/_ranu/assets/:splat"
   status = 200
 
+# Route dynamic traffic to origin serverless SSR
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/ranu-ssr"
   status = 200
 ```
 
-### 5.2 Serverless Function Entrypoint (`ranu-ssr.ts`)
-
-```typescript
-// netlify/functions/ranu-ssr.ts
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { createProductionRuntime } from '@ranu/runtime-node';
-import { toWebRequest } from '@ranu/runtime-node';
-
-let runtimePromise: Promise<any> | null = null;
-
-function getRuntime() {
-  if (!runtimePromise) {
-    runtimePromise = createProductionRuntime({
-      buildDir: '.ranu/build',
-    });
-  }
-  return runtimePromise;
-}
-
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  const runtime = await getRuntime();
-  const request = toWebRequest(event);
-
-  const response = await runtime.handle(request, {
-    locals: {
-      netlifyContext: context,
-    },
-  });
-
-  const setCookies = response.headers.getSetCookie?.() ?? [];
-  const headers: Record<string, string> = {};
-
-  for (const [key, value] of response.headers.entries()) {
-    if (key.toLowerCase() !== 'set-cookie') {
-      headers[key] = value;
-    }
-  }
-
-  const body = await response.text();
-
-  return {
-    statusCode: response.status,
-    headers,
-    multiValueHeaders: {
-      'Set-Cookie': setCookies,
-    },
-    body,
-  };
-};
-```
-
----
-
-## 6. Build & Deployment Workflow
-
-### Step 1: Compile Application
-
-```bash
-pnpm ranu build --clean
-```
-
-### Step 2: Test Locally with Netlify CLI
+### Step 3: Local Preview with Netlify CLI
 
 Run the local Netlify emulation environment:
 
 ```bash
-# Install Netlify CLI globally if needed
-pnpm add -g netlify-cli
-
-# Start local edge and serverless emulation
-netlify dev
+npx netlify dev
 ```
 
-### Step 3: Deploy to Production
-
-Deploy directly from your terminal or link to Git for continuous deployment:
-
-```bash
-# Deploy preview build
-netlify deploy
-
-# Deploy directly to production CDN
-netlify deploy --prod
-```
+Netlify CLI starts a local server (typically at `http://localhost:8888`), accurately simulating CDN redirects, header rules, edge functions, and serverless compute.
 
 ---
 
-## 7. Automated CI/CD Pipeline (GitHub Actions)
+## 5. Deployment Commands & CLI Workflows
+
+### Manual CLI Deployments
+
+Deploy your application directly from your terminal using the Netlify CLI:
+
+```bash
+# Deploy a preview build with a unique preview URL
+npx netlify deploy
+
+# Deploy directly to the production live URL
+npx netlify deploy --prod
+```
+
+### Automated CI/CD Pipeline (GitHub Actions)
+
+Create `.github/workflows/deploy-netlify.yml` to automatically build and deploy your application on pushes to `main`:
 
 ```yaml
 # .github/workflows/deploy-netlify.yml
@@ -361,26 +234,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js & pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          run_install: false
 
-      - name: Use Node.js 22.x
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build Application
         run: pnpm ranu build
+        env:
+          NODE_ENV: production
+          RANU_PUBLIC_SITE_URL: ${{ vars.RANU_PUBLIC_SITE_URL }}
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
-          publish-dir: '.ranu/build/client'
+          publish-dir: '.ranu/build/static'
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: 'Deploy commit ${{ github.sha }}'
@@ -392,14 +267,69 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 ```
 
+#### Required GitHub Secrets
+
+Configure these in your GitHub repository settings under **Settings → Secrets and variables → Actions**:
+
+- `NETLIFY_AUTH_TOKEN`: Personal Access Token created in Netlify under User Settings → Applications → OAuth.
+- `NETLIFY_SITE_ID`: Found in your Netlify site settings under **Site configuration → General → Site details → Site ID**.
+
 ---
 
-## 8. Verification & Operational Observability
+## 6. Environment Variables & Secret Management
 
-| Verification Target           | Test Method                                             | Expected Result                                                          |
-| :---------------------------- | :------------------------------------------------------ | :----------------------------------------------------------------------- |
-| **Multi-Cookie Preservation** | Execute login route setting session and CSRF cookies    | Response contains discrete `Set-Cookie` headers; zero comma corruption   |
-| **Request Body Forwarding**   | POST JSON payload to edge-guarded API route             | Body arrives fully readable at origin function; no `bodyUsed` crash      |
-| **Static Asset Bypass**       | Inspect `/_ranu/assets/main.[hash].js` response headers | Served directly from CDN with `x-nf-request-id` and 1-year cache headers |
-| **Serverless Bundle Size**    | Check `.netlify/functions-internal/ranu-ssr.zip`        | Archive size < 10 MB; cold start initialization < 150ms                  |
-| **Edge Function Execution**   | Inspect response headers for `/api/*`                   | Header `x-nf-edge-functions` confirms Tier 1 edge execution              |
+### Public vs. Server Secrets in Ranu.js
+
+- **Public Variables (`RANU_PUBLIC_*`):** Embedded into client JavaScript bundles during `ranu build` (e.g. `RANU_PUBLIC_STRIPE_KEY`).
+- **Server Secrets:** Variables without the prefix (e.g. `DATABASE_URL`, `AUTH_SECRET`) are never included in client assets and remain securely accessible only within server-side execution.
+
+### Managing Secrets via Netlify CLI
+
+Add or update environment variables directly from the command line:
+
+```bash
+# Set a production secret
+netlify env:set DATABASE_URL "postgresql://user:password@db.example.com/prod"
+
+# Set a variable for a specific deploy context
+netlify env:set DATABASE_URL "postgresql://user:password@db.example.com/preview" --context deploy-preview
+
+# List all configured environment variables
+netlify env:list
+```
+
+### Managing Secrets in the Netlify Dashboard
+
+1. Go to your site in the Netlify Dashboard.
+2. Navigate to **Site configuration → Environment variables**.
+3. Click **Add a variable** and enter the Key and Value.
+4. Select the target deploy contexts: **Production**, **Deploy Previews**, and **Branch deploys**.
+5. Click **Create variable**.
+
+---
+
+## 7. Production Hosting Dashboard Setup & Verification Checklist
+
+### Netlify Dashboard Site Settings
+
+When connecting your Git repository to Netlify, configure these build settings:
+
+| Setting                 | Recommended Value                                     |
+| :---------------------- | :---------------------------------------------------- |
+| **Base directory**      | Empty / `./` (or application subfolder in a monorepo) |
+| **Build command**       | `pnpm ranu build`                                     |
+| **Publish directory**   | `.ranu/build/static`                                  |
+| **Functions directory** | Default (`netlify/functions`)                         |
+
+### Production Health & Verification Checklist
+
+Verify your live Netlify deployment against this production checklist:
+
+| Verification Target             | Test Method                                           | Expected Result                                                                             |
+| :------------------------------ | :---------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| **Multi-Cookie Preservation**   | Test login route setting multiple cookies             | Response contains discrete `Set-Cookie` headers; zero comma corruption or invalidation.     |
+| **Request Body Forwarding**     | POST JSON payload through edge middleware             | Request body arrives fully readable at origin serverless handler; no `bodyUsed` exceptions. |
+| **Static Asset CDN Bypass**     | Inspect response headers for `/_ranu/assets/*.js`     | Headers return `cache-control: public, max-age=31536000, immutable` and `x-nf-request-id`.  |
+| **Pre-rendered Pages (SSG)**    | `curl -i https://your-domain.netlify.app/about`       | Returned directly from Netlify's CDN cache without invoking serverless functions.           |
+| **Serverless Bundle Execution** | `curl -i -N https://your-domain.netlify.app/`         | Streaming SSR responds with `Transfer-Encoding: chunked` and status `200`.                  |
+| **Secret Isolation**            | Inspect client JavaScript bundles in browser devtools | Zero private server secrets or database passwords in client bundles.                        |

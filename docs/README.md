@@ -1,6 +1,6 @@
 # Ranu.js Documentation Hub
 
-Welcome to the official documentation for **Ranu.js**, the modern full-stack TypeScript framework built on W3C Web Standards, React 19 Streaming Server-Side Rendering (SSR), dual-pipeline compilation isolation, and a pluggable deployment adapter architecture.
+Welcome to the official documentation for **Ranu.js**, the modern full-stack TypeScript framework built on W3C Web Standards, React 19 Streaming Server-Side Rendering (SSR), compile-time isolation, and a pluggable deployment adapter architecture.
 
 ---
 
@@ -11,7 +11,6 @@ flowchart TD
     Hub[docs/README.md - Documentation Hub]
 
     Hub --> GettingStarted[Getting Started]
-    Hub --> Architecture[Architecture & Internals]
     Hub --> Guides[Developer Guides]
     Hub --> Reference[API & CLI Reference]
     Hub --> Ecosystem[Ecosystem & Plugins]
@@ -21,12 +20,7 @@ flowchart TD
     GettingStarted --> GS_Structure[Project Topology & Conventions]
     GettingStarted --> GS_App[First Full-Stack Application]
 
-    Architecture --> Arch_SSR[React 19 Streaming SSR]
-    Architecture --> Arch_Build[Dual-Pipeline Compiler & HMR]
-    Architecture --> Arch_Adapter[Two-Phase Adapter Contract]
-
     Guides --> Guide_Deploy[Deployment & Operations]
-    Guides --> Guide_Adapters[Custom Adapter Authoring]
     Guides --> Guide_Routing[File-System Routing & Layouts]
     Guides --> Guide_Data[API Routes & Form Actions]
     Guides --> Guide_DB[Databases & Connection Pools]
@@ -56,32 +50,21 @@ flowchart TD
 | **Start a brand new project**         | [Getting Started: Installation](./getting-started/02_INSTALLATION.md)      | Node 20+, pnpm, create-ranu                  |
 | **Understand the project structure**  | [Project Structure Guide](./getting-started/03_PROJECT_STRUCTURE.md)       | `app/`, `public/`, `ranu.config.ts`          |
 | **Build your first full-stack app**   | [Building Your First App](./getting-started/04_FIRST_APP.md)               | React 19 SSR, API Routes, `<Link>`           |
+| **Configure pages & nested layouts**  | [Pages & Layouts Guide](./guides/routing/01_PAGES_AND_LAYOUTS.md)          | Root layouts, sub-layouts, active link state |
+| **Build REST APIs & form actions**    | [API Routes Guide](./guides/data-fetching/01_API_ROUTES.md)                | W3C `Request`/`Response`, `useActionState`   |
+| **Connect a database**                | [PostgreSQL & Connection Pooling](./guides/database/02_POSTGRESQL.md)      | `pg`, Drizzle ORM, Prisma, pool safety       |
 | **Deploy to Vercel**                  | [Vercel Deployment Guide](./guides/deployment/04_VERCEL_ADAPTER.md)        | `@ranujs/adapter-vercel`, Build Output v3    |
-| **Deploy to Cloudflare Workers**      | [Cloudflare Workers Guide](./guides/deployment/05_CLOUDFLARE_WORKERS.md)   | `workerd`, V8 isolates, `ctx.waitUntil`      |
-| **Run as a standalone Node daemon**   | [Node.js Standalone Daemon](./guides/deployment/06_NODE_STANDALONE.md)     | `@ranu/runtime-node`, Express, Fastify, PM2  |
+| **Deploy to Cloudflare Workers**      | [Cloudflare Workers Guide](./guides/deployment/05_CLOUDFLARE_WORKERS.md)   | `workerd`, V8 isolates, Wrangler             |
+| **Deploy with Docker**                | [Docker Containerization](./guides/deployment/02_DOCKER_CONTAINER.md)      | Multi-stage Alpine, unprivileged security    |
+| **Run as a standalone Node daemon**   | [Node.js Standalone Daemon](./guides/deployment/06_NODE_STANDALONE.md)     | Standalone HTTP/2, Express, Fastify, PM2     |
 | **Deploy to Bun or Deno**             | [Bun and Deno Guide](./guides/deployment/07_BUN_AND_DENO.md)               | `Bun.serve()`, `Deno.serve()`, Web Standards |
 | **Deploy to Netlify**                 | [Netlify Adapter Guide](./guides/deployment/08_NETLIFY_ADAPTER.md)         | Edge & Functions, cookie preservation        |
-| **Build a custom deployment adapter** | [Custom Adapter Authoring](./guides/adapters/AUTHORING_CUSTOM_ADAPTERS.md) | `RanuDeploymentAdapter`, manifest inspection |
 | **Build streaming AI applications**   | [Universal AI Engineering](./guides/ai/README.md)                          | W3C `ReadableStream`, tool calling, SSE      |
-| **Configure database connections**    | [PostgreSQL & Connection Pooling](./guides/database/02_POSTGRESQL.md)      | `pg`, Drizzle ORM, Prisma, pool exhaustion   |
-| **Protect private server code**       | [Compiler Boundaries](./security/COMPILER_BOUNDARIES.md)                   | `@ranujs/core/server-only`, secret stripping |
+| **Protect private server secrets**    | [Compiler Boundaries](./security/COMPILER_BOUNDARIES.md)                   | `@ranujs/core/server-only`, secret stripping |
 
 ---
 
-## 1. 🏛️ Architecture & Core Internals
-
-Understand the engineering design and core invariants behind Ranu.js:
-
-- **[React 19 Streaming SSR & Hydration](./architecture/01_REACT_19_SSR.md)**  
-  In-depth breakdown of `renderToReadableStream`, layout shell flushing in `<10ms` TTFB, Suspense streaming boundaries, and selective client hydration.
-- **[Dual-Pipeline Build & Fast Refresh HMR](./architecture/02_BUILD_AND_HMR.md)**  
-  Dual-graph bundling architecture, client/server module boundary isolation, AST-level secret stripping, and the development coordinator.
-- **[Two-Phase Deployment Adapter Contract](./architecture/03_ADAPTER_CONTRACT.md)**  
-  Formal architectural specification of `RanuDeploymentAdapter`, the Zero Re-Compilation Invariant, manifest schemas (`build.json`, `routes.json`, `server.json`, `static.json`), and backpressure stream mechanics.
-
----
-
-## 2. 🚀 Getting Started
+## 1. 🚀 Getting Started
 
 Step-by-step guides for onboarding new developers:
 
@@ -96,7 +79,7 @@ Step-by-step guides for onboarding new developers:
 
 ---
 
-## 3. 📖 Developer Guides
+## 2. 📖 Developer Guides
 
 Domain-specific implementation guides for production workloads. See the **[Developer Guides Master Index](./guides/README.md)** for the complete guide directory.
 
@@ -106,15 +89,10 @@ Domain-specific implementation guides for production workloads. See the **[Devel
 - **[02: Docker Containerization](./guides/deployment/02_DOCKER_CONTAINER.md)** — Multi-stage Alpine Dockerfile, unprivileged non-root user hardening, and health probes.
 - **[03: Edge Platforms Overview](./guides/deployment/03_EDGE_PLATFORMS.md)** — Edge isolation architectures, W3C standards compliance, and adapter model.
 - **[04: Vercel Adapter](./guides/deployment/04_VERCEL_ADAPTER.md)** — First-party `@ranujs/adapter-vercel`, Build Output API v3, serverless connection pool defense, and CI/CD pipelines.
-- **[05: Cloudflare Workers Adapter](./guides/deployment/05_CLOUDFLARE_WORKERS.md)** — `workerd` V8 isolates, 128MB RAM ceilings, 10ms/50ms CPU quotas, streaming backpressure, `ctx.waitUntil()`, and Wrangler setup.
-- **[06: Node.js Standalone Daemon](./guides/deployment/06_NODE_STANDALONE.md)** — Embedding `@ranu/runtime-node` with Express and Fastify, socket backpressure draining (`res.write === false`), V8 heap tuning, and connection draining.
+- **[05: Cloudflare Workers Adapter](./guides/deployment/05_CLOUDFLARE_WORKERS.md)** — `workerd` V8 isolates, streaming backpressure, `ctx.waitUntil()`, and Wrangler setup.
+- **[06: Node.js Standalone Daemon](./guides/deployment/06_NODE_STANDALONE.md)** — Embedding Ranu.js with Express and Fastify, socket backpressure draining, V8 heap tuning, and connection draining.
 - **[07: Bun and Deno Runtimes](./guides/deployment/07_BUN_AND_DENO.md)** — High-performance native `Bun.serve()` and `Deno.serve()` streaming with zero transport shims.
 - **[08: Netlify Adapter](./guides/deployment/08_NETLIFY_ADAPTER.md)** — Hybrid Edge and Serverless functions, RFC 6265 multi-cookie preservation, and request body cloning guards.
-
-### Custom Adapters & Runtime Extensions
-
-- **[Custom Adapter Authoring Manual](./guides/adapters/AUTHORING_CUSTOM_ADAPTERS.md)**  
-  Complete developer guide to implementing `RanuDeploymentAdapter`: Phase 1 build hook packaging, Phase 2 W3C runtime dispatch, streaming backpressure, path containment security, and destination symlink defenses.
 
 ### Application Routing & Layouts
 
@@ -162,7 +140,7 @@ Domain-specific implementation guides for production workloads. See the **[Devel
 
 ---
 
-## 4. 📚 API & CLI Reference
+## 3. 📚 API & CLI Reference
 
 Comprehensive technical API documentation and type signatures:
 
@@ -177,7 +155,7 @@ Comprehensive technical API documentation and type signatures:
 
 ---
 
-## 5. 🌐 Ecosystem & Plugins
+## 4. 🌐 Ecosystem & Plugins
 
 Extend Ranu.js with verified ecosystem packages and partner integrations:
 
@@ -192,7 +170,7 @@ Extend Ranu.js with verified ecosystem packages and partner integrations:
 
 ---
 
-## 6. 🛡️ Security & Compiler Boundaries
+## 5. 🛡️ Security & Compiler Boundaries
 
 Security guarantees, boundary enforcement, and vulnerability disclosures:
 
@@ -205,9 +183,9 @@ Security guarantees, boundary enforcement, and vulnerability disclosures:
 
 ## 🔒 Framework Invariants
 
-Every Ranu.js application and adapter adheres to four fundamental engineering invariants:
+Every Ranu.js application adheres to four fundamental engineering invariants:
 
 1. **Pure W3C Web Standards:** The runtime engine operates exclusively on standard `Request`, `Response`, `Headers`, and `ReadableStream` instances.
 2. **Zero Vendor Coupling:** Application code and route handlers never import cloud provider SDKs (`@vercel/*`, `@cloudflare/*`).
-3. **The Zero Re-Compilation Invariant:** Deployment adapters operate strictly on pre-compiled build artifacts in `.ranu/build/` and never invoke compilers on user application source code.
+3. **The Zero Re-Compilation Invariant:** Production builds are completely deterministic. Adapters package pre-compiled outputs without re-parsing or modifying application source code.
 4. **Physical Secret Isolation:** Client bundles cannot contain server secrets; referencing non-public environment variables triggers a fatal build abort.

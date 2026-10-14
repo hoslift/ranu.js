@@ -1,149 +1,81 @@
-# Standalone Node.js Daemon & Custom Server Integration
+# Deploying as a Standalone Node.js Daemon
 
-**Ranu.js** provides an enterprise-grade standalone runtime host (`@ranu/runtime-node`) powered by native `node:http` and `node:http2` modules. While serverless environments spin up ephemeral compute instances on demand, deploying Ranu.js as a **persistent standalone daemon** allows developers to maintain long-lived database connection pools, eliminate cold starts entirely, utilize local in-memory caches, and integrate directly with custom Node.js frameworks such as Express and Fastify.
+**Ranu.js** provides a high-performance standalone server host powered by native `node:http` and `node:http2`. While serverless environments spin up ephemeral compute instances on demand, deploying Ranu.js as a **persistent standalone daemon** allows developers to maintain long-lived relational database connection pools, eliminate cold starts entirely (0ms latency), leverage local in-memory caches, and utilize all available CPU cores via clustering.
 
-This runbook covers the persistent daemon architecture, V8 heap memory tuning, garbage collection stall mitigation, buffer slab retention traps, libuv threadpool optimization, reverse proxy setups (Nginx & Caddy), multi-core cluster supervisors, and deterministic graceful shutdown protocols.
+This guide covers the persistent daemon architecture, V8 heap memory tuning, reverse proxy configurations (Nginx and Caddy), multi-core cluster management with PM2, Docker containerization, and graceful shutdown handling.
 
 ---
 
-## 1. Persistent Daemon Host Architecture
+## 1. Overview & Platform Prerequisites
+
+### Platform Overview & Execution Model
 
 In a persistent standalone deployment, Ranu.js runs as a long-lived process managed by an operating system supervisor (such as systemd, Docker, Kubernetes, or PM2):
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                    Operating System / Linux Host                       │
-│                                                                        │
-│  ┌───────────────────────┐          ┌───────────────────────────────┐  │
-│  │     Reverse Proxy     │          │    Multi-Core Node Daemon     │  │
-│  │   (Nginx or Caddy)    │          │                               │  │
-│  │                       │  HTTP/1  │   ┌────────────────────────┐  │  │
-│  │  Terminates TLS 1.3   │ ───────► │   │ Primary Process        │  │  │
-│  │  Bypasses Asset Cache │          │   │ (Cluster Supervisor)   │  │  │
-│  │  Buffers Ingress TCP  │          │   └──────────┬─────────────┘  │  │
-│  └───────────────────────┘                         │ IPC            │  │
-│                                           ┌────────┴────────┐       │  │
-│                                           ▼                 ▼       │  │
-│                                      Worker #1         Worker #2    │  │
-│                                    (@ranu/runtime)   (@ranu/runtime)│  │
-│                                      Pool: 20 conns    Pool: 20 conns│ │
-└────────────────────────────────────────────────────────────────────────┘
-```
+- **0ms Cold Starts:** The server process remains permanently loaded in memory, eliminating cold start delays.
+- **Persistent Connection Pooling:** Maintains long-lived TCP connection pools directly to PostgreSQL, MySQL, Redis, or Kafka without needing an external connection pooler.
+- **In-Memory Caching:** Preserves bounded in-memory LRU caches across millions of incoming requests.
+- **Multi-Core Scaling:** Scales across all host CPU cores using cluster supervisors or multiple container replicas.
 
 ### Serverless vs. Persistent Daemon Mental Model
 
-| Dimension                 | Serverless MicroVM (Vercel / AWS Lambda)         | Persistent Daemon Host (`@ranu/runtime-node`)         |
-| :------------------------ | :----------------------------------------------- | :---------------------------------------------------- |
-| **Process Lifetime**      | Ephemeral (milliseconds to minutes)              | Continuous (days, weeks, months)                      |
-| **Cold Starts**           | 150ms – 2,000ms on scaling spikes                | **0ms** (server remains warm indefinitely)            |
-| **Connection Pooling**    | Must use connection pooler (PgBouncer); `max: 1` | Direct relational pooling (`max: 20` per worker)      |
-| **Memory Leak Impact**    | Low (container destroyed after few requests)     | **Critical** (small leaks accumulate and trigger OOM) |
-| **V8 Garbage Collection** | Short-lived generation; rarely triggers full GC  | Heavy Old Space accumulation; full GC stalls possible |
-| **In-Memory State**       | Discarded between invocations                    | Preserved across millions of HTTP requests            |
+| Dimension                 | Serverless MicroVM (Vercel / AWS Lambda)              | Persistent Daemon Host (Node.js 22 LTS)                   |
+| :------------------------ | :---------------------------------------------------- | :-------------------------------------------------------- |
+| **Process Lifetime**      | Ephemeral (milliseconds to minutes)                   | Continuous (days, weeks, months)                          |
+| **Cold Starts**           | 150ms – 2,000ms on scaling bursts                     | **0ms** (server remains warm permanently)                 |
+| **Connection Pooling**    | Requires connection pooler (e.g. PgBouncer); `max: 1` | Direct relational pooling (`max: 20` per worker instance) |
+| **Memory Leak Impact**    | Low (container recycled frequently)                   | **Critical** (small leaks accumulate and trigger OOM)     |
+| **V8 Garbage Collection** | Short-lived; rarely triggers full GC                  | Continuous heap allocation; requires proper heap sizing   |
+| **In-Memory State**       | Discarded between invocations                         | Preserved across requests                                 |
+
+### Host Prerequisites & Developer Tools
+
+- A **Linux Host** (Ubuntu 22.04/24.04 LTS, Debian 12, or Alpine Linux) or container environment.
+- **Node.js 22 LTS** installed.
+- A **Reverse Proxy** (Nginx or Caddy) to handle TLS termination, request rate limiting, and direct static asset serving.
+- A **Process Manager** (PM2, Docker, or systemd) to monitor processes and handle automatic restarts.
 
 ---
 
-## 2. Memory Management, V8 Heap & GC Stalls
+## 2. Package Installation
 
-In long-lived Node.js daemons, unmonitored heap expansion and un-tuned V8 garbage collection can severely degrade request throughput and introduce unacceptable P99 latency spikes.
+Install `@ranujs/core` and React 19 in your application directory:
 
-### 2.1 V8 Heap Ceilings & Tuning
-
-By default, 64-bit Node.js runtimes configure an Old Space heap limit of approximately ~1.4 GB to ~4 GB depending on available host memory. When your daemon approaches this limit, V8 executes emergency synchronous Mark-Sweep-Compact garbage collection cycles.
-
-During a full Mark-Sweep-Compact cycle, the single-threaded JavaScript event loop is **completely paused for 100ms to 800ms**. All in-flight HTTP requests and streaming SSR chunks are frozen during this stall.
-
-**Production Tuning Flag:** Configure `--max-old-space-size` to match 75% of your container or host RAM allocation, leaving 25% for the operating system, C++ bindings, and libuv buffers:
+### Using pnpm
 
 ```bash
-# Example for a 4 GB RAM container (reserve 1 GB for OS / C++ buffers)
-node --max-old-space-size=3072 server.mjs
+# Runtime dependencies
+pnpm add @ranujs/core react react-dom
+
+# Development dependencies
+pnpm add -D typescript @types/node @types/react @types/react-dom
 ```
 
-### 2.2 Daemon Memory Leak Vectors & Defenses
+### Using npm
 
-Because the daemon process survives indefinitely, memory leaks that go unnoticed in serverless functions will crash production servers over time:
+```bash
+# Runtime dependencies
+npm install @ranujs/core react react-dom
 
-1. **Unbounded Cache Maps:** Storing session tokens, API responses, or route data in global `Map` or `Set` instances without an eviction strategy.
-   - _Defense:_ Always use bounded LRU caches (such as `lru-cache`) with strict maximum size thresholds (`max: 1000`) and TTL expiration.
-2. **Lingering Event Emitters:** Attaching event listeners inside request handlers without removing them upon response completion:
-   ```typescript
-   // ❌ MEMORY LEAK: Listener retains req and res closures indefinitely
-   globalEmitter.on('metric', () => res.write(data));
-
-   // ✅ SAFE: Listener explicitly cleaned up in finally block
-   const onMetric = () => res.write(data);
-   globalEmitter.on('metric', onMetric);
-   res.on('close', () => globalEmitter.off('metric', onMetric));
-   ```
-3. **Closure Scope Retention:** Keeping references to large request bodies inside long-lived promises or async queues.
-
-### 2.3 The Buffer Slab Retention Trap
-
-Node.js manages allocations smaller than 8 KB (`Buffer.poolSize = 8192`) using an internal shared pre-allocated memory slab:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                   Internal 8 KB Buffer Pool (Slab)                     │
-│                                                                        │
-│  ┌───────────────┐ ┌────────────────────────────────────────────────┐  │
-│  │ 16-Byte Chunk │ │           8,176 Unused Allocated Bytes         │  │
-│  │ (Retained)    │ │           (PINNED IN MEMORY - CANNOT FREE)     │  │
-│  └───────────────┘ └────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
+# Development dependencies
+npm install -D typescript @types/node @types/react @types/react-dom
 ```
 
-If your handler extracts a small 16-byte slice from a request body and stores it inside a persistent cache:
+### Using yarn
 
-```typescript
-// ❌ SLAB TRAP: Retaining this 16-byte slice prevents the entire 8KB slab from being GC'd!
-const token = requestBuffer.subarray(0, 16);
-longLivedSessionCache.set(userId, token);
-```
+```bash
+# Runtime dependencies
+yarn add @ranujs/core react react-dom
 
-**The Mitigation:** Clone the buffer slice when storing it beyond the request lifecycle:
-
-```typescript
-// ✅ SAFE: Buffer.from() creates an independent allocation, releasing the 8KB slab
-const token = Buffer.from(requestBuffer.subarray(0, 16));
-longLivedSessionCache.set(userId, token);
+# Development dependencies
+yarn add -D typescript @types/node @types/react @types/react-dom
 ```
 
 ---
 
-## 3. Libuv Threadpool Starvation & Asynchronous I/O
+## 3. Configuration in `ranu.config.ts`
 
-While network I/O in Node.js uses non-blocking kernel event notifications (`epoll` on Linux, `kqueue` on macOS), several fundamental operations execute synchronously on the internal **libuv threadpool**:
-
-- Local filesystem access (`node:fs`)
-- Cryptographic calculations (`node:crypto`)
-- Compression and decompression (`node:zlib`, gzip, brotli)
-- **Hostname DNS Resolution (`dns.lookup`)**
-
-### 3.1 The Starvation Bottleneck
-
-The default libuv threadpool size is only **4 threads** (`UV_THREADPOOL_SIZE = 4`).
-
-If an application is concurrently compressing 4 streaming SSR responses with gzip, **all 4 libuv threads are fully saturated**. If any route handler simultaneously attempts to resolve an external API hostname (e.g., `fetch('https://api.stripe.com')`), the DNS lookup is blocked waiting for a free threadpool slot, stalling the request for hundreds of milliseconds.
-
-### 3.2 Mitigation Strategies
-
-1. **Expand the Threadpool Size:** Always set `UV_THREADPOOL_SIZE=64` in your production process environment before starting Node.js:
-   ```bash
-   export UV_THREADPOOL_SIZE=64
-   node server.mjs
-   ```
-2. **Utilize Non-Blocking DNS Resolution:** When configuring database or HTTP clients, use IP addresses or configure non-blocking DNS resolution (`dns.promises.resolve4`) rather than relying on libc's blocking `getaddrinfo()` via `dns.lookup()`.
-
----
-
-## 4. Reverse Proxy Configuration
-
-Production Node.js daemons should always sit behind a hardened reverse proxy (such as Nginx or Caddy) to handle TLS termination, request rate limiting, and static asset offloading.
-
-### 4.1 Configuring `trustProxy` in Ranu.js
-
-When behind a reverse proxy, the client's direct socket IP is `127.0.0.1`. Enable `trustProxy: true` in `ranu.config.ts` so that `@ranu/runtime-node` reads the `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Forwarded-Host` headers to construct the accurate W3C `Request.url`:
+Configure host bindings and proxy trust in `ranu.config.ts`:
 
 ```typescript
 // ranu.config.ts
@@ -151,20 +83,197 @@ import { defineConfig } from '@ranujs/core/config';
 
 export default defineConfig({
   server: {
-    trustProxy: true,
+    host: '0.0.0.0',
     port: 3000,
-    host: '127.0.0.1',
+    trustProxy: true, // Reads X-Forwarded-* headers from reverse proxy
+  },
+  build: {
+    sourceMaps: false,
+    minify: true,
   },
 });
 ```
 
-### 4.2 Production Nginx Configuration
+### Configuration Options Reference
+
+| Option              | Type      | Default     | Description                                                                                                                 |
+| :------------------ | :-------- | :---------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| `server.host`       | `string`  | `'0.0.0.0'` | Host address to bind the HTTP server to. Use `'127.0.0.1'` when behind a local reverse proxy.                               |
+| `server.port`       | `number`  | `3000`      | Port number for the HTTP server to listen on.                                                                               |
+| `server.trustProxy` | `boolean` | `false`     | When `true`, parses `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Forwarded-Host` to construct accurate W3C `Request.url`. |
+| `build.sourceMaps`  | `boolean` | `false`     | Emits source maps for production debugging when enabled.                                                                    |
+| `build.minify`      | `boolean` | `true`      | Minifies client and server JavaScript bundles for production efficiency.                                                    |
+
+### Production Node Runtime Tuning
+
+Before starting Node.js in production, configure these two essential environment settings:
+
+1. **Expand libuv Threadpool Size (`UV_THREADPOOL_SIZE=64`):** Node.js executes DNS lookups (`dns.lookup`), cryptographic operations (`node:crypto`), compression (`zlib`), and filesystem I/O on an internal libuv threadpool. The default is only 4 threads. Setting `UV_THREADPOOL_SIZE=64` prevents DNS lookups and compression from stalling under concurrent load.
+2. **Tune V8 Heap Allocation (`--max-old-space-size`):** Allocate approximately 75% of available container/host RAM to Node.js, leaving the remainder for the OS and native buffers. For a 4 GB RAM host:
+   ```bash
+   node --max-old-space-size=3072 ./node_modules/.bin/ranu start
+   ```
+
+---
+
+## 4. Build & Local Preview Commands
+
+### Step 1: Compile Application Build
+
+Compile your application source code into production artifacts:
+
+```bash
+pnpm ranu build
+```
+
+This compiles client and server graphs into `.ranu/build/`:
+
+- `.ranu/build/static/assets/`: Hashed immutable client JavaScript and CSS bundles.
+- `.ranu/build/static/pages/`: Pre-rendered static HTML pages.
+- `.ranu/build/server/`: Compiled server route bundles and SSR runtime.
+
+### Step 2: Start the Production Server
+
+Launch the built application using Ranu's built-in production server:
+
+```bash
+# Start server on default port 3000
+pnpm ranu start
+
+# Or customize host and port via CLI arguments
+npx ranu start --port 3000 --host 0.0.0.0
+```
+
+Verify that the application starts cleanly and serves pages with sub-10ms TTFB at `http://localhost:3000`.
+
+---
+
+## 5. Deployment Commands & CLI Workflows
+
+### Option A: Multi-Stage Dockerfile Containerization
+
+Create a lightweight, multi-stage `Dockerfile` based on Alpine Linux:
+
+```dockerfile
+# Dockerfile
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# Enable Corepack and install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Cache dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy source and compile production build
+COPY . .
+ENV NODE_ENV=production
+RUN pnpm ranu build
+
+# Production Runner Stage
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+ENV UV_THREADPOOL_SIZE=64
+
+# Run as non-root unprivileged user for security
+USER node
+
+# Copy compiled artifacts and production dependencies
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.ranu/build ./.ranu/build
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+
+CMD ["npx", "ranu", "start"]
+```
+
+Build and run the container:
+
+```bash
+# Build Docker image
+docker build -t my-ranu-app:latest .
+
+# Run container with resource limits and port mapping
+docker run -d \
+  --name my-ranu-app \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@db:5432/production" \
+  --memory="2g" \
+  --cpus="2" \
+  my-ranu-app:latest
+```
+
+---
+
+### Option B: PM2 Multi-Core Cluster Supervisor
+
+PM2 runs your application across all available CPU cores, automatically restarts crashed workers, and supports zero-downtime rolling reloads:
+
+Create `ecosystem.config.cjs` in your project root:
+
+```javascript
+// ecosystem.config.cjs
+module.exports = {
+  apps: [
+    {
+      name: 'ranu-production-daemon',
+      script: './node_modules/.bin/ranu',
+      args: 'start',
+      instances: 'max', // Scale to all available CPU cores
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+        HOST: '127.0.0.1',
+        UV_THREADPOOL_SIZE: '64',
+      },
+      node_args: '--max-old-space-size=3072',
+      max_memory_restart: '3200M',
+      kill_timeout: 7000, // Allow 5-second graceful shutdown drain
+      listen_timeout: 8000,
+      autorestart: true,
+      max_restarts: 10,
+    },
+  ],
+};
+```
+
+Control the PM2 cluster:
+
+```bash
+# Start the cluster
+pm2 start ecosystem.config.cjs
+
+# Perform zero-downtime rolling reload
+pm2 reload all
+
+# Monitor live CPU and memory metrics
+pm2 monit
+```
+
+---
+
+### Option C: Reverse Proxy Configuration (Nginx & Caddy)
+
+Place a reverse proxy in front of the Ranu.js daemon to terminate TLS, serve static assets directly from disk, and forward dynamic traffic.
+
+#### 1. Nginx Configuration
+
+Notice the static asset path points directly to `.ranu/build/static/assets/`:
 
 ```nginx
 # /etc/nginx/sites-available/ranu-app.conf
 upstream ranu_cluster {
     server 127.0.0.1:3000 max_fails=3 fail_timeout=10s;
-    keepalive 64; # Maintain persistent connection pool to Node.js
+    keepalive 64;
 }
 
 server {
@@ -175,9 +284,9 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
 
-    # 1. Directly serve immutable static assets from filesystem
+    # 1. Directly serve hashed client assets from disk with 1-year cache
     location /_ranu/assets/ {
-        alias /var/www/my-app/.ranu/build/client/;
+        alias /var/www/my-app/.ranu/build/static/assets/;
         expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
         access_log off;
@@ -195,16 +304,16 @@ server {
         proxy_pass http://ranu_cluster;
         proxy_http_version 1.1;
 
-        # Mandatory for streaming SSR: Disable proxy buffering!
+        # Mandatory for React 19 streaming SSR: Disable proxy buffering!
         proxy_buffering off;
         proxy_read_timeout 60s;
         proxy_send_timeout 60s;
 
-        # WebSocket & Connection headers
+        # WebSocket & connection headers
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        # Forward original client headers
+        # Forward client identity
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -213,19 +322,18 @@ server {
 }
 ```
 
-> [!NOTE]
-> Setting `proxy_buffering off;` is critical for streaming SSR. If proxy buffering is left enabled, Nginx buffers the initial HTML layout shell until several kilobytes are received, negating React 19's sub-10ms TTFB streaming advantages.
+> **Critical Nginx Note:** `proxy_buffering off;` is essential for React 19 streaming SSR. If buffering remains enabled, Nginx blocks the initial HTML layout shell until several kilobytes accumulate, negating sub-10ms streaming benefits.
 
-### 4.3 Production Caddy Configuration
+#### 2. Caddy Configuration
 
 ```caddyfile
-# Caddyfile
+# /etc/caddy/Caddyfile
 example.com {
     encode zstd gzip
 
     # Serve static assets directly from disk
     handle /_ranu/assets/* {
-        root * /var/www/my-app/.ranu/build/client
+        root * /var/www/my-app/.ranu/build/static/assets
         header Cache-Control "public, max-age=31536000, immutable"
         file_server
     }
@@ -246,299 +354,113 @@ example.com {
 
 ---
 
-## 5. Custom Framework Integration Recipes
+### Automated CI/CD Pipeline (GitHub Actions)
 
-Ranu.js applications can be mounted cleanly into existing Express or Fastify enterprise services via `@ranu/runtime-node`.
+Deploy Docker containers to your production host via SSH:
 
-### 5.1 Express Integration
+```yaml
+# .github/workflows/deploy-node.yml
+name: Build & Deploy Container
 
-Use `createNodeRequestHandler` to bridge Node's `(req, res)` into Ranu's W3C request pipeline:
+on:
+  push:
+    branches:
+      - main
 
-```typescript
-// server.ts
-import express from 'express';
-import path from 'node:path';
-import { createProductionRuntime, createNodeRequestHandler } from '@ranu/runtime-node';
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-async function bootstrap() {
-  const app = express();
-  const port = Number(process.env.PORT) || 3000;
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  // 1. Initialize Ranu production runtime
-  const buildDir = path.resolve(process.cwd(), '.ranu/build');
-  const runtime = await createProductionRuntime({ buildDir });
-  const ranuHandler = createNodeRequestHandler(runtime);
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  // 2. Custom Express middleware (e.g. enterprise auth, metrics)
-  app.use('/metrics', (req, res) => {
-    res.json({ status: 'healthy', timestamp: Date.now() });
-  });
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  // 3. Mount Ranu.js as the primary full-stack handler
-  app.use((req, res, next) => {
-    ranuHandler(req, res).catch(next);
-  });
-
-  const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`Express + Ranu.js daemon running at http://0.0.0.0:${port}`);
-  });
-
-  return server;
-}
-
-bootstrap();
-```
-
-### 5.2 Fastify Integration
-
-Fastify provides high throughput and low overhead:
-
-```typescript
-// server.ts
-import Fastify from 'fastify';
-import path from 'node:path';
-import { createProductionRuntime, createNodeRequestHandler } from '@ranu/runtime-node';
-
-async function bootstrap() {
-  const fastify = Fastify({ logger: true });
-  const port = Number(process.env.PORT) || 3000;
-
-  const buildDir = path.resolve(process.cwd(), '.ranu/build');
-  const runtime = await createProductionRuntime({ buildDir });
-  const ranuHandler = createNodeRequestHandler(runtime);
-
-  // Health check endpoint
-  fastify.get('/health', async () => ({ status: 'ok' }));
-
-  // Route all other requests to Ranu.js
-  fastify.all('/*', (request, reply) => {
-    // Delegate using raw Node IncomingMessage and ServerResponse
-    return ranuHandler(request.raw, reply.raw);
-  });
-
-  await fastify.listen({ port, host: '0.0.0.0' });
-}
-
-bootstrap();
-```
-
-### 5.3 Dual-Stream Backpressure in `@ranu/runtime-node`
-
-When streaming data to slow clients, `@ranu/runtime-node`'s `writeWebResponse` utility automatically checks whether the OS kernel socket buffer is full:
-
-```typescript
-// Inside @ranu/runtime-node/src/response.ts
-const reader = response.body.getReader();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-
-  const ok = res.write(value);
-  if (!ok) {
-    // Socket buffer saturated: pause stream reading until 'drain' event fires!
-    await new Promise((resolve) => res.once('drain', resolve));
-  }
-}
-res.end();
-```
-
-This prevents unconstrained memory buffering inside Node.js when clients download large streaming responses slowly.
-
----
-
-## 6. Multi-Core Cluster Supervisor
-
-Because Node.js executes JavaScript on a single thread, deploying to multi-core production servers requires spawning worker processes across all available CPU cores.
-
-### 6.1 Native `node:cluster` Implementation
-
-```typescript
-// cluster.mjs
-import cluster from 'node:cluster';
-import os from 'node:os';
-import { fileURLToPath } from 'node:url';
-
-const numCPUs = os.cpus().length;
-
-if (cluster.isPrimary) {
-  console.log(`[Supervisor] Primary process ${process.pid} is running`);
-  console.log(`[Supervisor] Forking ${numCPUs} worker processes...`);
-
-  // Fork worker per CPU core
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-
-  // Handle worker termination and automatic respawning
-  cluster.on('exit', (worker, code, signal) => {
-    console.warn(`[Supervisor] Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}). Respawning...`);
-    cluster.fork();
-  });
-
-  // Forward termination signals to all workers
-  const forwardSignal = (signal) => {
-    for (const id in cluster.workers) {
-      cluster.workers[id]?.process.kill(signal);
-    }
-  };
-
-  process.on('SIGTERM', () => forwardSignal('SIGTERM'));
-  process.on('SIGINT', () => forwardSignal('SIGINT'));
-} else {
-  // Worker process imports and runs the Ranu standalone server
-  await import('./server.mjs');
-  console.log(`[Worker] Started worker process ${process.pid}`);
-}
-```
-
-### 6.2 Production PM2 Cluster Configuration
-
-PM2 manages multi-core clustering, process monitoring, log rotation, and zero-downtime rolling reloads:
-
-```javascript
-// ecosystem.config.cjs
-module.exports = {
-  apps: [
-    {
-      name: 'ranu-production-daemon',
-      script: './node_modules/.bin/ranu',
-      args: 'start',
-      instances: 'max', // Scale to all available CPU cores
-      exec_mode: 'cluster',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3000,
-        HOST: '127.0.0.1',
-        UV_THREADPOOL_SIZE: '64',
-      },
-      node_args: '--max-old-space-size=3072',
-      max_memory_restart: '3200M',
-      // Allow Ranu's 5-second graceful shutdown drain to complete cleanly
-      kill_timeout: 7000,
-      listen_timeout: 8000,
-      autorestart: true,
-      max_restarts: 10,
-    },
-  ],
-};
-```
-
-Commands:
-
-```bash
-# Start cluster
-pm2 start ecosystem.config.cjs
-
-# Zero-downtime rolling reload (reloads workers sequentially)
-pm2 reload all
-
-# View real-time memory and CPU metrics
-pm2 monit
+      - name: Deploy to Production Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ghcr.io/${{ github.repository }}:latest
+            docker stop my-ranu-app || true
+            docker rm my-ranu-app || true
+            docker run -d \
+              --name my-ranu-app \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              --env-file /etc/ranu/.env.production \
+              ghcr.io/${{ github.repository }}:latest
 ```
 
 ---
 
-## 7. Deterministic Graceful `SIGTERM` Shutdown Protocol
+## 6. Environment Variables & Secret Management
 
-When Kubernetes, Docker, or systemd stops or replaces a container during rolling deployments, it transmits a `SIGTERM` signal. Ranu.js implements a deterministic 4-step teardown to ensure zero dropped requests.
+### Public vs. Server Secrets in Ranu.js
 
-```
-Incoming SIGTERM
-       │
-       ▼
-[Step 1: Stop Ingress] ────────► server.close() (Stop accepting new connections)
-       │
-       ▼
-[Step 2: Close Idle Sockets] ──► server.closeIdleConnections() (Terminate keep-alives)
-       │
-       ▼
-[Step 3: Drain In-Flight] ─────► Wait for active responses to flush (bounded 5000ms timer)
-       │
-       ▼
-[Step 4: Close Upstreams] ────► await dbPool.end(); await redis.quit();
-       │
-       ▼
-Exit Process (code: 0)
-```
+- **Public Variables (`RANU_PUBLIC_*`):** Embedded into client browser bundles during `ranu build` (e.g. `RANU_PUBLIC_API_URL`).
+- **Server-Only Secrets:** Any variable without this prefix (e.g. `DATABASE_URL`, `JWT_SECRET`) remains accessible only on the Node server and is never sent to the browser.
 
-### 7.1 Custom Server Implementation
+### Managing Secrets in Standalone Environments
 
-```typescript
-// server.mjs
-import http from 'node:http';
-import { createProductionRuntime, createNodeRequestHandler } from '@ranu/runtime-node';
+1. **Production `.env.production` File:** Store sensitive credentials in a secured `.env.production` file on your server (permissions `chmod 600 .env.production`):
+   ```env
+   NODE_ENV=production
+   PORT=3000
+   HOST=127.0.0.1
+   DATABASE_URL="postgresql://user:password@localhost:5432/my_database"
+   AUTH_SECRET="your-secure-random-32-byte-key"
+   ```
+2. **Relational Connection Pooling:** In a persistent Node.js daemon, you can configure larger connection pool sizes (e.g. `max: 20` per instance) because connections are reused indefinitely:
+   ```typescript
+   // lib/db.ts
+   import { Pool } from 'pg';
 
-const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5000;
+   const pool = new Pool({
+     connectionString: process.env.DATABASE_URL,
+     max: 20, // Persistent daemon allows high-performance shared pooling
+     idleTimeoutMillis: 30000,
+   });
 
-const runtime = await createProductionRuntime();
-const handler = createNodeRequestHandler(runtime);
-const server = http.createServer((req, res) => handler(req, res));
-
-// Track active sockets
-const activeSockets = new Set();
-server.on('connection', (socket) => {
-  activeSockets.add(socket);
-  socket.on('close', () => activeSockets.delete(socket));
-});
-
-server.listen(3000, '0.0.0.0');
-
-let isShuttingDown = false;
-
-async function handleShutdown(signal) {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  console.log(`[Shutdown] Received ${signal}. Initiating graceful draining...`);
-
-  // Forceful exit timer in case requests fail to drain
-  const forceTimer = setTimeout(() => {
-    console.error(
-      `[Shutdown] Bounded timeout (${DEFAULT_SHUTDOWN_TIMEOUT_MS}ms) expired. Forcefully destroying ${activeSockets.size} open sockets.`,
-    );
-    for (const socket of activeSockets) {
-      socket.destroy();
-    }
-    process.exit(1);
-  }, DEFAULT_SHUTDOWN_TIMEOUT_MS);
-  forceTimer.unref();
-
-  // Step 1: Stop accepting new TCP connections
-  server.close(async () => {
-    console.log('[Shutdown] HTTP ingress closed.');
-
-    // Step 4: Close database pools and external connections
-    try {
-      // await db.end();
-      console.log('[Shutdown] Database connection pool closed.');
-    } catch (err) {
-      console.error('[Shutdown] Error closing database pool:', err);
-    }
-
-    clearTimeout(forceTimer);
-    process.exit(0);
-  });
-
-  // Step 2: Immediately destroy idle keep-alive sockets
-  if (typeof server.closeIdleConnections === 'function') {
-    server.closeIdleConnections();
-  }
-}
-
-process.once('SIGTERM', () => handleShutdown('SIGTERM'));
-process.once('SIGINT', () => handleShutdown('SIGINT'));
-```
+   export default pool;
+   ```
 
 ---
 
-## 8. Verification & Operational Observability
+## 7. Production Hosting Setup & Verification Checklist
 
-Ensure your persistent daemon is production-ready using this verification checklist:
+### Deployment Setup Summary
 
-| Verification Target            | Test Method                                                          | Expected Result                                                          |
-| :----------------------------- | :------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| **Streaming SSR Backpressure** | `curl -N -H "Accept: text/html" http://127.0.0.1:3000/dashboard`     | Layout shell arrives in <10ms; chunks stream without buffering           |
-| **Trust Proxy Verification**   | Inspect `request.url` and client IP behind Nginx                     | Protocol is `https://` and client IP matches public client address       |
-| **Threadpool Sizing**          | Inspect `process.env.UV_THREADPOOL_SIZE` in running process          | Configured to `64`; DNS lookups do not stall under concurrent load       |
-| **Graceful SIGTERM Drain**     | Trigger `kill -SIGTERM <pid>` while running a long streaming request | Current stream completes cleanly; new connections receive `ECONNREFUSED` |
-| **Zero Memory Leak Leakage**   | Run Apache Bench (`ab -n 10000 -c 50 http://127.0.0.1:3000/`)        | V8 heap returns to baseline after GC; no unbounded heap creep            |
-| **Cluster Respawn**            | Trigger `kill -9 <worker-pid>` on child worker                       | Supervisor detects worker death and immediately spawns a replacement     |
+- **Host Firewall:** Allow inbound traffic on ports `80` (HTTP) and `443` (HTTPS). Block direct external access to internal port `3000`.
+- **System Service or Container:** Ensure your Docker container or PM2 daemon is configured with auto-restart (`restart: unless-stopped` or `pm2 startup`).
+
+### Production Health & Verification Checklist
+
+| Verification Target            | Test Method                                               | Expected Result                                                                                                              |
+| :----------------------------- | :-------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| **Streaming SSR Backpressure** | `curl -i -N http://127.0.0.1:3000/`                       | Response headers contain `Transfer-Encoding: chunked`. Initial HTML shell returns in <10ms; chunks stream without buffering. |
+| **Trust Proxy Verification**   | Inspect `request.url` behind Nginx                        | Protocol is `https://` and client IP matches public client address rather than `127.0.0.1`.                                  |
+| **Threadpool Sizing**          | Check `process.env.UV_THREADPOOL_SIZE` in running process | Configured to `64`; DNS lookups and crypto do not stall under concurrent load.                                               |
+| **Graceful SIGTERM Drain**     | Trigger `kill -SIGTERM <pid>` during an active request    | In-flight requests complete cleanly; subsequent connections receive `ECONNREFUSED`.                                          |
+| **Zero Memory Leak Creep**     | Run load test (`ab -n 5000 -c 50 http://127.0.0.1:3000/`) | V8 heap returns to baseline after GC; no unbounded heap creep.                                                               |
+| **Cluster Respawn**            | Execute `kill -9 <child-worker-pid>`                      | Supervisor detects worker termination and spawns an immediate replacement within <500ms.                                     |
+| **Secret Isolation**           | Inspect client bundles in browser devtools                | Zero private server secrets or database passwords present in client JavaScript assets.                                       |

@@ -18,7 +18,6 @@ flowchart TD
     Guides --> Style[Styling & UI Assets]
     Guides --> AI[AI & Intelligent Systems]
     Guides --> Deploy[Deployment & Operations]
-    Guides --> Adapters[Custom Adapters & Extensions]
 ```
 
 ---
@@ -94,18 +93,10 @@ Ship applications with confidence across bare metal, Docker containers, and clou
 - **[02: Docker Containerization](./deployment/02_DOCKER_CONTAINER.md)** — Multi-stage Alpine Dockerfile and unprivileged user hardening.
 - **[03: Edge Platforms Overview](./deployment/03_EDGE_PLATFORMS.md)** — Edge isolation architecture, W3C standards, and adapter overview.
 - **[04: Vercel Adapter](./deployment/04_VERCEL_ADAPTER.md)** — First-party `@ranujs/adapter-vercel` setup and Build Output API v3.
-- **[05: Cloudflare Workers Adapter](./deployment/05_CLOUDFLARE_WORKERS.md)** — Edge V8 isolates, 128MB RAM limits, streaming backpressure, and Wrangler setup.
+- **[05: Cloudflare Workers Adapter](./deployment/05_CLOUDFLARE_WORKERS.md)** — Edge V8 isolates, streaming backpressure, and Wrangler setup.
 - **[06: Node.js Standalone Daemon](./deployment/06_NODE_STANDALONE.md)** — Persistent daemons, Express/Fastify embedding, socket backpressure draining, and cluster scaling.
 - **[07: Bun and Deno Runtimes](./deployment/07_BUN_AND_DENO.md)** — High-performance native `Bun.serve()` and `Deno.serve()` streaming with Web Standards.
 - **[08: Netlify Adapter](./deployment/08_NETLIFY_ADAPTER.md)** — Hybrid Edge and Serverless functions, multi-cookie preservation, and body cloning guards.
-
----
-
-## 8. 🔌 [Custom Adapters & Runtime Extensions](./adapters/AUTHORING_CUSTOM_ADAPTERS.md)
-
-Build and publish custom deployment adapters for enterprise clouds, internal infrastructure, or novel runtimes:
-
-- **[Custom Adapter Authoring Manual](./adapters/AUTHORING_CUSTOM_ADAPTERS.md)** — Complete developer guide to implementing `RanuDeploymentAdapter`: manifest consumption, W3C runtime dispatch, backpressure handling, and path containment security.
 
 ---
 
@@ -120,15 +111,12 @@ Build and publish custom deployment adapters for enterprise clouds, internal inf
 
 ---
 
-## 🌐 Ecosystem & Architecture Internals
+## 🌐 Ecosystem & Extensibility
 
 - **[Ecosystem Hub](../ecosystem/README.md)** — Ecosystem directory, plugins, storage adapters, and verified providers.
 - **[Plugin Specification](../ecosystem/plugins/PLUGIN_SPECIFICATION.md)** — Ranu Plugin API v1 contract and build extension hooks.
 - **[Cloud Object Storage](../ecosystem/storage/README.md)** — S3-compatible, Cloudflare R2, and persistent blob storage.
 - **[Verified Providers](../ecosystem/providers/README.md)** — Infrastructure partners directory and verification criteria.
-- **[React 19 SSR Architecture](../architecture/01_REACT_19_SSR.md)** — Streaming renderer lifecycle and state hydration protocol.
-- **[Build & HMR Engine](../architecture/02_BUILD_AND_HMR.md)** — Dual-pipeline compilation and development coordinator.
-- **[Deployment Adapter Contract](../architecture/03_ADAPTER_CONTRACT.md)** — Pluggable hosting runtime adapter transformation specs.
 
 ---
 
