@@ -114,6 +114,7 @@ export default tseslint.config(
       '**/.vercel/**',
       '**/coverage/**',
       '**/node_modules/**',
+      '**/.agents/**',
       '**/*.d.ts',
       'pnpm-lock.yaml',
     ],

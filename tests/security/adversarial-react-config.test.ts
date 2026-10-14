@@ -80,8 +80,8 @@ describe('Adversarial Challenge: @ranu/react Async Route Params & Serialization'
 
       // Verify global prototypes remain unpolluted
       expect(({} as any).injected).toBeUndefined();
-      expect(Object.prototype.hasOwnProperty('injected')).toBe(false);
-      expect(Promise.prototype.hasOwnProperty('injected')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(Object.prototype, 'injected')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(Promise.prototype, 'injected')).toBe(false);
 
       // Verify instance behavior
       expect(params.constructor).toBeDefined();

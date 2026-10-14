@@ -39,12 +39,12 @@ export interface DeploymentLogger {
 /** Context passed to a deployment adapter during preparation/adaptation */
 export interface DeploymentAdapterContext {
   readonly projectRoot: string;
-  readonly buildDir?: string | undefined;
-  readonly outputDir?: string | undefined;
-  readonly logger?: DeploymentLogger | any;
-  readonly rootDir?: string | undefined;
-  readonly manifest?: any | undefined;
-  readonly config?: any | undefined;
+  readonly buildDir?: string;
+  readonly outputDir?: string;
+  readonly logger?: DeploymentLogger;
+  readonly rootDir?: string;
+  readonly manifest?: unknown;
+  readonly config?: unknown;
 }
 
 /** Result returned by a deployment adapter */

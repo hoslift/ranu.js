@@ -5,6 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const sharedAliases = {
+  '@ranu/core/capabilities': path.resolve(__dirname, 'packages/core/src/capabilities.ts'),
   '@ranu/core': path.resolve(__dirname, 'packages/core/src/index.ts'),
   '@ranu/diagnostics': path.resolve(__dirname, 'packages/diagnostics/src/index.ts'),
   '@ranu/manifests': path.resolve(__dirname, 'packages/manifests/src/index.ts'),
