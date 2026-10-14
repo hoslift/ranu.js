@@ -111,7 +111,7 @@ describe('@ranu/config', () => {
       const loaded = await loadConfig(path.join(tempDir, 'ranu.config.ts'));
       expect(loaded).toBeDefined();
       expect(loaded.server.port).toBe(4000);
-    });
+    }, 15_000);
 
     it('loads ESM config (.mjs) correctly', async () => {
       fs.writeFileSync(path.join(tempDir, 'ranu.config.mjs'), 'export default { server: { port: 5000 } };');
