@@ -14,6 +14,7 @@
  *   - test-results/  Playwright/Vitest HTML reporter output
  *   - playwright-report/
  *   - .ranu/     framework build output directory
+ *   - .turbo/    Turborepo pipeline cache directory
  *
  * NEVER removes:
  *   - docs/
@@ -93,25 +94,32 @@ function getWorkspaceDirs() {
 console.log('\n=== ranu ci:clean ===\n');
 
 // 1. Remove dist/ in each workspace package directly (no pnpm subprocess needed).
-console.log('[1/4] Removing workspace package dist/ directories...');
+console.log('[1/5] Removing workspace package dist/ directories...');
 const workspaceDirs = getWorkspaceDirs();
 for (const wsDir of workspaceDirs) {
   removeDir(path.join(wsDir, 'dist'));
 }
 
 // 2. Remove TypeScript incremental build cache files.
-console.log('[2/4] Removing *.tsbuildinfo files...');
+console.log('[2/5] Removing *.tsbuildinfo files...');
 removeTsbuildinfo(ROOT);
 
 // 3. Remove top-level generated test/coverage output directories.
-console.log('[3/4] Removing test/coverage output directories...');
+console.log('[3/5] Removing test/coverage output directories...');
 removeDir('coverage');
 removeDir('test-results');
 removeDir('playwright-report');
 
 // 4. Remove the framework build output directory (.ranu/build/).
 //    This is the output of `ranu build` / @ranu/build pipeline.
-console.log('[4/4] Removing .ranu/ framework build output...');
+console.log('[4/5] Removing .ranu/ framework build output...');
 removeDir('.ranu');
+
+// 5. Remove Turborepo pipeline cache directory.
+console.log('[5/5] Removing .turbo/ pipeline cache...');
+removeDir('.turbo');
+for (const wsDir of workspaceDirs) {
+  removeDir(path.join(wsDir, '.turbo'));
+}
 
 console.log('\n=== ci:clean complete ===\n');

@@ -112,6 +112,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/.ranu/**',
       '**/.vercel/**',
+      '**/.turbo/**',
       '**/coverage/**',
       '**/node_modules/**',
       '**/.agents/**',
