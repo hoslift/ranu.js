@@ -52,6 +52,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(serverApi.next).toBeTypeOf('function');
       expect(serverApi.rewrite).toBeTypeOf('function');
       expect(serverApi.getRequestContext).toBeTypeOf('function');
+      expect(serverApi.waitUntil).toBeTypeOf('function');
     });
 
     it('resolves "@ranujs/core/plugin" plugin authoring API', async () => {

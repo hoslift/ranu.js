@@ -1,12 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
-import { composeComponentTree, composeNotFoundTree, composeErrorDocument } from '../src/composition.js';
-import type { PageModule, LayoutModule, LoadingModule, NotFoundModule, PageProps } from '../src/types.js';
+import {
+  composeComponentTree,
+  composeNotFoundTree,
+  composeErrorDocument,
+  wrapRouteParams,
+} from '../src/composition.js';
+import type {
+  PageModule,
+  LayoutModule,
+  LoadingModule,
+  NotFoundModule,
+  PageProps,
+} from '../src/types.js';
 
 describe('Component Composition', () => {
   it('composes root layout, nested layout, and page in correct hierarchy', () => {
     const rootLayout: LayoutModule = {
-      default: ({ children }: any) => React.createElement('html', null, React.createElement('body', null, React.createElement('div', { id: 'root' }, children))),
+      default: ({ children }: any) =>
+        React.createElement(
+          'html',
+          null,
+          React.createElement('body', null, React.createElement('div', { id: 'root' }, children)),
+        ),
     };
 
     const dashboardLayout: LayoutModule = {
@@ -57,7 +73,8 @@ describe('Component Composition', () => {
 
   it('composes not-found tree within preserved parent layouts', () => {
     const rootLayout: LayoutModule = {
-      default: ({ children }: any) => React.createElement('html', null, React.createElement('body', null, children)),
+      default: ({ children }: any) =>
+        React.createElement('html', null, React.createElement('body', null, children)),
     };
 
     const notFoundModule: NotFoundModule = {
@@ -80,5 +97,42 @@ describe('Component Composition', () => {
     });
 
     expect(doc).toBeDefined();
+  });
+
+  it('supports synchronous property access and async Promise resolution on wrapRouteParams', async () => {
+    const raw = { id: '123', slug: 'react-19' };
+    const wrapped = wrapRouteParams(raw);
+
+    // Synchronous property access
+    expect(wrapped.id).toBe('123');
+    expect(wrapped.slug).toBe('react-19');
+
+    // Async Promise resolution
+    const resolved = await wrapped;
+    expect(resolved).toEqual({ id: '123', slug: 'react-19' });
+    expect(resolved.id).toBe('123');
+    expect(Object.isFrozen(resolved)).toBe(true);
+  });
+
+  it('composes tree with async Page component awaiting params', async () => {
+    const page: PageModule = {
+      default: async ({ params }: PageProps) => {
+        const resolved = await params;
+        return React.createElement('h1', null, `Item: ${resolved.id}`);
+      },
+    };
+
+    const pageProps: PageProps = {
+      params: wrapRouteParams({ id: 'item-42' }),
+      searchParams: {},
+    };
+
+    const tree = composeComponentTree({
+      page,
+      layouts: [],
+      pageProps,
+    });
+
+    expect(tree).toBeDefined();
   });
 });

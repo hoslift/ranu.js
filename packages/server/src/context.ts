@@ -22,3 +22,13 @@ export function getRequestContext(): RanuRequestContext {
   }
   return context;
 }
+
+/**
+ * Extends the execution lifetime of the current request to keep running asynchronous tasks
+ * in the background after the response has been sent to the client.
+ * Throws RANU_SSG_DYNAMIC_ACCESS if called during SSG, or an error if called outside active request lifecycle.
+ */
+export function waitUntil(promise: Promise<unknown>): void {
+  const context = getRequestContext();
+  context.waitUntil(promise);
+}

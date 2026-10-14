@@ -18,6 +18,8 @@ export interface RanuRequestContext {
   readonly signal: AbortSignal;
   readonly responseCookies: string[];
   readonly depth?: number;
+  waitUntil(promise: Promise<unknown>): void;
+  readonly waitUntilPromises?: readonly Promise<unknown>[];
 }
 
 export interface MiddlewareContext {

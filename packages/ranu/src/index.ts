@@ -26,6 +26,7 @@ export type {
   RanuDeploymentAdapter,
   DeploymentCapabilities,
   DeploymentAdapterContext,
+  DeploymentLogger,
   DeploymentResult,
   FrameworkCapabilities,
 } from '@ranu/core';

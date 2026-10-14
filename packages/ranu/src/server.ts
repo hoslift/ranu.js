@@ -12,6 +12,7 @@ export {
   next,
   rewrite,
   getRequestContext,
+  waitUntil,
   type Cookie,
   type CookieSetOptions,
   type CookieDeleteOptions,

@@ -123,6 +123,8 @@ export default function HomePage() {
       signal: request.signal,
       responseCookies: [],
       depth: 0,
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
 
     const target: PageRenderTarget = {
