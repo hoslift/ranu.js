@@ -17,6 +17,9 @@
     { "path": "./packages/cli" },
     { "path": "./packages/plugin" },
     { "path": "./adapters/vercel" },
+    { "path": "./adapters/cloudflare" },
+    { "path": "./adapters/node" },
+    { "path": "./adapters/netlify" },
     { "path": "./create-ranu" }
   ]
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { builtinModules } from 'node:module';
 import { build } from 'esbuild';
 import type {
   RanuDeploymentAdapter,
@@ -34,6 +35,14 @@ export const NETLIFY_CAPABILITIES: DeploymentCapabilities = {
   longLivedProcess: false,
   supportsWaitUntil: false,
 };
+
+/**
+ * Standard Node.js built-in modules externalized from Netlify Functions bundle.
+ */
+export const NODE_BUILTIN_EXTERNALS: readonly string[] = [
+  ...builtinModules,
+  ...builtinModules.map((mod) => `node:${mod}`),
+];
 
 export interface HeaderRule {
   for: string;
@@ -932,7 +941,7 @@ export const config = {
           target: 'es2022',
           platform: 'node',
           alias: workspacePackageAliases,
-          external: [...(options.external ?? [])],
+          external: [...NODE_BUILTIN_EXTERNALS, ...(options.external ?? [])],
           minify: options.minify ?? false,
           logLevel: 'silent',
         });

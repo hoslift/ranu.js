@@ -17,3 +17,4 @@ export * from './commands/build.js';
 export * from './commands/start.js';
 export * from './commands/deploy.js';
 export * from './commands/create.js';
+export * from './adapter-loader.js';

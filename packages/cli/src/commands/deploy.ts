@@ -11,6 +11,33 @@ export async function loadVercelAdapter(
 }
 
 /**
+ * Loads the official Cloudflare deployment adapter.
+ */
+export async function loadCloudflareAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  return importer('@ranujs/adapter-cloudflare');
+}
+
+/**
+ * Loads the official standalone Node.js deployment adapter.
+ */
+export async function loadNodeAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  return importer('@ranujs/adapter-node');
+}
+
+/**
+ * Loads the official Netlify deployment adapter.
+ */
+export async function loadNetlifyAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  return importer('@ranujs/adapter-netlify');
+}
+
+/**
  * Executes the configured deployment adapter for the production project.
  *
  * @param args - Command-line options controlling output format
@@ -21,7 +48,7 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
 
   let adapter = ctx.config.deployment?.adapter;
 
-  // CLI flag override: --adapter vercel / @ranujs/adapter-vercel
+  // CLI flag override: --adapter vercel / cloudflare / node / netlify
   if (args.adapter) {
     const adapterName = String(args.adapter).toLowerCase();
     if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel') {
@@ -46,8 +73,65 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
         }
         return 1;
       }
+    } else if (adapterName === 'cloudflare' || adapterName === '@ranujs/adapter-cloudflare') {
+      try {
+        const cfMod = await loadCloudflareAdapter();
+        const loadedAdapter =
+          typeof cfMod.createCloudflareAdapter === 'function'
+            ? cfMod.createCloudflareAdapter()
+            : typeof cfMod.default === 'function'
+              ? cfMod.default()
+              : cfMod.default;
+        adapter = loadedAdapter as typeof adapter;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        if (args.json) {
+          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
+        } else {
+          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
+        }
+        return 1;
+      }
+    } else if (adapterName === 'node' || adapterName === '@ranujs/adapter-node') {
+      try {
+        const nodeMod = await loadNodeAdapter();
+        const loadedAdapter =
+          typeof nodeMod.createNodeAdapter === 'function'
+            ? nodeMod.createNodeAdapter()
+            : typeof nodeMod.default === 'function'
+              ? nodeMod.default()
+              : nodeMod.default;
+        adapter = loadedAdapter as typeof adapter;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        if (args.json) {
+          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
+        } else {
+          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
+        }
+        return 1;
+      }
+    } else if (adapterName === 'netlify' || adapterName === '@ranujs/adapter-netlify') {
+      try {
+        const netlifyMod = await loadNetlifyAdapter();
+        const loadedAdapter =
+          typeof netlifyMod.createNetlifyAdapter === 'function'
+            ? netlifyMod.createNetlifyAdapter()
+            : typeof netlifyMod.default === 'function'
+              ? netlifyMod.default()
+              : netlifyMod.default;
+        adapter = loadedAdapter as typeof adapter;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        if (args.json) {
+          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
+        } else {
+          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
+        }
+        return 1;
+      }
     } else {
-      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel".`;
+      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel", "cloudflare", "node", "netlify".`;
       if (args.json) {
         logger.json({ success: false, error: msg });
       } else {
