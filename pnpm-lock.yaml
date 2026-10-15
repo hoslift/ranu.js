@@ -609,6 +609,12 @@ importers:
       '@ranu/runtime-node':
         specifier: workspace:*
         version: link:../runtime-node
+      '@ranujs/adapter-bun':
+        specifier: workspace:*
+        version: link:../../adapters/bun
+      '@ranujs/adapter-deno':
+        specifier: workspace:*
+        version: link:../../adapters/deno
       '@ranujs/adapter-vercel':
         specifier: workspace:*
         version: link:../../adapters/vercel

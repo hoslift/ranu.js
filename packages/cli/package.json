@@ -26,6 +26,8 @@
     "@ranu/diagnostics": "workspace:*",
     "@ranu/build": "workspace:*",
     "@ranujs/adapter-vercel": "workspace:*",
+    "@ranujs/adapter-bun": "workspace:*",
+    "@ranujs/adapter-deno": "workspace:*",
     "@ranu/dev": "workspace:*",
     "@ranu/runtime-node": "workspace:*"
   },

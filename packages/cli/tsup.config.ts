@@ -17,6 +17,8 @@ export default defineConfig({
     '@ranu/dev',
     '@ranu/runtime-node',
     '@ranujs/adapter-vercel',
+    '@ranujs/adapter-bun',
+    '@ranujs/adapter-deno',
   ],
   platform: 'node',
   banner: ({ entry }) => {

@@ -664,6 +664,8 @@ describe('@ranu/cli commands comprehensive', () => {
           ? await (tsupConfig.default as (options: Record<string, unknown>) => Promise<any> | any)({})
           : tsupConfig.default;
       expect(config.external).toContain('@ranujs/adapter-vercel');
+      expect(config.external).toContain('@ranujs/adapter-bun');
+      expect(config.external).toContain('@ranujs/adapter-deno');
       if (typeof config.banner === 'function') {
         expect(config.banner({ entry: 'src/bin/ranu.ts' })).toEqual({ js: '#!/usr/bin/env node' });
         expect(config.banner({ entry: 'src/index.ts' })).toEqual({});
