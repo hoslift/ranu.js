@@ -103,6 +103,46 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.4)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@22.20.4))
 
+  adapters/netlify:
+    dependencies:
+      '@ranu/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ranu/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
+      '@ranu/manifests':
+        specifier: workspace:*
+        version: link:../../packages/manifests
+      '@ranu/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      '@ranu/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      '@ranu/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@ranu/runtime-node':
+        specifier: workspace:*
+        version: link:../../packages/runtime-node
+      esbuild:
+        specifier: '>=0.28.2'
+        version: 0.28.2
+    devDependencies:
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.26)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@22.20.4)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@22.20.4))
+
   adapters/node:
     dependencies:
       '@ranu/build':
