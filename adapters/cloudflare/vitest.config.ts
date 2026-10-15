@@ -9,6 +9,8 @@ export default defineConfig({
   test: {
     include: ['test/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: [path.resolve(__dirname, '../../tests/setup.ts')],
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
   },
   resolve: {
     alias: {

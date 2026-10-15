@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -13,119 +13,115 @@ import {
   copyDirectorySafe,
 } from '../src/index.js';
 
-describe('@ranujs/adapter-cloudflare', () => {
-  let tempDir: string;
-  let buildDir: string;
+function setupTestFixture(targetDir: string, targetBuildDir: string): void {
+  const serverDir = path.join(targetBuildDir, 'server');
+  const manifestDir = path.join(targetBuildDir, 'manifest');
+  const staticPagesDir = path.join(targetBuildDir, 'static', 'pages');
+  const staticAssetsDir = path.join(targetBuildDir, 'static', 'assets');
+  const publicDir = path.join(targetDir, 'public');
 
-  beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-cloudflare-test-'));
-    buildDir = path.join(tempDir, '.ranu', 'build');
-    const serverDir = path.join(buildDir, 'server');
-    const manifestDir = path.join(buildDir, 'manifest');
-    const staticPagesDir = path.join(buildDir, 'static', 'pages');
-    const staticAssetsDir = path.join(buildDir, 'static', 'assets');
-    const publicDir = path.join(tempDir, 'public');
+  fs.mkdirSync(serverDir, { recursive: true });
+  fs.mkdirSync(manifestDir, { recursive: true });
+  fs.mkdirSync(staticPagesDir, { recursive: true });
+  fs.mkdirSync(staticAssetsDir, { recursive: true });
+  fs.mkdirSync(publicDir, { recursive: true });
 
-    fs.mkdirSync(serverDir, { recursive: true });
-    fs.mkdirSync(manifestDir, { recursive: true });
-    fs.mkdirSync(staticPagesDir, { recursive: true });
-    fs.mkdirSync(staticAssetsDir, { recursive: true });
-    fs.mkdirSync(publicDir, { recursive: true });
+  // BUILD_ID
+  fs.writeFileSync(path.join(targetBuildDir, 'BUILD_ID'), 'cloudflare-build-789\n');
 
-    // BUILD_ID
-    fs.writeFileSync(path.join(buildDir, 'BUILD_ID'), 'cloudflare-build-789\n');
+  // build.json
+  fs.writeFileSync(
+    path.join(targetBuildDir, 'build.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      buildId: 'cloudflare-build-789',
+      frameworkVersion: '0.0.0',
+      runtime: 'node',
+      manifests: {
+        routes: 'manifest/routes.json',
+        server: 'manifest/server.json',
+        client: 'manifest/client.json',
+        static: 'manifest/static.json',
+      },
+    }),
+  );
 
-    // build.json
-    fs.writeFileSync(
-      path.join(buildDir, 'build.json'),
-      JSON.stringify({
-        schemaVersion: 1,
-        buildId: 'cloudflare-build-789',
-        frameworkVersion: '0.0.0',
-        runtime: 'node',
-        manifests: {
-          routes: 'manifest/routes.json',
-          server: 'manifest/server.json',
-          client: 'manifest/client.json',
-          static: 'manifest/static.json',
+  // routes.json
+  fs.writeFileSync(
+    path.join(manifestDir, 'routes.json'),
+    JSON.stringify({
+      schemaVersion: 2,
+      buildId: 'cloudflare-build-789',
+      routes: [
+        { id: 'page:/', kind: 'page', pattern: '/', params: [], renderMode: 'server' },
+        { id: 'page:/terms', kind: 'page', pattern: '/terms', params: [], renderMode: 'static' },
+        { id: 'api:/api/data', kind: 'api', pattern: '/api/data', params: [], methods: ['GET', 'POST'] },
+        { id: 'api:/api/background', kind: 'api', pattern: '/api/background', params: [], methods: ['GET'] },
+        { id: 'api:/api/invalid-wait', kind: 'api', pattern: '/api/invalid-wait', params: [], methods: ['GET'] },
+        { id: 'api:/api/node-shim', kind: 'api', pattern: '/api/node-shim', params: [], methods: ['GET'] },
+        { id: 'api:/api/child-process', kind: 'api', pattern: '/api/child-process', params: [], methods: ['GET'] },
+        { id: 'api:/api/boom', kind: 'api', pattern: '/api/boom', params: [], methods: ['GET'] },
+      ],
+    }),
+  );
+
+  // server.json
+  fs.writeFileSync(
+    path.join(manifestDir, 'server.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      buildId: 'cloudflare-build-789',
+      routes: [
+        { routeId: 'page:/', serverEntry: 'server/page-home.mjs' },
+        { routeId: 'api:/api/data', serverEntry: 'server/api-data.mjs' },
+        { routeId: 'api:/api/background', serverEntry: 'server/api-background.mjs' },
+        { routeId: 'api:/api/invalid-wait', serverEntry: 'server/api-invalid-wait.mjs' },
+        { routeId: 'api:/api/node-shim', serverEntry: 'server/api-node-shim.mjs' },
+        { routeId: 'api:/api/child-process', serverEntry: 'server/api-child-process.mjs' },
+        { routeId: 'api:/api/boom', serverEntry: 'server/api-boom.mjs' },
+      ],
+    }),
+  );
+
+  // static.json
+  fs.writeFileSync(
+    path.join(manifestDir, 'static.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      buildId: 'cloudflare-build-789',
+      routes: [
+        {
+          pathname: '/terms',
+          routeId: 'page:/terms',
+          file: 'static/pages/terms.html',
+          status: 200,
         },
-      }),
-    );
+      ],
+    }),
+  );
 
-    // routes.json
-    fs.writeFileSync(
-      path.join(manifestDir, 'routes.json'),
-      JSON.stringify({
-        schemaVersion: 2,
-        buildId: 'cloudflare-build-789',
-        routes: [
-          { id: 'page:/', kind: 'page', pattern: '/', params: [], renderMode: 'server' },
-          { id: 'page:/terms', kind: 'page', pattern: '/terms', params: [], renderMode: 'static' },
-          { id: 'api:/api/data', kind: 'api', pattern: '/api/data', params: [], methods: ['GET', 'POST'] },
-          { id: 'api:/api/background', kind: 'api', pattern: '/api/background', params: [], methods: ['GET'] },
-          { id: 'api:/api/invalid-wait', kind: 'api', pattern: '/api/invalid-wait', params: [], methods: ['GET'] },
-          { id: 'api:/api/node-shim', kind: 'api', pattern: '/api/node-shim', params: [], methods: ['GET'] },
-          { id: 'api:/api/boom', kind: 'api', pattern: '/api/boom', params: [], methods: ['GET'] },
-        ],
-      }),
-    );
+  // client.json
+  fs.writeFileSync(
+    path.join(manifestDir, 'client.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      buildId: 'cloudflare-build-789',
+      assets: {},
+    }),
+  );
 
-    // server.json
-    fs.writeFileSync(
-      path.join(manifestDir, 'server.json'),
-      JSON.stringify({
-        schemaVersion: 1,
-        buildId: 'cloudflare-build-789',
-        routes: [
-          { routeId: 'page:/', serverEntry: 'server/page-home.mjs' },
-          { routeId: 'api:/api/data', serverEntry: 'server/api-data.mjs' },
-          { routeId: 'api:/api/background', serverEntry: 'server/api-background.mjs' },
-          { routeId: 'api:/api/invalid-wait', serverEntry: 'server/api-invalid-wait.mjs' },
-          { routeId: 'api:/api/node-shim', serverEntry: 'server/api-node-shim.mjs' },
-          { routeId: 'api:/api/boom', serverEntry: 'server/api-boom.mjs' },
-        ],
-      }),
-    );
-
-    // static.json
-    fs.writeFileSync(
-      path.join(manifestDir, 'static.json'),
-      JSON.stringify({
-        schemaVersion: 1,
-        buildId: 'cloudflare-build-789',
-        routes: [
-          {
-            pathname: '/terms',
-            routeId: 'page:/terms',
-            file: 'static/pages/terms.html',
-            status: 200,
-          },
-        ],
-      }),
-    );
-
-    // client.json
-    fs.writeFileSync(
-      path.join(manifestDir, 'client.json'),
-      JSON.stringify({
-        schemaVersion: 1,
-        buildId: 'cloudflare-build-789',
-        assets: {},
-      }),
-    );
-
-    // Server route modules
-    fs.writeFileSync(
-      path.join(serverDir, 'page-home.mjs'),
-      'export default () => "Hello from Cloudflare Worker SSR!";',
-    );
-    fs.writeFileSync(
-      path.join(serverDir, 'api-data.mjs'),
-      'export const GET = () => Response.json({ ok: true });\nexport const POST = async (req) => Response.json({ received: await req.json() });',
-    );
-    fs.writeFileSync(
-      path.join(serverDir, 'api-background.mjs'),
-      `import { getActiveRequestContext } from '@ranu/runtime';
+  // Server route modules
+  fs.writeFileSync(
+    path.join(serverDir, 'page-home.mjs'),
+    'export default () => "Hello from Cloudflare Worker SSR!";',
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-data.mjs'),
+    'export const GET = () => Response.json({ ok: true });\nexport const POST = async (req) => Response.json({ received: await req.json() });',
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-background.mjs'),
+    `import { getActiveRequestContext } from '@ranu/runtime';
 export const GET = () => {
   const ctx = getActiveRequestContext();
   const env = ctx?.locals.get('env');
@@ -135,19 +131,19 @@ export const GET = () => {
   }
   return Response.json({ ok: true, envVal: env?.MY_BINDING, country: cf?.country });
 };`,
-    );
-    fs.writeFileSync(
-      path.join(serverDir, 'api-invalid-wait.mjs'),
-      `import { getActiveRequestContext } from '@ranu/runtime';
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-invalid-wait.mjs'),
+    `import { getActiveRequestContext } from '@ranu/runtime';
 export const GET = () => {
   const ctx = getActiveRequestContext();
   ctx.waitUntil('not-a-promise-string');
   return Response.json({ ok: true });
 };`,
-    );
-    fs.writeFileSync(
-      path.join(serverDir, 'api-node-shim.mjs'),
-      `import fs from 'node:fs';
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-node-shim.mjs'),
+    `import fs from 'node:fs';
 export const GET = () => {
   try {
     fs.readFileSync('anything');
@@ -156,16 +152,38 @@ export const GET = () => {
     return Response.json({ ok: true, message: err.message });
   }
 };`,
-    );
-    fs.writeFileSync(
-      path.join(serverDir, 'api-boom.mjs'),
-      'export const GET = () => { throw new Error("Unhandled route exception"); };',
-    );
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-child-process.mjs'),
+    `import cp from 'node:child_process';
+export const GET = () => {
+  try {
+    cp.execSync('anything');
+    return Response.json({ ok: false });
+  } catch (err) {
+    return Response.json({ ok: true, message: err.message });
+  }
+};`,
+  );
+  fs.writeFileSync(
+    path.join(serverDir, 'api-boom.mjs'),
+    'export const GET = () => { throw new Error("Unhandled route exception"); };',
+  );
 
-    // Static files
-    fs.writeFileSync(path.join(staticPagesDir, 'terms.html'), '<html><body>Terms of Service</body></html>');
-    fs.writeFileSync(path.join(staticAssetsDir, 'style.abc.css'), 'body { background: #fafafa; }');
-    fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'icon-content');
+  // Static files
+  fs.writeFileSync(path.join(staticPagesDir, 'terms.html'), '<html><body>Terms of Service</body></html>');
+  fs.writeFileSync(path.join(staticAssetsDir, 'style.abc.css'), 'body { background: #fafafa; }');
+  fs.writeFileSync(path.join(publicDir, 'favicon.ico'), 'icon-content');
+}
+
+describe('@ranujs/adapter-cloudflare', () => {
+  let tempDir: string;
+  let buildDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-cloudflare-test-'));
+    buildDir = path.join(tempDir, '.ranu', 'build');
+    setupTestFixture(tempDir, buildDir);
   });
 
   afterEach(() => {
@@ -288,6 +306,17 @@ export const GET = () => {
       expect(fs.existsSync(path.join(cfOut, 'server.map'))).toBe(false);
       expect(fs.existsSync(path.join(cfOut, 'app.js.map'))).toBe(false);
     });
+
+    it('rejects manifest paths that escape the build directory', async () => {
+      const descriptorPath = path.join(buildDir, 'build.json');
+      const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+      descriptor.manifests.routes = '../../escaped-routes.json';
+      fs.writeFileSync(descriptorPath, JSON.stringify(descriptor));
+
+      await expect(
+        createCloudflareAdapter().adapt({ projectRoot: tempDir, buildDir }),
+      ).rejects.toThrow(/escapes build directory/);
+    });
   });
 
   describe('Artifact Generation', () => {
@@ -340,8 +369,8 @@ export const GET = () => {
       expect(deployMarker.adapter).toBe('cloudflare');
       expect(deployMarker.target).toBe('cloudflare');
       expect(deployMarker.buildId).toBe('cloudflare-build-789');
-      expect(deployMarker.routesCount).toBe(7);
-      expect(deployMarker.serverRoutesCount).toBe(6);
+      expect(deployMarker.routesCount).toBe(8);
+      expect(deployMarker.serverRoutesCount).toBe(7);
       expect(deployMarker.staticRoutesCount).toBe(1);
     }, 15_000);
 
@@ -369,6 +398,24 @@ export const GET = () => {
       expect(totalRules).toBeLessThan(100);
     }, 15_000);
 
+    it('bounds _routes.json rules when include rules count is high', async () => {
+      const manyIncludes = Array.from({ length: 98 }, (_, i) => `/route-${i}/*`);
+      const adapter = createCloudflareAdapter({
+        routesJson: {
+          include: manyIncludes,
+          exclude: ['/static-1', '/static-2', '/static-3'],
+        },
+      });
+      await adapter.adapt({ projectRoot: tempDir, buildDir });
+
+      const routesJsonPath = path.join(tempDir, '.cloudflare', '_routes.json');
+      const routesJson = JSON.parse(fs.readFileSync(routesJsonPath, 'utf8'));
+      const totalRules = routesJson.include.length + routesJson.exclude.length;
+      expect(totalRules).toBeLessThanOrEqual(99);
+      expect(routesJson.include.length).toBe(98);
+      expect(routesJson.exclude.length).toBeLessThanOrEqual(1);
+    }, 15_000);
+
     it('suppresses _routes.json when routesJson option is false', async () => {
       const adapter = createCloudflareAdapter({ routesJson: false });
       await adapter.adapt({ projectRoot: tempDir, buildDir });
@@ -392,14 +439,24 @@ export const GET = () => {
   });
 
   describe('Runtime Execution & Dispatch Bridge', () => {
+    let bridgeDir: string;
+    let bridgeBuildDir: string;
     let workerModule: any;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
+      bridgeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ranu-cf-bridge-'));
+      bridgeBuildDir = path.join(bridgeDir, '.ranu', 'build');
+      setupTestFixture(bridgeDir, bridgeBuildDir);
+
       const adapter = createCloudflareAdapter();
-      await adapter.adapt({ projectRoot: tempDir, buildDir });
-      const workerPath = path.join(tempDir, '.cloudflare', '_worker.js');
+      await adapter.adapt({ projectRoot: bridgeDir, buildDir: bridgeBuildDir });
+      const workerPath = path.join(bridgeDir, '.cloudflare', '_worker.js');
       workerModule = await import(pathToFileURL(workerPath).href);
-    }, 20_000);
+    }, 60_000);
+
+    afterAll(() => {
+      fs.rmSync(bridgeDir, { recursive: true, force: true });
+    });
 
     it('dispatches API route requests (GET and POST)', async () => {
       const worker = workerModule.default;
@@ -558,6 +615,43 @@ export const GET = () => {
       const res = await worker.fetch(req);
       expect(res.status).toBe(500);
       expect(await res.text()).toContain('Internal Server Error');
+    });
+
+    it('bypasses env.ASSETS on POST requests even if asset fetcher is bound', async () => {
+      const worker = workerModule.default;
+
+      const mockAssetFetch = vi.fn().mockResolvedValue(
+        new Response('Asset Body', { status: 200, headers: { 'Content-Type': 'text/plain' } }),
+      );
+
+      const env = {
+        ASSETS: {
+          fetch: mockAssetFetch,
+        },
+      };
+
+      const postReq = new Request('https://example.com/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ping: 'pong' }),
+      });
+      const res = await worker.fetch(postReq, env);
+
+      expect(mockAssetFetch).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ received: { ping: 'pong' } });
+    });
+
+    it('accurately attributes unsupported module name in error message', async () => {
+      const worker = workerModule.default;
+
+      const req = new Request('https://example.com/api/child-process', { method: 'GET' });
+      const res = await worker.fetch(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.message).toContain('node:child_process');
+      expect(data.message).not.toContain('node:fs');
     });
   });
 });

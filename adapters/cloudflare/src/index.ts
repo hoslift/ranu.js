@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSync, type Plugin } from 'esbuild';
+import { build, type Plugin } from 'esbuild';
 import type {
   RanuDeploymentAdapter,
   DeploymentCapabilities,
@@ -184,6 +184,13 @@ export const execSync = stub;
 export const spawn = stub;
 export const spawnSync = stub;
 export const fork = stub;
+export const createServer = stub;
+export const connect = stub;
+export const Socket = stub;
+export const Server = stub;
+export const request = stub;
+export const get = stub;
+export const lookup = stub;
 `;
         return {
           contents,
@@ -251,7 +258,22 @@ export function createCloudflareAdapter(options: CloudflareAdapterOptions = {}):
         );
       }
 
-      // 3. Load manifests
+      // 3. Load manifests with containment validation
+      const manifestChecks = [
+        ['routes', buildDescriptor.manifests.routes],
+        ['server', buildDescriptor.manifests.server],
+        ['static', buildDescriptor.manifests.static],
+        ['client', buildDescriptor.manifests.client],
+      ] as const;
+
+      for (const [name, relPath] of manifestChecks) {
+        if (!relPath) continue;
+        const resolvedPath = path.resolve(buildDir, relPath);
+        if (!isPathContained(resolvedPath, buildDir)) {
+          throw new Error(`Manifest path for "${name}" escapes build directory: "${relPath}".`);
+        }
+      }
+
       const routesManifestPath = path.resolve(buildDir, buildDescriptor.manifests.routes);
       const serverManifestPath = path.resolve(buildDir, buildDescriptor.manifests.server);
       const staticManifestPath = path.resolve(buildDir, buildDescriptor.manifests.static);
@@ -332,7 +354,10 @@ export function createCloudflareAdapter(options: CloudflareAdapterOptions = {}):
       // 7. Emit _routes.json for Cloudflare Pages (excludes static assets, bounded to <100 rules)
       if (options.routesJson !== false) {
         const customConfig = typeof options.routesJson === 'object' ? options.routesJson : {};
-        const includeRules = customConfig.include ?? ['/*'];
+        let includeRules = customConfig.include ? [...customConfig.include] : ['/*'];
+        if (includeRules.length > 99) {
+          includeRules = includeRules.slice(0, 99);
+        }
         const excludeSet = new Set<string>();
 
         // Always exclude immutable framework assets
@@ -375,7 +400,7 @@ export function createCloudflareAdapter(options: CloudflareAdapterOptions = {}):
 
         let excludeRules = Array.from(excludeSet);
 
-        // Enforce Cloudflare Pages limit of 100 total rules (<100 rules)
+        // Enforce Cloudflare Pages limit of 100 total rules (<100 rules, maximum 99 total rules)
         if (includeRules.length + excludeRules.length >= 100) {
           // Coalesce rules to top-level wildcards to guarantee < 100 rules
           const wildcards = new Set<string>();
@@ -388,7 +413,12 @@ export function createCloudflareAdapter(options: CloudflareAdapterOptions = {}):
               wildcards.add(rule);
             }
           }
-          excludeRules = Array.from(wildcards).slice(0, 95 - includeRules.length);
+          const maxExcludes = Math.max(0, 99 - includeRules.length);
+          excludeRules = Array.from(wildcards).slice(0, Math.min(maxExcludes, 95));
+        }
+
+        if (includeRules.length + excludeRules.length >= 100) {
+          excludeRules = excludeRules.slice(0, Math.max(0, 99 - includeRules.length));
         }
 
         const routesJsonConfig = {
@@ -729,7 +759,8 @@ ${middlewareInstantiate}
 export default {
   async fetch(request, env = {}, ctx = {}) {
     try {
-      if (env && env.ASSETS && typeof env.ASSETS.fetch === 'function') {
+      const method = (request.method || 'GET').toUpperCase();
+      if ((method === 'GET' || method === 'HEAD') && env && env.ASSETS && typeof env.ASSETS.fetch === 'function') {
         try {
           const assetRes = await env.ASSETS.fetch(request.clone());
           if (assetRes && assetRes.status !== 404) {
@@ -754,85 +785,6 @@ export default {
 };
 `;
 
-      const shimSource = `
-const createUnsupportedStub = (modName) => {
-  const handler = {
-    get(_target, prop) {
-      if (prop === '__esModule') return true;
-      if (prop === 'default') return stubProxy;
-      return (...args) => {
-        throw new Error('Module "' + modName + '" is not supported in the Cloudflare Workers workerd runtime.');
-      };
-    },
-    apply() {
-      throw new Error('Module "' + modName + '" is not supported in the Cloudflare Workers workerd runtime.');
-    }
-  };
-  const stubProxy = new Proxy(() => {}, handler);
-  return stubProxy;
-};
-
-const stub = createUnsupportedStub('node:fs');
-export default stub;
-export const readFile = stub;
-export const readFileSync = stub;
-export const writeFile = stub;
-export const writeFileSync = stub;
-export const existsSync = stub;
-export const mkdirSync = stub;
-export const statSync = stub;
-export const lstatSync = stub;
-export const readdirSync = stub;
-export const rmSync = stub;
-export const unlinkSync = stub;
-export const createReadStream = stub;
-export const createWriteStream = stub;
-export const promises = stub;
-export const exec = stub;
-export const execSync = stub;
-export const spawn = stub;
-export const spawnSync = stub;
-export const fork = stub;
-`;
-      const shimFilePath = path.join(outputDir, '_workerd_node_shim.mjs');
-      fs.writeFileSync(shimFilePath, shimSource, 'utf8');
-
-      const unsupportedModules = [
-        'fs',
-        'node:fs',
-        'fs/promises',
-        'node:fs/promises',
-        'child_process',
-        'node:child_process',
-        'cluster',
-        'node:cluster',
-        'dgram',
-        'node:dgram',
-        'dns',
-        'node:dns',
-        'dns/promises',
-        'node:dns/promises',
-        'net',
-        'node:net',
-        'tls',
-        'node:tls',
-        'v8',
-        'node:v8',
-        'http',
-        'node:http',
-        'https',
-        'node:https',
-        'http2',
-        'node:http2',
-        'worker_threads',
-        'node:worker_threads',
-      ];
-
-      const shimAliases: Record<string, string> = {};
-      for (const mod of unsupportedModules) {
-        shimAliases[mod] = shimFilePath;
-      }
-
       const sourceDir = path.dirname(fileURLToPath(import.meta.url));
       const workerOutPath = path.join(outputDir, '_worker.js');
 
@@ -854,16 +806,11 @@ export const fork = stub;
           }
         : {};
 
-      const combinedAliases: Record<string, string> = {
-        ...workspacePackageAliases,
-        ...shimAliases,
-      };
-
-      buildSync({
+      await build({
         stdin: {
           contents: workerSource,
           loader: 'js',
-          resolveDir: sourceDir,
+          resolveDir: fs.existsSync(workspaceRuntimeEntry) ? sourceDir : projectRoot,
           sourcefile: '_worker.js',
         },
         outfile: workerOutPath,
@@ -872,6 +819,7 @@ export const fork = stub;
         target: 'es2022',
         platform: 'neutral',
         conditions: ['workerd', 'worker', 'browser', 'import'],
+        plugins: [createWorkerdShimPlugin()],
         external: [
           'assert',
           'node:assert',
@@ -900,12 +848,10 @@ export const fork = stub;
           'cloudflare:*',
           ...(options.external ?? []),
         ],
-        alias: combinedAliases,
+        alias: workspacePackageAliases,
         minify: options.minify ?? false,
         logLevel: 'silent',
       });
-
-      fs.rmSync(shimFilePath, { force: true });
 
       emittedFiles.push(workerOutPath);
 
