@@ -46,7 +46,11 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
   }
 
   const pm = options.packageManager ?? detectPackageManager();
-  const templateFiles = generateTemplateFiles(projectName, pm);
+  const templateFiles = generateTemplateFiles(projectName, pm, {
+    template: options.template,
+    adapter: options.adapter,
+    tests: options.tests,
+  });
   const filesCreated: string[] = [];
 
   try {
@@ -65,6 +69,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
       success: false,
       projectPath,
       projectName,
+      template: options.template ?? 'default',
       packageManager: pm,
       filesCreated,
       error: `Failed to write template files: ${msg}`,
@@ -95,6 +100,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
     success: true,
     projectPath,
     projectName,
+    template: options.template ?? 'default',
     packageManager: pm,
     filesCreated,
     gitStatus,

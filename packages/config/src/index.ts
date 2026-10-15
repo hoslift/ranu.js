@@ -30,6 +30,10 @@ export interface RanuUserConfig {
   env?: {
     files?: boolean;
   };
+  database?: {
+    maxConnections?: number | undefined;
+    poolTimeout?: number | undefined;
+  } | undefined;
 }
 
 /** Resolved Config Shape (Immutable) */
@@ -56,6 +60,10 @@ export interface ResolvedRanuConfig {
   readonly deployment: {
     readonly adapter?: RanuDeploymentAdapter;
   };
+  readonly database?: {
+    readonly maxConnections?: number | undefined;
+    readonly poolTimeout?: number | undefined;
+  } | undefined;
 }
 
 export interface RanuConfigContext {
@@ -175,7 +183,7 @@ export function validateUserConfig(config: any): { success: boolean; diagnostics
     return { success: false, diagnostics };
   }
 
-  const allowedTopLevels = ['plugins', 'build', 'server', 'routing', 'rendering', 'deployment', 'env'];
+  const allowedTopLevels = ['plugins', 'build', 'server', 'routing', 'rendering', 'deployment', 'env', 'database'];
   for (const key of Object.keys(config)) {
     if (!allowedTopLevels.includes(key)) {
       diagnostics.push({
@@ -401,6 +409,48 @@ export function validateUserConfig(config: any): { success: boolean; diagnostics
     }
   }
 
+  // 8. Database
+  if (config.database !== undefined) {
+    if (typeof config.database !== 'object' || Array.isArray(config.database) || config.database === null) {
+      diagnostics.push({
+        code: 'RANU_CONFIG_INVALID',
+        severity: 'error',
+        message: 'Namespace "database" must be a key-value object.',
+      });
+    } else {
+      const allowedDatabases = ['maxConnections', 'poolTimeout'];
+      for (const k of Object.keys(config.database)) {
+        if (!allowedDatabases.includes(k)) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_UNKNOWN_FIELD',
+            severity: 'error',
+            message: `Unknown configuration field under "database": "${k}".`,
+          });
+        }
+      }
+      if (config.database.maxConnections !== undefined) {
+        const mc = config.database.maxConnections;
+        if (typeof mc !== 'number' || mc < 1 || !Number.isInteger(mc)) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_INVALID',
+            severity: 'error',
+            message: 'Field "database.maxConnections" must be a positive integer.',
+          });
+        }
+      }
+      if (config.database.poolTimeout !== undefined) {
+        const pt = config.database.poolTimeout;
+        if (typeof pt !== 'number' || pt < 0) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_INVALID',
+            severity: 'error',
+            message: 'Field "database.poolTimeout" must be a non-negative number.',
+          });
+        }
+      }
+    }
+  }
+
   return { success: diagnostics.length === 0, diagnostics };
 }
 
@@ -463,6 +513,12 @@ export function resolveConfig(
     deployment: {
       adapter: userConfig?.deployment?.adapter,
     },
+    database: userConfig?.database
+      ? {
+          maxConnections: userConfig.database.maxConnections,
+          poolTimeout: userConfig.database.poolTimeout,
+        }
+      : undefined,
   };
 
   deepFreeze(resolved);

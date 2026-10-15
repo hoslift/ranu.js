@@ -112,3 +112,5 @@ export function deserializeDiagnostic(serialized: string): RanuDiagnostic {
     hint: data.hint,
   };
 }
+
+export * from './overlay.js';

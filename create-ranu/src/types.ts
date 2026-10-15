@@ -4,6 +4,11 @@
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
 /**
+ * Project template names supported for scaffolding.
+ */
+export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes';
+
+/**
  * Options controlling project scaffolding in create-ranu.
  */
 export interface ScaffoldOptions {
@@ -16,6 +21,23 @@ export interface ScaffoldOptions {
    * Package name in package.json. Defaults to target directory basename.
    */
   projectName?: string | undefined;
+
+  /**
+   * Project template to scaffold ('default', 'minimal', 'cloudflare', 'node-docker', 'api-routes').
+   * Defaults to 'default'.
+   */
+  template?: TemplateName | undefined;
+
+  /**
+   * Deployment adapter to configure in ranu.config.ts and package.json.
+   */
+  adapter?: string | undefined;
+
+  /**
+   * Whether to configure unit and component test suites.
+   * Defaults to false.
+   */
+  tests?: boolean | undefined;
 
   /**
    * Package manager to configure in scripts and run commands.
@@ -72,6 +94,11 @@ export interface ScaffoldResult {
    * Effective package name in package.json.
    */
   projectName: string;
+
+  /**
+   * Template used to scaffold the project.
+   */
+  template?: TemplateName | undefined;
 
   /**
    * Effective package manager used.

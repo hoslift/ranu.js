@@ -315,6 +315,25 @@ export class DevServer {
       return;
     }
 
+    // 2b. Browser Hydration Overlay Script
+    if (pathname === '/_ranu/overlay.js') {
+      res.writeHead(200, {
+        'Content-Type': 'text/javascript; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      });
+      let overlayContent = '';
+      try {
+        const overlayPath = path.resolve(__dirname, '../../diagnostics/dist/overlay.js');
+        if (fs.existsSync(overlayPath)) {
+          overlayContent = fs.readFileSync(overlayPath, 'utf8');
+        }
+      } catch {
+        /* ignore */
+      }
+      res.end(overlayContent || 'export function attachHydrationOverlay() {}');
+      return;
+    }
+
     // 3. Static framework assets (/_ranu/assets/*)
     if (pathname.startsWith('/_ranu/assets/')) {
       const relPath = pathname.slice('/_ranu/assets/'.length);

@@ -7,12 +7,14 @@ export {
   getInstallCommand,
   getRunCommand,
 } from './package-manager.js';
-export { generateTemplateFiles } from './template.js';
+export { generateTemplateFiles, type GenerateTemplateOptions } from './template.js';
 export { initGit, isGitInstalled, isInsideGitWorkTree } from './git.js';
 
 export type {
   PackageManager,
+  TemplateName,
   ScaffoldOptions,
   ScaffoldResult,
   ValidationResult,
 } from './types.js';
+

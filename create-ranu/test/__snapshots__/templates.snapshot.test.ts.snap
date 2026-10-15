@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: api-routes 1`] = `
+[
+  ".gitignore",
+  "README.md",
+  "app/api/hello/route.ts",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "package.json",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: cloudflare 1`] = `
+[
+  ".gitignore",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "package.json",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+  "wrangler.toml",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: default 1`] = `
+[
+  ".gitignore",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "package.json",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: minimal 1`] = `
+[
+  ".gitignore",
+  "README.md",
+  "app/page.tsx",
+  "package.json",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: node-docker 1`] = `
+[
+  ".dockerignore",
+  ".gitignore",
+  "Dockerfile",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "package.json",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;

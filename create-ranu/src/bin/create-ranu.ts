@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { scaffoldProject } from '../scaffold.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
-import type { PackageManager } from '../types.js';
+import type { PackageManager, TemplateName } from '../types.js';
 import { SCAFFOLDER_VERSION } from '../index.js';
 
 /**
@@ -14,6 +14,12 @@ export interface ParsedArgs {
   targetPath?: string | undefined;
   /** Package manager to configure in scripts and run commands. */
   packageManager?: PackageManager | undefined;
+  /** Starter template choice. */
+  template?: TemplateName | undefined;
+  /** Deployment adapter to configure. */
+  adapter?: string | undefined;
+  /** Whether to configure automated tests. */
+  tests?: boolean | undefined;
   /** Whether to install dependencies after scaffolding. */
   install?: boolean | undefined;
   /** Whether to initialize a Git repository. */
@@ -101,6 +107,41 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--template' || arg === '-t') {
+      i++;
+      const val = argv[i];
+      const validTemplates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes'];
+      if (!val || val.startsWith('-') || !validTemplates.includes(val as TemplateName)) {
+        throw new Error(`Invalid template "${val}". Supported: ${validTemplates.join(', ')}.`);
+      }
+      result.template = val as TemplateName;
+      i++;
+      continue;
+    }
+
+    if (arg === '--adapter' || arg === '-a') {
+      i++;
+      const val = argv[i];
+      if (!val || val.startsWith('-')) {
+        throw new Error('Flag "--adapter" requires a valid adapter argument.');
+      }
+      result.adapter = val;
+      i++;
+      continue;
+    }
+
+    if (arg === '--tests') {
+      result.tests = true;
+      i++;
+      continue;
+    }
+
+    if (arg === '--no-tests') {
+      result.tests = false;
+      i++;
+      continue;
+    }
+
     if (arg === '--package-manager' || arg === '-p') {
       i++;
       const val = argv[i];
@@ -140,6 +181,10 @@ Usage:
   $ npm create ranujs@latest <project-directory> [options]
 
 Options:
+  -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes)
+  -a, --adapter <name>          Deployment adapter (cloudflare, node, vercel)
+  --tests                       Configure unit and component test suites (vitest)
+  --no-tests                    Skip test configuration (default)
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)
   --install                     Install dependencies after scaffolding
   --no-install                  Skip dependency installation (default)
@@ -153,8 +198,10 @@ Options:
 
 Examples:
   $ npm create ranujs@latest my-app
-  $ pnpm create ranujs my-app --package-manager pnpm
-  $ create-ranujs ./web-app --git
+  $ pnpm create ranujs my-app --template minimal
+  $ pnpm create ranujs my-app --template cloudflare
+  $ pnpm create ranujs my-app --template node-docker
+  $ pnpm create ranujs my-app --template api-routes --tests
 `);
 }
 
@@ -203,6 +250,9 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
     const result = scaffoldProject({
       projectPath: targetDir,
       packageManager: pm,
+      template: parsed.template,
+      adapter: parsed.adapter,
+      tests: parsed.tests,
       install: parsed.install,
       git: parsed.git,
       force: parsed.force,
