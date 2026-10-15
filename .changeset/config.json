@@ -5,7 +5,13 @@
   "fixed": [
     ["@ranujs/core", "create-ranujs"]
   ],
-  "linked": [],
+  "linked": [
+    [
+      "@ranujs/adapter-vercel",
+      "@ranujs/adapter-bun",
+      "@ranujs/adapter-deno"
+    ]
+  ],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

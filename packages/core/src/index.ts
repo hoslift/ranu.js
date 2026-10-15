@@ -35,7 +35,7 @@ export interface FrameworkCapabilities {
 
 /** Deployment target capabilities declared by adapters */
 export interface DeploymentCapabilities {
-  readonly runtime: 'node' | 'edge' | 'static';
+  readonly runtime: 'node' | 'edge' | 'static' | 'workerd' | 'bun' | 'deno';
   readonly ssr: boolean;
   readonly apiRoutes: boolean;
   readonly middleware: boolean;
@@ -44,6 +44,8 @@ export interface DeploymentCapabilities {
   readonly runtimeEnvironment: boolean;
   readonly writableFilesystem: 'none' | 'temporary' | 'persistent';
   readonly longLivedProcess: boolean;
+  readonly supportsWaitUntil?: boolean;
+  readonly maxDatabaseConnections?: number;
 }
 
 /** Context passed to a deployment adapter during preparation/adaptation */

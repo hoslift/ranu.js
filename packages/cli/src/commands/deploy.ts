@@ -11,6 +11,24 @@ export async function loadVercelAdapter(
 }
 
 /**
+ * Loads the official Bun deployment adapter.
+ */
+export async function loadBunAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  return importer('@ranujs/adapter-bun');
+}
+
+/**
+ * Loads the official Deno deployment adapter.
+ */
+export async function loadDenoAdapter(
+  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
+): Promise<any> {
+  return importer('@ranujs/adapter-deno');
+}
+
+/**
  * Executes the configured deployment adapter for the production project.
  *
  * @param args - Command-line options controlling output format
@@ -21,7 +39,7 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
 
   let adapter = ctx.config.deployment?.adapter;
 
-  // CLI flag override: --adapter vercel / @ranujs/adapter-vercel
+  // CLI flag override: --adapter vercel / bun / deno
   if (args.adapter) {
     const adapterName = String(args.adapter).toLowerCase();
     if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel') {
@@ -46,8 +64,52 @@ export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): 
         }
         return 1;
       }
+    } else if (adapterName === 'bun' || adapterName === '@ranujs/adapter-bun') {
+      try {
+        const bunMod = await loadBunAdapter();
+        const loadedAdapter =
+          typeof bunMod.createBunAdapter === 'function'
+            ? bunMod.createBunAdapter()
+            : typeof bunMod.default === 'function'
+              ? bunMod.default()
+              : bunMod.default;
+        adapter = loadedAdapter as typeof adapter;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        if (args.json) {
+          logger.json({
+            success: false,
+            error: `Failed to load adapter "${args.adapter}": ${msg}`,
+          });
+        } else {
+          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
+        }
+        return 1;
+      }
+    } else if (adapterName === 'deno' || adapterName === '@ranujs/adapter-deno') {
+      try {
+        const denoMod = await loadDenoAdapter();
+        const loadedAdapter =
+          typeof denoMod.createDenoAdapter === 'function'
+            ? denoMod.createDenoAdapter()
+            : typeof denoMod.default === 'function'
+              ? denoMod.default()
+              : denoMod.default;
+        adapter = loadedAdapter as typeof adapter;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        if (args.json) {
+          logger.json({
+            success: false,
+            error: `Failed to load adapter "${args.adapter}": ${msg}`,
+          });
+        } else {
+          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
+        }
+        return 1;
+      }
     } else {
-      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel".`;
+      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel", "bun", "deno".`;
       if (args.json) {
         logger.json({ success: false, error: msg });
       } else {

@@ -17,6 +17,8 @@
     { "path": "./packages/cli" },
     { "path": "./packages/plugin" },
     { "path": "./adapters/vercel" },
+    { "path": "./adapters/bun" },
+    { "path": "./adapters/deno" },
     { "path": "./create-ranu" }
   ]
 }
