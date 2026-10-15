@@ -159,16 +159,49 @@ export function parseHtmlToElement(html: string): Element {
 
 /**
  * Simple recursive HTML string parser for test environments without DOMParser or JSDOM.
+ * Uses linear scanning without regular expression backtracking to prevent ReDoS.
  */
 function createSimulatedElementFromHtml(html: string): Element {
-  const match = html.match(/^<([a-zA-Z0-9-]+)([^>]*)>([\s\S]*)<\/\1>$/);
-  if (!match) {
-    const selfClosing = html.match(/^<([a-zA-Z0-9-]+)([^>]*)\/?>$/);
-    const tagName = selfClosing ? selfClosing[1]! : 'div';
-    const rawAttrs = selfClosing ? selfClosing[2]! : '';
-    const attrs = parseAttributeString(rawAttrs);
+  const trimmed = html.trim();
+  if (!trimmed.startsWith('<')) {
     return {
-      tagName: tagName.toUpperCase(),
+      tagName: 'DIV',
+      attributes: {},
+      getAttribute: () => null,
+      children: [],
+      childNodes: [],
+      textContent: trimmed,
+      outerHTML: html,
+    } as unknown as Element;
+  }
+
+  const firstGt = trimmed.indexOf('>');
+  if (firstGt === -1) {
+    return {
+      tagName: 'DIV',
+      attributes: {},
+      getAttribute: () => null,
+      children: [],
+      childNodes: [],
+      textContent: trimmed,
+      outerHTML: html,
+    } as unknown as Element;
+  }
+
+  let tagHeader = trimmed.slice(1, firstGt).trim();
+  const isSelfClosing = tagHeader.endsWith('/');
+  if (isSelfClosing) {
+    tagHeader = tagHeader.slice(0, -1).trim();
+  }
+
+  const spaceIdx = tagHeader.search(/\s/);
+  const tagName = (spaceIdx === -1 ? tagHeader : tagHeader.slice(0, spaceIdx)).toUpperCase();
+  const rawAttrs = spaceIdx === -1 ? '' : tagHeader.slice(spaceIdx).trim();
+  const attrs = parseAttributeString(rawAttrs);
+
+  if (isSelfClosing) {
+    return {
+      tagName: tagName || 'DIV',
       attributes: attrs,
       getAttribute(name: string) { return attrs[name] ?? null; },
       children: [],
@@ -178,26 +211,22 @@ function createSimulatedElementFromHtml(html: string): Element {
     } as unknown as Element;
   }
 
-  const tagName = match[1]!;
-  const rawAttrs = match[2]!;
-  const innerContent = match[3]!;
-  const attrs = parseAttributeString(rawAttrs);
-
-  // Split immediate children tags
-  const children: Element[] = [];
-  const tagRegex = /<([a-zA-Z0-9-]+)([^>]*)>([\s\S]*?)<\/\1>|<([a-zA-Z0-9-]+)([^>]*)\/>/g;
-  let childMatch: RegExpExecArray | null;
-  let hasChildElements = false;
-
-  while ((childMatch = tagRegex.exec(innerContent)) !== null) {
-    hasChildElements = true;
-    children.push(createSimulatedElementFromHtml(childMatch[0]));
+  // Determine closing tag and inner content
+  const closeTag = `</${tagName.toLowerCase()}>`;
+  let innerContent = '';
+  const lowerTrimmed = trimmed.toLowerCase();
+  if (lowerTrimmed.endsWith(closeTag)) {
+    innerContent = trimmed.slice(firstGt + 1, trimmed.length - closeTag.length);
+  } else {
+    innerContent = trimmed.slice(firstGt + 1);
   }
 
-  const textContent = hasChildElements ? '' : innerContent.trim();
+  const childSnippets = extractChildTagSnippets(innerContent);
+  const children: Element[] = childSnippets.map((snippet) => createSimulatedElementFromHtml(snippet));
+  const textContent = children.length > 0 ? '' : innerContent.trim();
 
   return {
-    tagName: tagName.toUpperCase(),
+    tagName: tagName || 'DIV',
     attributes: attrs,
     getAttribute(name: string) { return attrs[name] ?? null; },
     children,
@@ -205,6 +234,82 @@ function createSimulatedElementFromHtml(html: string): Element {
     textContent,
     outerHTML: html,
   } as unknown as Element;
+}
+
+/**
+ * Scan an HTML snippet linearly to find top-level child tags without polynomial backtracking.
+ */
+function extractChildTagSnippets(html: string): string[] {
+  const snippets: string[] = [];
+  let i = 0;
+  while (i < html.length) {
+    const start = html.indexOf('<', i);
+    if (start === -1) break;
+
+    // Skip comments or closing tags if misplaced
+    if (html[start + 1] === '/' || html[start + 1] === '!') {
+      i = start + 1;
+      continue;
+    }
+
+    const end = html.indexOf('>', start);
+    if (end === -1) break;
+
+    let tagContent = html.slice(start + 1, end).trim();
+    if (tagContent.endsWith('/')) {
+      // Self closing tag
+      snippets.push(html.slice(start, end + 1));
+      i = end + 1;
+      continue;
+    }
+
+    const spaceIdx = tagContent.search(/\s/);
+    const childTagName = (spaceIdx === -1 ? tagContent : tagContent.slice(0, spaceIdx)).toLowerCase();
+    if (!childTagName || !/^[a-z0-9-]+$/.test(childTagName)) {
+      i = end + 1;
+      continue;
+    }
+
+    // Scan for matching closing tag, handling nested identical tags
+    const openPattern = `<${childTagName}`;
+    const closePattern = `</${childTagName}>`;
+    let depth = 1;
+    let searchPos = end + 1;
+    let foundEnd = -1;
+
+    while (depth > 0 && searchPos < html.length) {
+      const nextOpen = html.toLowerCase().indexOf(openPattern, searchPos);
+      const nextClose = html.toLowerCase().indexOf(closePattern, searchPos);
+
+      if (nextClose === -1) {
+        foundEnd = html.length;
+        break;
+      }
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        const charAfter = html[nextOpen + openPattern.length];
+        if (charAfter === '>' || charAfter === '/' || /\s/.test(charAfter ?? '')) {
+          depth++;
+        }
+        searchPos = nextOpen + openPattern.length;
+      } else {
+        depth--;
+        if (depth === 0) {
+          foundEnd = nextClose + closePattern.length;
+        } else {
+          searchPos = nextClose + closePattern.length;
+        }
+      }
+    }
+
+    if (foundEnd !== -1) {
+      snippets.push(html.slice(start, foundEnd));
+      i = foundEnd;
+    } else {
+      i = end + 1;
+    }
+  }
+  return snippets;
 }
 
 function parseAttributeString(raw: string): Record<string, string> {
