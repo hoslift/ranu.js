@@ -2,7 +2,7 @@
 
 Native Bun deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.5)**: Native deployment adapter enabling Ranu.js applications on Bun.
+> **Public Alpha (v0.1.0)**: Native deployment adapter enabling Ranu.js applications on Bun.
 
 ## Installation
 

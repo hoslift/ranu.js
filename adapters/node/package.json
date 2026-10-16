@@ -1,6 +1,6 @@
 {
   "name": "@ranujs/adapter-node",
-  "version": "0.1.5",
+  "version": "0.1.0",
   "description": "Ranu.js Node.js standalone deployment adapter",
   "license": "MIT",
   "funding": [
