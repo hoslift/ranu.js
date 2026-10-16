@@ -1,6 +1,6 @@
 # @ranujs/adapter-bun
 
-## 0.1.5
+## 0.1.0
 
 ### Patch Changes
 

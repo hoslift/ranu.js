@@ -2,7 +2,7 @@
 
 Node.js standalone production deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.5)**: Official deployment adapter enabling standalone long-lived Node.js servers with backpressure-aware streaming, graceful shutdown handling, and Docker container recipes.
+> **Public Alpha (v0.1.0)**: Official deployment adapter enabling standalone long-lived Node.js servers with backpressure-aware streaming, graceful shutdown handling, and Docker container recipes.
 
 ## Installation
 

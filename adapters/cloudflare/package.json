@@ -1,6 +1,6 @@
 {
   "name": "@ranujs/adapter-cloudflare",
-  "version": "0.1.5",
+  "version": "0.1.0",
   "description": "Ranu.js Cloudflare Pages and Workers deployment adapter",
   "license": "MIT",
   "funding": [
