@@ -1,5 +1,15 @@
 # @ranujs/core
 
+## 0.2.0
+
+### Minor Changes
+
+- Native multi-cloud deployment adapter ecosystem: Bun, Deno, Cloudflare Workers, Node standalone, Netlify, and Vercel.
+- Integrated React 19 hydration mismatch visual DOM diff overlay diagnostics (`@ranu/diagnostics`).
+- Upgraded React ecosystem to React 19.3.x with single-resolution runtime deduplication via workspace overrides.
+- Multi-template scaffolding CLI (`create-ranujs`) supporting `default`, `minimal`, `cloudflare`, `node-docker`, and `api-routes`.
+- Playwright browser E2E test suites for navigation and Suspense streaming.
+
 ## 0.1.6
 
 ### Patch Changes

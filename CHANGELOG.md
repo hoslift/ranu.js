@@ -4,6 +4,17 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.2.0 (Public Alpha)
+
+### Multi-Cloud Adapter Ecosystem & Developer Experience
+
+- Expanded deployment adapter ecosystem with native support for Bun (`@ranujs/adapter-bun`), Deno (`@ranujs/adapter-deno`), Cloudflare Workers (`@ranujs/adapter-cloudflare`), Node.js standalone (`@ranujs/adapter-node`), Netlify (`@ranujs/adapter-netlify`), alongside Vercel (`@ranujs/adapter-vercel`).
+- Added browser visual DOM diff overlay diagnostics (`@ranu/diagnostics`) to detect and inspect React 19 hydration mismatches with interactive error inspection.
+- Upgraded React ecosystem to React 19.3.x with single-resolution runtime deduplication via workspace overrides.
+- Enhanced `create-ranujs` multi-template scaffolding supporting `default`, `minimal`, `cloudflare`, `node-docker`, and `api-routes`.
+- Introduced Playwright E2E browser test automation for client-side navigation and React 19 Suspense streaming verification.
+- Bumped canonical framework package (`@ranujs/core`) and scaffolder (`create-ranujs`) to `v0.2.0`.
+
 ## 0.1.6 (Public Alpha)
 
 ### Test & Build Pipeline Stabilization

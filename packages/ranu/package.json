@@ -1,6 +1,6 @@
 {
   "name": "@ranujs/core",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Ranu.js — JavaScript/TypeScript Full-Stack Web Framework",
   "license": "MIT",
   "funding": [

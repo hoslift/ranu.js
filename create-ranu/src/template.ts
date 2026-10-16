@@ -98,7 +98,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   // Determine dependencies and scripts based on template and options
   const dependencies: Record<string, string> = {
-    '@ranujs/core': '^0.1.6',
+    '@ranujs/core': '^0.2.0',
     react: '^19.0.0',
     'react-dom': '^19.0.0',
   };
@@ -164,7 +164,7 @@ ${devCmd}
 
   } else if (template === 'cloudflare' || adapter === 'cloudflare') {
     // CLOUDFLARE WORKERS TEMPLATE
-    dependencies['@ranujs/adapter-cloudflare'] = '^0.1.6';
+    dependencies['@ranujs/adapter-cloudflare'] = '^0.1.0';
 
     const cloudflareConfig = `import { defineConfig } from '@ranujs/core/config';
 import cloudflare from '@ranujs/adapter-cloudflare';
@@ -233,7 +233,7 @@ npx wrangler deploy
 
   } else if (template === 'node-docker' || adapter === 'node') {
     // NODE DOCKER TEMPLATE
-    dependencies['@ranujs/adapter-node'] = '^0.1.6';
+    dependencies['@ranujs/adapter-node'] = '^0.1.0';
 
     scripts['docker:build'] = `docker build -t ${projectName} .`;
     scripts['docker:run'] = `docker run -p 3000:3000 ${projectName}`;
@@ -403,7 +403,7 @@ curl http://localhost:3000/app/api/hello?name=Developer
 
   } else if (adapter === 'bun' || (template as string) === 'bun') {
     // BUN TEMPLATE
-    dependencies['@ranujs/adapter-bun'] = '^0.1.6';
+    dependencies['@ranujs/adapter-bun'] = '^0.1.0';
 
     const bunConfig = `import { defineConfig } from '@ranujs/core/config';
 import bunAdapter from '@ranujs/adapter-bun';
@@ -452,7 +452,7 @@ ${devCmd}
 
   } else if (adapter === 'deno' || (template as string) === 'deno') {
     // DENO TEMPLATE
-    dependencies['@ranujs/adapter-deno'] = '^0.1.6';
+    dependencies['@ranujs/adapter-deno'] = '^0.1.0';
 
     const denoConfig = `import { defineConfig } from '@ranujs/core/config';
 import denoAdapter from '@ranujs/adapter-deno';
@@ -512,7 +512,7 @@ ${devCmd}
 
   } else if (adapter === 'netlify' || (template as string) === 'netlify') {
     // NETLIFY TEMPLATE
-    dependencies['@ranujs/adapter-netlify'] = '^0.1.6';
+    dependencies['@ranujs/adapter-netlify'] = '^0.1.0';
 
     const netlifyConfig = `import { defineConfig } from '@ranujs/core/config';
 import netlifyAdapter from '@ranujs/adapter-netlify';
@@ -568,7 +568,7 @@ ${devCmd}
   } else {
     // DEFAULT TEMPLATE
     if (adapter === 'vercel') {
-      dependencies['@ranujs/adapter-vercel'] = '^0.1.6';
+      dependencies['@ranujs/adapter-vercel'] = '^0.1.5';
     }
 
     const ranuConfig = adapter === 'vercel'

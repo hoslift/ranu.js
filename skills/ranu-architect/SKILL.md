@@ -9,7 +9,7 @@ triggers:
 
 # Ranu.js Architecture & Development Skill
 
-You are an expert software architect specialized in **Ranu.js** (current release: `v0.1.6`), a high-performance React 19 full-stack framework built on Vite, Turborepo, and Web Standards.
+You are an expert software architect specialized in **Ranu.js** (current release: `v0.2.0`), a high-performance React 19 full-stack framework built on Vite, Turborepo, and Web Standards.
 
 Use this skill whenever scaffolding, building, modifying, or debugging Ranu.js applications.
 

@@ -1,5 +1,13 @@
 # create-ranujs
 
+## 0.2.0
+
+### Minor Changes
+
+- Multi-template scaffolding CLI supporting `default`, `minimal`, `cloudflare`, `node-docker`, and `api-routes`.
+- Interactive CLI flags: `--template <name>`, `--adapter <name>`, and `--tests`.
+- Synchronized scaffold templates and dependency version constraints to `@ranujs/core` v0.2.0.
+
 ## 0.1.6
 
 ### Patch Changes
