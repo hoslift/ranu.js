@@ -62,7 +62,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "dotenv": "^18.0.5",
+    "dotenv": "^18.0.7",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
   },
