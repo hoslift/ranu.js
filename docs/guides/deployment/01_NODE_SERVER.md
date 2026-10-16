@@ -1,6 +1,6 @@
 # Deploying with Node.js & Process Managers
 
-**Ranu.js** includes a high-performance HTTP production server (`@ranujs/core/server` & `@ranu/runtime-node`) designed to run on any standard Node.js (version 22+) runtime environment.
+**Ranu.js** includes a high-performance HTTP production server (`@ranujs/core/server`) designed to run on any standard Node.js (version 22+) runtime environment.
 
 This runbook covers compiling production artifacts, configuring server bindings, setting up reverse proxies, and deploying with process managers like PM2 and systemd.
 
@@ -11,6 +11,7 @@ This runbook covers compiling production artifacts, configuring server bindings,
 Running a Ranu.js application in production requires two distinct phases:
 
 ### Step A: Build Optimized Artifacts
+
 Compile client assets, server route handlers, SSR renderers, and static pages into `.ranu/build/`:
 
 ```bash
@@ -18,11 +19,13 @@ pnpm ranu build --clean
 ```
 
 The build process emits:
+
 - `.ranu/build/server/entry.mjs`: Server execution entrypoint.
 - `.ranu/build/client/`: Minified client bundles, CSS, and chunks.
 - `.ranu/build/build.json`: Build metadata manifest.
 
 ### Step B: Launch Production Server
+
 Start the production runtime server using `ranu start`:
 
 ```bash
@@ -51,6 +54,7 @@ pnpm ranu start --port 8080 --host 0.0.0.0
 ```
 
 ### Precedence Hierarchy:
+
 1. CLI flags (`--port`, `--host`)
 2. Environment variables (`PORT`, `HOST`)
 3. `ranu.config.ts` (`server.port`, `server.host`)
@@ -101,6 +105,7 @@ server {
 The Ranu.js production runtime intercepts termination signals (`SIGINT`, `SIGTERM`) automatically.
 
 When a termination signal is received:
+
 1. The server stops accepting new incoming HTTP connections.
 2. Existing active requests are given up to **5,000 milliseconds** (`DEFAULT_SHUTDOWN_TIMEOUT_MS`) to finish cleanly.
 3. Open keep-alive sockets are destroyed gracefully once requests complete.

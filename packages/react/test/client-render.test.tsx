@@ -81,6 +81,8 @@ describe('Phase 16: Client-Side Rendering Mode in @ranu/react', () => {
       locals: new Map(),
       signal: request.signal,
       responseCookies: [],
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
 
     const target: PageRenderTarget = {

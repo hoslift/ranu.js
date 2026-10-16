@@ -122,8 +122,9 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === '--adapter' || arg === '-a') {
       i++;
       const val = argv[i];
-      if (!val || val.startsWith('-')) {
-        throw new Error('Flag "--adapter" requires a valid adapter argument.');
+      const validAdapters = ['cloudflare', 'node', 'netlify', 'bun', 'deno', 'vercel'];
+      if (!val || val.startsWith('-') || !validAdapters.includes(val)) {
+        throw new Error(`Invalid adapter "${val}". Supported: ${validAdapters.join(', ')}.`);
       }
       result.adapter = val;
       i++;
@@ -182,7 +183,7 @@ Usage:
 
 Options:
   -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes)
-  -a, --adapter <name>          Deployment adapter (cloudflare, node, vercel)
+  -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
   --tests                       Configure unit and component test suites (vitest)
   --no-tests                    Skip test configuration (default)
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)

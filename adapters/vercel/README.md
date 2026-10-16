@@ -7,7 +7,10 @@ Vercel deployment adapter for Ranu.js.
 ## Installation
 
 ```bash
-npm install @ranujs/adapter-vercel
+npm install -D @ranujs/adapter-vercel
+# or
+pnpm add -D @ranujs/adapter-vercel
+yarn add -D @ranujs/adapter-vercel
 ```
 
 ## Usage

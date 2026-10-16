@@ -5,12 +5,25 @@ import type { RanuDiagnostic } from '@ranu/diagnostics';
 export const MANIFEST_SCHEMA_VERSION = 1;
 export const ROUTE_MANIFEST_SCHEMA_VERSION = 2;
 
+/** Supported build runtime targets */
+export type BuildRuntimeTarget = 'node' | 'edge' | 'workerd' | 'bun' | 'deno' | 'static';
+
+/** Supported build runtimes list */
+export const SUPPORTED_BUILD_RUNTIMES: readonly BuildRuntimeTarget[] = [
+  'node',
+  'edge',
+  'workerd',
+  'bun',
+  'deno',
+  'static',
+] as const;
+
 /** Build Descriptor */
 export interface BuildDescriptor {
   schemaVersion: number;
   buildId: string;
   frameworkVersion: string;
-  runtime: 'node';
+  runtime: BuildRuntimeTarget;
   manifests: {
     routes: string;
     server: string;
@@ -155,11 +168,22 @@ export function validateBuildDescriptor(descriptor: any): {
     });
   }
 
-  if (descriptor.runtime !== 'node') {
+  let runtimeStr: string;
+  if (typeof descriptor.runtime === 'symbol') {
+    runtimeStr = descriptor.runtime.toString();
+  } else {
+    try {
+      runtimeStr = String(descriptor.runtime);
+    } catch {
+      runtimeStr = Object.prototype.toString.call(descriptor.runtime);
+    }
+  }
+
+  if (!(SUPPORTED_BUILD_RUNTIMES as readonly unknown[]).includes(descriptor.runtime)) {
     diagnostics.push({
       code: 'RANU_BUILD_MANIFEST_INVALID',
       severity: 'error',
-      message: `Unsupported build runtime target: "${descriptor.runtime}". Target must be provider-neutral "node".`,
+      message: `Unsupported build runtime target: "${runtimeStr}". Target must be one of: "node", "edge", "workerd", "bun", "deno", "static".`,
     });
   }
 

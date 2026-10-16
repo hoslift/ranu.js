@@ -18,6 +18,7 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -25,9 +26,14 @@
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/build": "workspace:*",
-    "@ranujs/adapter-vercel": "workspace:*",
     "@ranu/dev": "workspace:*",
-    "@ranu/runtime-node": "workspace:*"
+    "@ranu/runtime-node": "workspace:*",
+    "@ranujs/adapter-vercel": "workspace:*",
+    "@ranujs/adapter-cloudflare": "workspace:*",
+    "@ranujs/adapter-node": "workspace:*",
+    "@ranujs/adapter-netlify": "workspace:*",
+    "@ranujs/adapter-bun": "workspace:*",
+    "@ranujs/adapter-deno": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

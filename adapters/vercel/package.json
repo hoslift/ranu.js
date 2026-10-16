@@ -15,6 +15,9 @@
   ],
   "type": "module",
   "private": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -30,15 +33,21 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run",
+    "lint": "tsc --noEmit",
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@ranu/core": "workspace:*",
+    "@ranu/diagnostics": "workspace:*",
+    "@ranu/manifests": "workspace:*",
+    "@ranu/react": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/runtime": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
     "esbuild": "^0.28.2"
   },
   "devDependencies": {
-    "@ranu/core": "workspace:*",
-    "@ranu/manifests": "workspace:*",
-    "@ranu/runtime-node": "workspace:*",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

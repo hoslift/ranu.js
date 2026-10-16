@@ -212,10 +212,15 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(
         await runWithMock({ args: [], root: tempDir, adapter: 'vercel', json: true }, logger),
       ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "vercel": adapter unavailable',
-      });
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Failed to load adapter "vercel": adapter unavailable',
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_LOAD_FAILED',
+          }),
+        }),
+      );
       vi.doUnmock('@ranujs/adapter-vercel');
     });
 
@@ -254,20 +259,32 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(importer).toHaveBeenCalledOnce();
     });
 
-    it('rejects unsupported CLI adapters in text and JSON modes', async () => {
+    it('reports diagnostic error for unresolvable CLI adapters in text and JSON modes', async () => {
       const logger = createCliLogger({ quiet: true });
       const error = vi.spyOn(logger, 'error');
       const json = vi.spyOn(logger, 'json');
 
-      expect(await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown' }, logger)).toBe(
-        1,
-      );
-      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported deployment adapter'));
       expect(
-        await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown', json: true }, logger),
+        await runDeployCommand({ args: [], root: tempDir, adapter: 'non-existent-adapter' }, logger),
+      ).toBe(1);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load adapter "non-existent-adapter"'),
+      );
+
+      expect(
+        await runDeployCommand(
+          { args: [], root: tempDir, adapter: 'non-existent-adapter', json: true },
+          logger,
+        ),
       ).toBe(1);
       expect(json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, error: expect.stringContaining('Unsupported') }),
+        expect.objectContaining({
+          success: false,
+          error: expect.stringContaining('Failed to load adapter'),
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_NOT_FOUND',
+          }),
+        }),
       );
     });
 

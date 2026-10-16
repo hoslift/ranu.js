@@ -10,7 +10,7 @@ This guide explains the Edge runtime architecture in Ranu.js, how to configure c
 
 ## 1. Web Standards Architecture at the Edge
 
-Traditional Node.js frameworks require heavyweight emulation shims (`node:http`, `IncomingMessage`, `ServerResponse`) to run on edge isolates. 
+Traditional Node.js frameworks require heavyweight emulation shims (`node:http`, `IncomingMessage`, `ServerResponse`) to run on edge isolates.
 
 In contrast, Ranu.js handlers natively accept standard W3C `Request` objects and return standard W3C `Response` objects:
 
@@ -31,9 +31,10 @@ In contrast, Ranu.js handlers natively accept standard W3C `Request` objects and
 ```
 
 This architecture provides:
-* **Zero Cold-Start Lag:** Minimal memory footprints on V8 isolates.
-* **Streaming by Default:** Chunked HTML streaming via `ReadableStream`.
-* **Zero Vendor Lock-in:** Portable server logic across edge and container environments.
+
+- **Zero Cold-Start Lag:** Minimal memory footprints on V8 isolates.
+- **Streaming by Default:** Chunked HTML streaming via `ReadableStream`.
+- **Zero Vendor Lock-in:** Portable server logic across edge and container environments.
 
 ---
 
@@ -86,11 +87,7 @@ You can create a custom adapter in your project or as a reusable npm package:
 
 ```typescript
 // adapters/custom-edge/index.ts
-import type {
-  RanuDeploymentAdapter,
-  DeploymentAdapterContext,
-  DeploymentResult,
-} from '@ranujs/core';
+import type { RanuDeploymentAdapter, DeploymentAdapterContext, DeploymentResult } from '@ranujs/core';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
@@ -110,30 +107,43 @@ export function customEdgeAdapter(): RanuDeploymentAdapter {
       longLivedProcess: false,
     },
     async adapt(ctx: DeploymentAdapterContext): Promise<DeploymentResult> {
-      const outputDir = path.join(ctx.projectRoot, '.edge-output');
+      const outputDir = ctx.outputDir ?? path.join(ctx.projectRoot, '.edge-output');
+      const buildDir = ctx.buildDir ?? path.join(ctx.projectRoot, '.ranu/build');
+
       await fs.mkdir(outputDir, { recursive: true });
 
-      // Generate edge entry worker script
-      const workerEntry = `
-        export default {
-          async fetch(request, env, ctx) {
-            // Forward request to compiled Ranu SSR handler
-            return new Response('Edge worker operational', { status: 200 });
-          }
-        };
-      `;
-
-      await fs.writeFile(path.join(outputDir, '_worker.js'), workerEntry, 'utf-8');
+      // Stage compiled application artifacts into target output directory
+      await fs.cp(buildDir, outputDir, { recursive: true });
 
       return {
         success: true,
         target: 'custom-edge',
         outputDirectory: outputDir,
-        files: ['_worker.js'],
       };
     },
   };
 }
+```
+
+### Standard Edge Runtime Handler Pattern
+
+To execute the application at the edge, initialize the production runtime via `@ranujs/core/server` and route incoming W3C requests through its `handle` method:
+
+```typescript
+// entry-edge.ts
+import { createProductionRuntime } from '@ranujs/core/server';
+
+// Initialize the production runtime using compiled build artifacts
+const runtime = await createProductionRuntime({
+  buildDir: './.edge-output',
+});
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    // Pure standard dispatch: W3C Request in, W3C Response out
+    return runtime.handle(request);
+  },
+};
 ```
 
 ### Registering in `ranu.config.ts`
@@ -161,10 +171,23 @@ pnpm ranu deploy
 
 ## 4. Cloudflare Workers Worker Pattern
 
-When packaging Ranu.js for Cloudflare Workers (via Wrangler), create a standard worker entrypoint that routes incoming `fetch` events:
+When packaging Ranu.js for Cloudflare Workers (via Wrangler), create a standard worker entrypoint that routes incoming `fetch` events through the production runtime:
 
 ```typescript
 // worker.ts (Cloudflare Workers Entrypoint)
+import { createProductionRuntime } from '@ranujs/core/server';
+
+let runtimePromise: Promise<ReturnType<typeof createProductionRuntime>> | null = null;
+
+function getRuntime() {
+  if (!runtimePromise) {
+    runtimePromise = createProductionRuntime({
+      buildDir: '.ranu/build',
+    });
+  }
+  return runtimePromise;
+}
+
 export interface Env {
   ASSETS: Fetcher; // Cloudflare static asset binding
 }
@@ -183,11 +206,9 @@ export default {
       // Pass through to SSR handler if asset not found
     }
 
-    // 2. Fall back to Ranu.js request handler
-    // In production, entry.mjs is bundled with your route definitions
-    return new Response('Ranu.js Edge Application', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
+    // 2. Dispatch to Ranu.js production runtime
+    const runtime = await getRuntime();
+    return runtime.handle(request);
   },
 };
 ```
@@ -202,9 +223,9 @@ pnpm wrangler deploy
 
 ## 5. Ecosystem & Roadmap Status
 
-| Platform / Adapter | Status | Package |
-| :--- | :---: | :--- |
-| **Vercel Adapter** | **Available** | `@ranujs/adapter-vercel` (Official) |
-| **Custom Adapters** | **Available** | `RanuDeploymentAdapter` contract via `ranu.config.ts` |
-| **Cloudflare Adapter** | **Roadmap** | Planned for official release in Phase 8 (Ecosystem & Partner Plugins) |
-| **AWS Lambda Adapter** | **Roadmap** | Planned for official release in Phase 8 |
+| Platform / Adapter     |    Status     | Package                                                               |
+| :--------------------- | :-----------: | :-------------------------------------------------------------------- |
+| **Vercel Adapter**     | **Available** | `@ranujs/adapter-vercel` (Official)                                   |
+| **Custom Adapters**    | **Available** | `RanuDeploymentAdapter` contract via `ranu.config.ts`                 |
+| **Cloudflare Adapter** |  **Roadmap**  | Planned for official release in Phase 8 (Ecosystem & Partner Plugins) |
+| **AWS Lambda Adapter** |  **Roadmap**  | Planned for official release in Phase 8                               |

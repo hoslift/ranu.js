@@ -7,7 +7,11 @@
   },
   "references": [
     { "path": "../../packages/core" },
+    { "path": "../../packages/diagnostics" },
     { "path": "../../packages/manifests" },
+    { "path": "../../packages/react" },
+    { "path": "../../packages/router" },
+    { "path": "../../packages/runtime" },
     { "path": "../../packages/runtime-node" }
   ],
   "include": ["src"],

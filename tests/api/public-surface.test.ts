@@ -52,6 +52,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(serverApi.next).toBeTypeOf('function');
       expect(serverApi.rewrite).toBeTypeOf('function');
       expect(serverApi.getRequestContext).toBeTypeOf('function');
+      expect(serverApi.waitUntil).toBeTypeOf('function');
     });
 
     it('resolves "@ranujs/core/plugin" plugin authoring API', async () => {
@@ -169,7 +170,15 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
   describe('3. Internal Package Visibility & Privacy Enforcement', () => {
     it('enumerates all workspace packages across packages/* and adapters/* and enforces privacy boundary', () => {
       // Release packages allowlist aligned with scripts/check-exports.mjs
-      const publicReleasePackages = new Set(['packages/ranu', 'adapters/vercel']);
+      const publicReleasePackages = new Set([
+        'packages/ranu',
+        'adapters/vercel',
+        'adapters/cloudflare',
+        'adapters/node',
+        'adapters/netlify',
+        'adapters/bun',
+        'adapters/deno',
+      ]);
 
       const scanDirs = ['packages', 'adapters'];
       const scannedPackages: { relativeDir: string; name: string; private: boolean }[] = [];
@@ -224,10 +233,20 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       const ranuPkg = checkPkg('packages/ranu');
       const createRanuPkg = checkPkg('create-ranu');
       const vercelPkg = checkPkg('adapters/vercel');
+      const cloudflarePkg = checkPkg('adapters/cloudflare');
+      const nodePkg = checkPkg('adapters/node');
+      const netlifyPkg = checkPkg('adapters/netlify');
+      const bunPkg = checkPkg('adapters/bun');
+      const denoPkg = checkPkg('adapters/deno');
 
       expect(ranuPkg?.private).toBe(false);
       expect(createRanuPkg?.private).toBe(false);
       expect(vercelPkg?.private).toBe(false);
+      expect(cloudflarePkg?.private).toBe(false);
+      expect(nodePkg?.private).toBe(false);
+      expect(netlifyPkg?.private).toBe(false);
+      expect(bunPkg?.private).toBe(false);
+      expect(denoPkg?.private).toBe(false);
     });
   });
 

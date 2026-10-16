@@ -12,7 +12,12 @@
     { "path": "../build" },
     { "path": "../dev" },
     { "path": "../runtime-node" },
-    { "path": "../../adapters/vercel" }
+    { "path": "../../adapters/vercel" },
+    { "path": "../../adapters/cloudflare" },
+    { "path": "../../adapters/node" },
+    { "path": "../../adapters/netlify" },
+    { "path": "../../adapters/bun" },
+    { "path": "../../adapters/deno" }
   ],
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]

@@ -5,6 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const sharedAliases = {
+  '@ranu/core/capabilities': path.resolve(__dirname, 'packages/core/src/capabilities.ts'),
   '@ranu/core': path.resolve(__dirname, 'packages/core/src/index.ts'),
   '@ranu/diagnostics': path.resolve(__dirname, 'packages/diagnostics/src/index.ts'),
   '@ranu/manifests': path.resolve(__dirname, 'packages/manifests/src/index.ts'),
@@ -19,6 +20,11 @@ const sharedAliases = {
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
   '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
+  '@ranujs/adapter-cloudflare': path.resolve(__dirname, 'adapters/cloudflare/src/index.ts'),
+  '@ranujs/adapter-node': path.resolve(__dirname, 'adapters/node/src/index.ts'),
+  '@ranujs/adapter-netlify': path.resolve(__dirname, 'adapters/netlify/src/index.ts'),
+  '@ranujs/adapter-bun': path.resolve(__dirname, 'adapters/bun/src/index.ts'),
+  '@ranujs/adapter-deno': path.resolve(__dirname, 'adapters/deno/src/index.ts'),
   '@ranujs/core/config': path.resolve(__dirname, 'packages/ranu/src/config.ts'),
   '@ranujs/core/react': path.resolve(__dirname, 'packages/ranu/src/react.ts'),
   '@ranujs/core/server': path.resolve(__dirname, 'packages/ranu/src/server.ts'),
@@ -95,6 +101,11 @@ export default [
         '@ranujs/core/server-only': path.resolve(__dirname, 'packages/ranu/dist/server-only.js'),
         '@ranujs/core': path.resolve(__dirname, 'packages/ranu/dist/index.js'),
         '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/dist/index.js'),
+        '@ranujs/adapter-cloudflare': path.resolve(__dirname, 'adapters/cloudflare/dist/index.js'),
+        '@ranujs/adapter-node': path.resolve(__dirname, 'adapters/node/dist/index.js'),
+        '@ranujs/adapter-netlify': path.resolve(__dirname, 'adapters/netlify/dist/index.js'),
+        '@ranujs/adapter-bun': path.resolve(__dirname, 'adapters/bun/dist/index.js'),
+        '@ranujs/adapter-deno': path.resolve(__dirname, 'adapters/deno/dist/index.js'),
         'ranu/config': path.resolve(__dirname, 'packages/ranu/dist/config.js'),
         'ranu/react': path.resolve(__dirname, 'packages/ranu/dist/react.js'),
         'ranu/server': path.resolve(__dirname, 'packages/ranu/dist/server.js'),

@@ -19,7 +19,9 @@ describe('Suite 10: Request Context Isolation & Concurrency Safety (request-cont
         params: { id: String(id) },
         searchParams: new URLSearchParams(),
         locals: { userId: id, secretToken: uniqueUserToken },
-      };
+        waitUntil: () => {},
+        waitUntilPromises: [],
+      } as any;
 
       return contextStore.run(mockContext, async () => {
         // Step 1: Immediate read

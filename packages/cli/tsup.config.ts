@@ -17,6 +17,11 @@ export default defineConfig({
     '@ranu/dev',
     '@ranu/runtime-node',
     '@ranujs/adapter-vercel',
+    '@ranujs/adapter-cloudflare',
+    '@ranujs/adapter-node',
+    '@ranujs/adapter-netlify',
+    '@ranujs/adapter-bun',
+    '@ranujs/adapter-deno',
   ],
   platform: 'node',
   banner: ({ entry }) => {

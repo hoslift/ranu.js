@@ -1,20 +1,30 @@
 import type { ReactNode, ComponentType } from 'react';
 
 /**
+ * Route parameters type supporting synchronous access, asynchronous promises,
+ * or dual synchronous/asynchronous hybrid wrapped objects for React 19.
+ */
+export type RouteParams<T = Record<string, string | string[]>> =
+  Promise<T> | Readonly<T> | (Promise<T> & Readonly<T>);
+
+/**
  * Props passed to a Page component.
  */
-export interface PageProps {
-  readonly params: Readonly<Record<string, string | string[]>>;
-  readonly searchParams: Readonly<Record<string, string | string[] | undefined>>;
+export interface PageProps<
+  TParams = Record<string, string | string[]>,
+  TSearchParams = Record<string, string | string[] | undefined>,
+> {
+  readonly params: RouteParams<TParams>;
+  readonly searchParams: Readonly<TSearchParams>;
 }
 
 /**
  * Props passed to a Layout component.
  * Layouts receive children and params, but NOT searchParams (04_RENDERING_MODEL.md §85).
  */
-export interface LayoutProps {
+export interface LayoutProps<TParams = Record<string, string | string[]>> {
   readonly children: ReactNode;
-  readonly params: Readonly<Record<string, string | string[]>>;
+  readonly params: RouteParams<TParams>;
 }
 
 /**
@@ -28,11 +38,15 @@ export interface ErrorProps {
 /**
  * Component signatures.
  */
-export type PageComponent = ComponentType<PageProps> | ((props: PageProps) => Promise<ReactNode> | ReactNode);
-export type LayoutComponent = ComponentType<LayoutProps> | ((props: LayoutProps) => Promise<ReactNode> | ReactNode);
-export type LoadingComponent = ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
+export type PageComponent =
+  ComponentType<PageProps> | ((props: PageProps) => Promise<ReactNode> | ReactNode);
+export type LayoutComponent =
+  ComponentType<LayoutProps> | ((props: LayoutProps) => Promise<ReactNode> | ReactNode);
+export type LoadingComponent =
+  ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
 export type ErrorComponent = ComponentType<ErrorProps>;
-export type NotFoundComponent = ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
+export type NotFoundComponent =
+  ComponentType<Record<string, never>> | (() => Promise<ReactNode> | ReactNode);
 
 /**
  * OpenGraph metadata fields (04_RENDERING_MODEL.md §74).

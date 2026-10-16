@@ -19,6 +19,36 @@ const publishedPackages = [
     name: '@ranujs/adapter-vercel', 
     canonicalExports: ['.'],
     technicalExports: []
+  },
+  { 
+    dir: 'adapters/cloudflare', 
+    name: '@ranujs/adapter-cloudflare', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/node', 
+    name: '@ranujs/adapter-node', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/netlify', 
+    name: '@ranujs/adapter-netlify', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/bun', 
+    name: '@ranujs/adapter-bun', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/deno', 
+    name: '@ranujs/adapter-deno', 
+    canonicalExports: ['.'],
+    technicalExports: []
   }
 ];
 

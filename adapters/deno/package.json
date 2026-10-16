@@ -1,0 +1,65 @@
+{
+  "name": "@ranujs/adapter-deno",
+  "version": "0.1.5",
+  "description": "Ranu.js native Deno deployment adapter",
+  "license": "MIT",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/draj256"
+    },
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ"
+    }
+  ],
+  "type": "module",
+  "private": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@ranu/build": "workspace:*",
+    "@ranu/core": "workspace:*",
+    "@ranu/diagnostics": "workspace:*",
+    "@ranu/manifests": "workspace:*",
+    "@ranu/react": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/runtime": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
+    "esbuild": "^0.28.2"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoslift/ranu.js.git",
+    "directory": "adapters/deno"
+  }
+}

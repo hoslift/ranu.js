@@ -9,6 +9,11 @@ export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes';
 
 /**
+ * Official deployment adapters supported for scaffolding.
+ */
+export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno' | 'vercel';
+
+/**
  * Options controlling project scaffolding in create-ranu.
  */
 export interface ScaffoldOptions {

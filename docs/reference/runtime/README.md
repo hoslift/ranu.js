@@ -124,9 +124,8 @@ Instructs the engine to pass the request downstream to matching routes. You can 
 ```typescript
 // middleware.ts
 import { next } from '@ranujs/core/server';
-import type { NextRequest } from '@ranujs/core';
 
-export function middleware(request: NextRequest): Response {
+export function middleware(request: Request): Response {
   return next({
     headers: {
       'x-request-id': crypto.randomUUID(),
@@ -143,14 +142,14 @@ Proxies or rewrites the request internally to a different route without altering
 
 ```typescript
 // middleware.ts
-import { rewrite } from '@ranujs/core/server';
-import type { NextRequest } from '@ranujs/core';
+import { rewrite, next } from '@ranujs/core/server';
 
-export function middleware(request: NextRequest): Response {
+export function middleware(request: Request): Response {
   const host = request.headers.get('host') ?? '';
 
   if (host.startsWith('api.')) {
-    return rewrite(new URL(`/api${request.nextUrl.pathname}`, request.url));
+    const url = new URL(request.url);
+    return rewrite(new URL(`/api${url.pathname}`, request.url));
   }
 
   return next();

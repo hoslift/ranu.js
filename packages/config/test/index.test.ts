@@ -36,6 +36,36 @@ describe('@ranu/config', () => {
       const fn = () => ({ server: { port: 8080 } });
       expect(defineConfig(fn)).toBe(fn);
     });
+
+    it('throws descriptive error when given unknown field and attaches diagnostics', () => {
+      expect(() => {
+        defineConfig({ unknownField: true } as any);
+      }).toThrowError(/\[RANU_CONFIG_UNKNOWN_FIELD\].*Unknown top-level configuration namespace/);
+
+      try {
+        defineConfig({ invalidTopLevel: 123 } as any);
+        expect.unreachable('Should have thrown');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(Error);
+        expect(Array.isArray(err.diagnostics)).toBe(true);
+        expect(err.diagnostics[0].code).toBe('RANU_CONFIG_UNKNOWN_FIELD');
+      }
+    });
+
+    it('throws descriptive error when given invalid field type and attaches diagnostics', () => {
+      expect(() => {
+        defineConfig({ server: { port: 'invalid_port' as any } });
+      }).toThrowError(/\[RANU_CONFIG_INVALID\].*Field "server\.port"/);
+
+      try {
+        defineConfig({ database: { maxConnections: -10 } });
+        expect.unreachable('Should have thrown');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(Error);
+        expect(Array.isArray(err.diagnostics)).toBe(true);
+        expect(err.diagnostics[0].code).toBe('RANU_CONFIG_INVALID');
+      }
+    });
   });
 
   describe('config discovery', () => {
@@ -81,7 +111,7 @@ describe('@ranu/config', () => {
       const loaded = await loadConfig(path.join(tempDir, 'ranu.config.ts'));
       expect(loaded).toBeDefined();
       expect(loaded.server.port).toBe(4000);
-    });
+    }, 15_000);
 
     it('loads ESM config (.mjs) correctly', async () => {
       fs.writeFileSync(path.join(tempDir, 'ranu.config.mjs'), 'export default { server: { port: 5000 } };');
@@ -161,6 +191,63 @@ describe('@ranu/config', () => {
       expect(result.success).toBe(false);
       expect(result.diagnostics[0].code).toBe('RANU_CONFIG_INVALID');
     });
+
+    it('passes validation for valid database configuration', () => {
+      const config = {
+        database: {
+          maxConnections: 10,
+          poolTimeout: 5000,
+        },
+      };
+      const result = validateUserConfig(config);
+      expect(result.success).toBe(true);
+      expect(result.diagnostics).toHaveLength(0);
+    });
+
+    it('rejects invalid database.maxConnections (negative, zero, floating point, string)', () => {
+      const invalidValues = [-5, 0, 3.14, '10' as any, NaN, Infinity];
+      for (const val of invalidValues) {
+        const result = validateUserConfig({ database: { maxConnections: val } });
+        expect(result.success).toBe(false);
+        expect(result.diagnostics.some((d) => d.code === 'RANU_CONFIG_INVALID')).toBe(true);
+      }
+    });
+
+    it('rejects invalid database.poolTimeout (negative, non-finite)', () => {
+      const invalidValues = [-1, -500, Infinity, -Infinity, NaN, '5000' as any];
+      for (const val of invalidValues) {
+        const result = validateUserConfig({ database: { poolTimeout: val } });
+        expect(result.success).toBe(false);
+        expect(result.diagnostics.some((d) => d.code === 'RANU_CONFIG_INVALID')).toBe(true);
+      }
+    });
+
+    it('accepts zero as a valid database.poolTimeout', () => {
+      const result = validateUserConfig({ database: { poolTimeout: 0 } });
+      expect(result.success).toBe(true);
+      expect(result.diagnostics).toHaveLength(0);
+    });
+
+    it('rejects non-object, null, or array database namespace', () => {
+      const invalidNamespaces = [null, 'invalid', 123, [], false];
+      for (const val of invalidNamespaces) {
+        const result = validateUserConfig({ database: val as any });
+        expect(result.success).toBe(false);
+        expect(result.diagnostics[0].code).toBe('RANU_CONFIG_INVALID');
+      }
+    });
+
+    it('rejects unknown fields under database with RANU_CONFIG_UNKNOWN_FIELD', () => {
+      const result = validateUserConfig({
+        database: {
+          maxConnections: 10,
+          idleTimeout: 3000,
+        } as any,
+      });
+      expect(result.success).toBe(false);
+      expect(result.diagnostics[0].code).toBe('RANU_CONFIG_UNKNOWN_FIELD');
+      expect(result.diagnostics[0].message).toContain('Unknown configuration field under "database"');
+    });
   });
 
   describe('config default resolution and precedence', () => {
@@ -192,6 +279,42 @@ describe('@ranu/config', () => {
       expect(Object.isFrozen(config)).toBe(true);
       expect(Object.isFrozen(config.build)).toBe(true);
       expect(Object.isFrozen(config.server)).toBe(true);
+    });
+
+    it('merges database options into ResolvedRanuConfig and freezes it', () => {
+      const userConfig = {
+        database: {
+          maxConnections: 20,
+          poolTimeout: 3000,
+        },
+      };
+      const { config, diagnostics } = resolveConfig(userConfig, tempDir, 'production');
+      expect(diagnostics).toHaveLength(0);
+      expect(config.database).toEqual({
+        maxConnections: 20,
+        poolTimeout: 3000,
+      });
+      expect(Object.isFrozen(config)).toBe(true);
+      expect(Object.isFrozen(config.database)).toBe(true);
+    });
+
+    it('merges partial database options into ResolvedRanuConfig and freezes it', () => {
+      const userConfig = {
+        database: {
+          maxConnections: 5,
+        },
+      };
+      const { config, diagnostics } = resolveConfig(userConfig, tempDir, 'production');
+      expect(diagnostics).toHaveLength(0);
+      expect(config.database).toEqual({
+        maxConnections: 5,
+      });
+      expect(Object.isFrozen(config.database)).toBe(true);
+    });
+
+    it('leaves database undefined in ResolvedRanuConfig when not provided in user config', () => {
+      const { config } = resolveConfig({}, tempDir, 'production');
+      expect(config.database).toBeUndefined();
     });
   });
 

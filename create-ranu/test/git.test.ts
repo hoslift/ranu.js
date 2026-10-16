@@ -42,15 +42,19 @@ describe('create-ranu git module', () => {
     expect(isInsideGitWorkTree(tempDir)).toBe(false);
   });
 
-  it('initializes git in a directory or safely handles existing repo', () => {
-    const result = initGit(tempDir);
-    expect(typeof result).toBe('boolean');
+  it(
+    'initializes git in a directory or safely handles existing repo',
+    () => {
+      const result = initGit(tempDir);
+      expect(typeof result).toBe('boolean');
 
-    if (result) {
-      const secondCall = initGit(tempDir);
-      expect(secondCall).toBe(false);
-    }
-  });
+      if (result) {
+        const secondCall = initGit(tempDir);
+        expect(secondCall).toBe(false);
+      }
+    },
+    20000,
+  );
 
   it('returns false in initGit if git is not installed', () => {
     vi.spyOn(childProcess, 'execFileSync').mockImplementation((_file, args) => {

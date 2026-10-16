@@ -1,4 +1,4 @@
-import type { PackageManager, TemplateName } from './types.js';
+import type { PackageManager, TemplateName, SupportedAdapter } from './types.js';
 import { getRunCommand } from './package-manager.js';
 
 export interface TemplateFileMap {
@@ -399,6 +399,170 @@ curl http://localhost:3000/app/api/hello?name=Developer
     files['tsconfig.json'] = `${tsconfig}\n`;
     files['.gitignore'] = gitignore;
     files['README.md'] = apiReadme;
+    files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
+
+  } else if (adapter === 'bun' || (template as string) === 'bun') {
+    // BUN TEMPLATE
+    dependencies['@ranujs/adapter-bun'] = '^0.1.6';
+
+    const bunConfig = `import { defineConfig } from '@ranujs/core/config';
+import bunAdapter from '@ranujs/adapter-bun';
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  deployment: {
+    adapter: bunAdapter(),
+  },
+});
+`;
+
+    const bunPage = `export default function BunPage() {
+  return (
+    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '3rem 1.5rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '2.5rem', color: '#fbf0df' }}>Bun Server App</h1>
+      <p style={{ color: '#4b5563', margin: '1rem 0' }}>
+        High-performance SSR runtime powered by native Bun.serve.
+      </p>
+    </main>
+  );
+}
+`;
+
+    const bunReadme = `# ${projectName}
+
+Ranu.js application powered by the Bun deployment adapter.
+
+## Getting Started
+
+\`\`\`bash
+${devCmd}
+\`\`\`
+`;
+
+    files['package.json'] = `${JSON.stringify({ name: projectName, version: '0.1.0', private: true, type: 'module', scripts, dependencies, devDependencies }, null, 2)}\n`;
+    files['ranu.config.ts'] = bunConfig;
+    files['app/layout.tsx'] = rootLayout;
+    files['app/page.tsx'] = bunPage;
+    files['tsconfig.json'] = `${tsconfig}\n`;
+    files['.gitignore'] = gitignore;
+    files['README.md'] = bunReadme;
+    files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
+
+  } else if (adapter === 'deno' || (template as string) === 'deno') {
+    // DENO TEMPLATE
+    dependencies['@ranujs/adapter-deno'] = '^0.1.6';
+
+    const denoConfig = `import { defineConfig } from '@ranujs/core/config';
+import denoAdapter from '@ranujs/adapter-deno';
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  deployment: {
+    adapter: denoAdapter(),
+  },
+});
+`;
+
+    const denoJson = `${JSON.stringify(
+      {
+        tasks: {
+          start: 'deno run -A .ranu/server/index.js',
+        },
+      },
+      null,
+      2
+    )}\n`;
+
+    const denoPage = `export default function DenoPage() {
+  return (
+    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '3rem 1.5rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '2.5rem', color: '#000000' }}>Deno Server App</h1>
+      <p style={{ color: '#4b5563', margin: '1rem 0' }}>
+        Secure, modern SSR runtime powered by Deno.serve.
+      </p>
+    </main>
+  );
+}
+`;
+
+    const denoReadme = `# ${projectName}
+
+Ranu.js application powered by the Deno deployment adapter.
+
+## Getting Started
+
+\`\`\`bash
+${devCmd}
+\`\`\`
+`;
+
+    files['package.json'] = `${JSON.stringify({ name: projectName, version: '0.1.0', private: true, type: 'module', scripts, dependencies, devDependencies }, null, 2)}\n`;
+    files['ranu.config.ts'] = denoConfig;
+    files['deno.json'] = denoJson;
+    files['app/layout.tsx'] = rootLayout;
+    files['app/page.tsx'] = denoPage;
+    files['tsconfig.json'] = `${tsconfig}\n`;
+    files['.gitignore'] = gitignore;
+    files['README.md'] = denoReadme;
+    files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
+
+  } else if (adapter === 'netlify' || (template as string) === 'netlify') {
+    // NETLIFY TEMPLATE
+    dependencies['@ranujs/adapter-netlify'] = '^0.1.6';
+
+    const netlifyConfig = `import { defineConfig } from '@ranujs/core/config';
+import netlifyAdapter from '@ranujs/adapter-netlify';
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  deployment: {
+    adapter: netlifyAdapter(),
+  },
+});
+`;
+
+    const netlifyToml = `[build]
+  command = "npm run build"
+  publish = ".ranu/client"
+`;
+
+    const netlifyPage = `export default function NetlifyPage() {
+  return (
+    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '3rem 1.5rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '2.5rem', color: '#00ad9f' }}>Netlify Functions & Edge</h1>
+      <p style={{ color: '#4b5563', margin: '1rem 0' }}>
+        Serverless & edge deployment on Netlify.
+      </p>
+    </main>
+  );
+}
+`;
+
+    const netlifyReadme = `# ${projectName}
+
+Ranu.js application configured for Netlify deployment.
+
+## Getting Started
+
+\`\`\`bash
+${devCmd}
+\`\`\`
+`;
+
+    files['package.json'] = `${JSON.stringify({ name: projectName, version: '0.1.0', private: true, type: 'module', scripts, dependencies, devDependencies }, null, 2)}\n`;
+    files['ranu.config.ts'] = netlifyConfig;
+    files['netlify.toml'] = netlifyToml;
+    files['app/layout.tsx'] = rootLayout;
+    files['app/page.tsx'] = netlifyPage;
+    files['tsconfig.json'] = `${tsconfig}\n`;
+    files['.gitignore'] = gitignore;
+    files['README.md'] = netlifyReadme;
     files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
 
   } else {

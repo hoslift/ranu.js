@@ -102,6 +102,56 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(tsconfig.include).toContain('test/**/*');
   });
 
+  it('scaffolds bun template with @ranujs/adapter-bun and bunAdapter', () => {
+    const files = generateTemplateFiles('bun-app', 'bun', { adapter: 'bun' });
+
+    expect(files['ranu.config.ts']).toContain('@ranujs/adapter-bun');
+    expect(files['ranu.config.ts']).toContain('adapter: bunAdapter()');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies['@ranujs/adapter-bun']).toBeDefined();
+    expect(files['app/page.tsx']).toContain('Bun Server App');
+  });
+
+  it('scaffolds deno template with deno.json, @ranujs/adapter-deno, and denoAdapter', () => {
+    const files = generateTemplateFiles('deno-app', 'npm', { adapter: 'deno' });
+
+    expect(files['deno.json']).toBeDefined();
+    expect(files['deno.json']).toContain('deno run -A .ranu/server/index.js');
+
+    expect(files['ranu.config.ts']).toContain('@ranujs/adapter-deno');
+    expect(files['ranu.config.ts']).toContain('adapter: denoAdapter()');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies['@ranujs/adapter-deno']).toBeDefined();
+    expect(files['app/page.tsx']).toContain('Deno Server App');
+  });
+
+  it('scaffolds netlify template with netlify.toml, @ranujs/adapter-netlify, and netlifyAdapter', () => {
+    const files = generateTemplateFiles('netlify-app', 'npm', { adapter: 'netlify' });
+
+    expect(files['netlify.toml']).toBeDefined();
+    expect(files['netlify.toml']).toContain('[build]');
+    expect(files['netlify.toml']).toContain('publish = ".ranu/client"');
+
+    expect(files['ranu.config.ts']).toContain('@ranujs/adapter-netlify');
+    expect(files['ranu.config.ts']).toContain('adapter: netlifyAdapter()');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies['@ranujs/adapter-netlify']).toBeDefined();
+    expect(files['app/page.tsx']).toContain('Netlify Functions & Edge');
+  });
+
+  it('scaffolds vercel adapter with @ranujs/adapter-vercel in default template', () => {
+    const files = generateTemplateFiles('vercel-app', 'npm', { adapter: 'vercel' });
+
+    expect(files['ranu.config.ts']).toContain('@ranujs/adapter-vercel');
+    expect(files['ranu.config.ts']).toContain('adapter: vercel()');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies['@ranujs/adapter-vercel']).toBeDefined();
+  });
+
   describe('CLI parseArgs flags', () => {
     it('parses --template and -t flags correctly', () => {
       const parsed1 = parseArgs(['my-app', '--template', 'cloudflare']);
@@ -123,6 +173,20 @@ describe('create-ranu multi-template scaffolding', () => {
 
       const parsed2 = parseArgs(['my-app', '-a', 'node']);
       expect(parsed2.adapter).toBe('node');
+    });
+
+    it('parses all 6 valid adapters via --adapter and -a', () => {
+      const adapters = ['cloudflare', 'node', 'netlify', 'bun', 'deno', 'vercel'] as const;
+      for (const a of adapters) {
+        expect(parseArgs(['my-app', '--adapter', a]).adapter).toBe(a);
+        expect(parseArgs(['my-app', '-a', a]).adapter).toBe(a);
+      }
+    });
+
+    it('throws descriptive error on invalid adapter', () => {
+      expect(() => parseArgs(['my-app', '--adapter', 'invalid-adapter'])).toThrow(
+        /Invalid adapter "invalid-adapter"/
+      );
     });
 
     it('parses --tests and --no-tests flags correctly', () => {
