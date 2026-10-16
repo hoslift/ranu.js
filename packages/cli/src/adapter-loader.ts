@@ -121,7 +121,7 @@ export function resolveAdapterSpecifier(
  * Evaluates candidate exports in priority order:
  * 1. Direct adapter instance implementing adapt()
  * 2. Direct factory function
- * 3. Named provider factory (e.g. createVercelAdapter, createCloudflareAdapter, createAdapter)
+ * 3. Named provider factory (e.g. createVercelAdapter, createCloudflareAdapter, createNodeAdapter, createNetlifyAdapter, createAdapter)
  * 4. Default export (factory function or adapter object)
  * 5. Named adapter export (factory function or adapter object)
  * 6. Any exported object implementing adapt()
