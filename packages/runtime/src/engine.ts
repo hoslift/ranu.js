@@ -138,6 +138,18 @@ export class RanuServerRuntime {
     const params: Record<string, string | string[]> = {};
     const responseCookies: string[] = [];
     const depth = ++globalRequestSequence;
+    const backgroundPromises: Promise<unknown>[] = [];
+
+    const waitUntil = (promise: Promise<unknown>): void => {
+      if (!promise || typeof (promise as any).then !== 'function') {
+        throw new TypeError('waitUntil() requires a valid Promise instance as its argument');
+      }
+      const safePromise = Promise.resolve(promise).catch((err) => {
+        return err;
+      });
+      backgroundPromises.push(safePromise);
+    };
+
     const context: RanuRequestContext = {
       requestId,
       request,
@@ -147,6 +159,8 @@ export class RanuServerRuntime {
       signal: request.signal,
       responseCookies,
       depth,
+      waitUntil,
+      waitUntilPromises: backgroundPromises,
     };
 
     let matchedRouteId: string | undefined;

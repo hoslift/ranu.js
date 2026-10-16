@@ -97,14 +97,13 @@ Modern web browsers send `Origin` or `Referer` headers on all state-modifying cr
 
 ```typescript
 // middleware.ts
-import { NextRequest } from '@ranujs/core';
 import { next } from '@ranujs/core/server';
 
 export const config = {
   matcher: ['/api/:path*'],
 };
 
-export function middleware(request: NextRequest): Response {
+export function middleware(request: Request): Response {
   const method = request.method.toUpperCase();
 
   // Only check state-modifying HTTP methods

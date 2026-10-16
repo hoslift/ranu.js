@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { ReactRenderer } from '../src/renderer.js';
-import type { ComponentModuleLoader, PageModule, LayoutModule, LoadingModule, NotFoundModule } from '../src/types.js';
+import type {
+  ComponentModuleLoader,
+  PageModule,
+  LayoutModule,
+  LoadingModule,
+  NotFoundModule,
+  PageProps,
+} from '../src/types.js';
 import type { RanuRequestContext, PageRenderTarget, RequestContextStore } from '@ranu/runtime';
-import {
-  registerRequestContextStore,
-  RedirectSignal,
-  NotFoundSignal,
-} from '@ranu/runtime';
+import { registerRequestContextStore, RedirectSignal, NotFoundSignal } from '@ranu/runtime';
 
 class TestContextStore implements RequestContextStore {
   private activeCtx?: RanuRequestContext;
@@ -42,7 +45,10 @@ describe('ReactRenderer Integration Unit Tests', () => {
   const contextStore = new TestContextStore();
   registerRequestContextStore(contextStore);
 
-  function createTestContext(urlStr: string = 'http://localhost/test', params: Record<string, string> = {}): RanuRequestContext {
+  function createTestContext(
+    urlStr: string = 'http://localhost/test',
+    params: Record<string, string> = {},
+  ): RanuRequestContext {
     const url = new URL(urlStr);
     const request = new Request(url, {
       headers: {
@@ -60,6 +66,8 @@ describe('ReactRenderer Integration Unit Tests', () => {
       signal: request.signal,
       responseCookies: [],
       depth: 1,
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
   }
 
@@ -138,7 +146,8 @@ describe('ReactRenderer Integration Unit Tests', () => {
     };
 
     const rootLayout: LayoutModule = {
-      default: ({ children }: any) => React.createElement('html', null, React.createElement('body', null, children)),
+      default: ({ children }: any) =>
+        React.createElement('html', null, React.createElement('body', null, children)),
     };
 
     const loader: ComponentModuleLoader = {
@@ -214,7 +223,12 @@ describe('ReactRenderer Integration Unit Tests', () => {
     };
 
     const rootLayout: LayoutModule = {
-      default: ({ children }: any) => React.createElement('html', null, React.createElement('body', { id: 'root-layout' }, children)),
+      default: ({ children }: any) =>
+        React.createElement(
+          'html',
+          null,
+          React.createElement('body', { id: 'root-layout' }, children),
+        ),
     };
 
     const customNotFound: NotFoundModule = {
@@ -286,5 +300,52 @@ describe('ReactRenderer Integration Unit Tests', () => {
     expect(html).toContain('Internal Server Error');
     expect(html).not.toContain('SECRET_KEY_123');
     expect(html).toContain('test-req-1');
+  });
+
+  it('streams SSR of an async Page component awaiting route params', async () => {
+    const asyncPageModule: PageModule = {
+      default: async ({ params }: PageProps) => {
+        const resolved = await params;
+        return React.createElement('div', { id: 'product-view' }, [
+          React.createElement('h1', { key: 'title' }, `Product ${resolved.productId}`),
+          React.createElement('span', { key: 'cat' }, `Category ${resolved.category}`),
+        ]);
+      },
+    };
+
+    const rootLayout: LayoutModule = {
+      default: ({ children }: any) =>
+        React.createElement('html', null, React.createElement('body', null, children)),
+    };
+
+    const loader: ComponentModuleLoader = {
+      loadPage: async () => asyncPageModule,
+      loadLayout: async () => rootLayout,
+      loadLoading: async () => undefined,
+      loadError: async () => undefined,
+      loadNotFound: async () => undefined,
+    };
+
+    const renderer = new ReactRenderer({ loader, mode: 'production' });
+    const context = createTestContext('http://localhost/products/p-100?cat=electronics', {
+      productId: 'p-100',
+      category: 'electronics',
+    });
+
+    const target: PageRenderTarget = {
+      routeId: 'app/products/[productId]/page.tsx',
+      params: context.params,
+      layouts: ['app/layout.tsx'],
+      errors: [],
+    };
+
+    const response = await contextStore.run(context, async () => {
+      return renderer.render(context.request, context, target);
+    });
+
+    expect(response.status).toBe(200);
+    const html = await streamToString(response.body as ReadableStream<Uint8Array>);
+    expect(html).toContain('Product p-100');
+    expect(html).toContain('Category electronics');
   });
 });

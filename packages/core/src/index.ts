@@ -23,36 +23,28 @@ export type RouteKind = 'page' | 'api';
 /** Rendering modes supported by the framework */
 export type RenderMode = 'server' | 'static' | 'client';
 
-/** Core framework capability flags (used by deployment adapters to verify compat) */
-export interface FrameworkCapabilities {
-  /** Supports streaming server responses */
-  streaming: boolean;
-  /** Supports route-level middleware execution */
-  middleware: boolean;
-  /** Supports full Node.js API set */
-  nodejsBuiltins: boolean;
-}
+import type { DeploymentCapabilities } from './capabilities.js';
+export * from './capabilities.js';
 
-/** Deployment target capabilities declared by adapters */
-export interface DeploymentCapabilities {
-  readonly runtime: 'node' | 'edge' | 'static' | 'workerd';
-  readonly ssr: boolean;
-  readonly apiRoutes: boolean;
-  readonly middleware: boolean;
-  readonly streaming: boolean;
-  readonly staticFiles: boolean;
-  readonly runtimeEnvironment: boolean;
-  readonly writableFilesystem: 'none' | 'temporary' | 'persistent';
-  readonly longLivedProcess: boolean;
-  readonly supportsWaitUntil?: boolean;
+/** Logger contract provided to deployment adapters */
+export interface DeploymentLogger {
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+  debug?(message: string): void;
+  log?(message: string): void;
+  [key: string]: any;
 }
 
 /** Context passed to a deployment adapter during preparation/adaptation */
 export interface DeploymentAdapterContext {
   readonly projectRoot: string;
-  readonly buildDir?: string | undefined;
-  readonly outputDir?: string | undefined;
-  readonly logger?: any;
+  readonly buildDir?: string;
+  readonly outputDir?: string;
+  readonly logger?: DeploymentLogger;
+  readonly rootDir?: string;
+  readonly manifest?: unknown;
+  readonly config?: unknown;
 }
 
 /** Result returned by a deployment adapter */
@@ -84,7 +76,15 @@ export interface VersionCompatibility {
 export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
 
 /** Supported HTTP method array */
-export const HTTP_METHODS: HttpMethod[] = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+export const HTTP_METHODS: HttpMethod[] = [
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'OPTIONS',
+];
 
 /** Static route parameter values */
 export type StaticParamValue = string | readonly string[];
@@ -97,6 +97,4 @@ export type GenerateStaticParamsResult = readonly StaticParamRecord[];
 
 /** Public function signature for generateStaticParams */
 export type GenerateStaticParams = () =>
-  | GenerateStaticParamsResult
-  | Promise<GenerateStaticParamsResult>;
-
+  GenerateStaticParamsResult | Promise<GenerateStaticParamsResult>;

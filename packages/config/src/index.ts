@@ -27,6 +27,10 @@ export interface RanuUserConfig {
   deployment?: {
     adapter?: RanuDeploymentAdapter;
   };
+  database?: {
+    maxConnections?: number;
+    poolTimeout?: number;
+  };
   env?: {
     files?: boolean;
   };
@@ -56,6 +60,10 @@ export interface ResolvedRanuConfig {
   readonly deployment: {
     readonly adapter?: RanuDeploymentAdapter;
   };
+  readonly database?: {
+    readonly maxConnections?: number;
+    readonly poolTimeout?: number;
+  };
 }
 
 export interface RanuConfigContext {
@@ -65,9 +73,26 @@ export interface RanuConfigContext {
 
 /**
  * defineConfig helper.
- * Provides TypeScript type assistance without runtime side effects.
+ * Provides TypeScript type assistance and runtime schema validation for user configurations.
  */
 export function defineConfig(config: RanuUserConfig | ((ctx: RanuConfigContext) => RanuUserConfig)): any {
+  if (typeof config === 'object' && config !== null) {
+    const result = validateUserConfig(config);
+    if (!result.success) {
+      const messages = result.diagnostics
+        .map((d) => `[${d.code}] ${d.message}`)
+        .join('\n');
+      const error = new Error(`Invalid configuration:\n${messages}`);
+      (error as any).diagnostics = result.diagnostics;
+      throw error;
+    }
+    return config;
+  }
+
+  if (typeof config === 'function') {
+    return config;
+  }
+
   return config;
 }
 
@@ -164,7 +189,7 @@ export async function loadConfig(configPath: string): Promise<any> {
 export function validateUserConfig(config: any): { success: boolean; diagnostics: RanuDiagnostic[] } {
   const diagnostics: RanuDiagnostic[] = [];
 
-  if (!config) return { success: true, diagnostics };
+  if (config === undefined || config === null) return { success: true, diagnostics };
 
   if (typeof config !== 'object' || Array.isArray(config)) {
     diagnostics.push({
@@ -175,7 +200,7 @@ export function validateUserConfig(config: any): { success: boolean; diagnostics
     return { success: false, diagnostics };
   }
 
-  const allowedTopLevels = ['plugins', 'build', 'server', 'routing', 'rendering', 'deployment', 'env'];
+  const allowedTopLevels = ['plugins', 'build', 'server', 'routing', 'rendering', 'deployment', 'database', 'env'];
   for (const key of Object.keys(config)) {
     if (!allowedTopLevels.includes(key)) {
       diagnostics.push({
@@ -372,7 +397,49 @@ export function validateUserConfig(config: any): { success: boolean; diagnostics
     }
   }
 
-  // 7. Env
+  // 7. Database
+  if (config.database !== undefined) {
+    if (typeof config.database !== 'object' || config.database === null || Array.isArray(config.database)) {
+      diagnostics.push({
+        code: 'RANU_CONFIG_INVALID',
+        severity: 'error',
+        message: 'Namespace "database" must be a non-null key-value object.',
+      });
+    } else {
+      const allowedDatabase = ['maxConnections', 'poolTimeout'];
+      for (const k of Object.keys(config.database)) {
+        if (!allowedDatabase.includes(k)) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_UNKNOWN_FIELD',
+            severity: 'error',
+            message: `Unknown configuration field under "database": "${k}".`,
+          });
+        }
+      }
+      if (config.database.maxConnections !== undefined) {
+        const maxConn = config.database.maxConnections;
+        if (typeof maxConn !== 'number' || maxConn < 1 || !Number.isInteger(maxConn)) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_INVALID',
+            severity: 'error',
+            message: 'Field "database.maxConnections" must be a positive integer (>= 1).',
+          });
+        }
+      }
+      if (config.database.poolTimeout !== undefined) {
+        const timeout = config.database.poolTimeout;
+        if (typeof timeout !== 'number' || timeout < 0 || !Number.isFinite(timeout)) {
+          diagnostics.push({
+            code: 'RANU_CONFIG_INVALID',
+            severity: 'error',
+            message: 'Field "database.poolTimeout" must be a non-negative finite number (>= 0).',
+          });
+        }
+      }
+    }
+  }
+
+  // 8. Env
   if (config.env !== undefined) {
     if (typeof config.env !== 'object' || Array.isArray(config.env)) {
       diagnostics.push({
@@ -452,6 +519,21 @@ export function resolveConfig(
     defaultMode: userConfig?.rendering?.defaultMode ?? 'server',
   };
 
+  const mergedDatabase =
+    userConfig?.database !== undefined &&
+    userConfig.database !== null &&
+    typeof userConfig.database === 'object' &&
+    !Array.isArray(userConfig.database)
+      ? {
+          ...(userConfig.database.maxConnections !== undefined
+            ? { maxConnections: userConfig.database.maxConnections }
+            : {}),
+          ...(userConfig.database.poolTimeout !== undefined
+            ? { poolTimeout: userConfig.database.poolTimeout }
+            : {}),
+        }
+      : undefined;
+
   const resolved: ResolvedRanuConfig = {
     root: projectRoot,
     mode,
@@ -463,6 +545,7 @@ export function resolveConfig(
     deployment: {
       adapter: userConfig?.deployment?.adapter,
     },
+    ...(mergedDatabase !== undefined ? { database: mergedDatabase } : {}),
   };
 
   deepFreeze(resolved);

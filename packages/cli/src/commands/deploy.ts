@@ -1,144 +1,86 @@
+import path from 'node:path';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 import { resolveProjectContext } from '../context.js';
+import {
+  loadDeploymentAdapter,
+  type LoadAdapterOptions,
+} from '../adapter-loader.js';
+
+export * from '../adapter-loader.js';
 
 /**
- * Loads the official Vercel deployment adapter.
+ * Loads the official Vercel deployment adapter (retained for backward compatibility).
  */
 export async function loadVercelAdapter(
-  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
-): Promise<any> {
+  importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
+): Promise<unknown> {
   return importer('@ranujs/adapter-vercel');
-}
-
-/**
- * Loads the official Cloudflare deployment adapter.
- */
-export async function loadCloudflareAdapter(
-  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
-): Promise<any> {
-  return importer('@ranujs/adapter-cloudflare');
-}
-
-/**
- * Loads the official standalone Node.js deployment adapter.
- */
-export async function loadNodeAdapter(
-  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
-): Promise<any> {
-  return importer('@ranujs/adapter-node');
-}
-
-/**
- * Loads the official Netlify deployment adapter.
- */
-export async function loadNetlifyAdapter(
-  importer: (pkg: string) => Promise<any> = (pkg) => import(pkg),
-): Promise<any> {
-  return importer('@ranujs/adapter-netlify');
 }
 
 /**
  * Executes the configured deployment adapter for the production project.
  *
  * @param args - Command-line options controlling output format
- * @returns `0` when deployment preparation succeeds, `1` when no valid adapter is configured
+ * @param logger - CLI logger instance
+ * @param loaderOptions - Optional overrides for adapter loader (e.g. custom importer for testing)
+ * @returns `0` when deployment preparation succeeds, `1` when no valid adapter is configured or adaptation fails
  */
-export async function runDeployCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
+export async function runDeployCommand(
+  args: ParsedCliArgs,
+  logger: CliLogger,
+  loaderOptions?: Partial<LoadAdapterOptions>,
+): Promise<number> {
   const ctx = await resolveProjectContext(args, logger, 'production');
 
   let adapter = ctx.config.deployment?.adapter;
 
-  // CLI flag override: --adapter vercel / cloudflare / node / netlify
+  // CLI flag override: --adapter <shorthand | package | path>
   if (args.adapter) {
-    const adapterName = String(args.adapter).toLowerCase();
-    if (adapterName === 'vercel' || adapterName === '@ranujs/adapter-vercel') {
-      try {
-        const vercelMod = await loadVercelAdapter();
-        const loadedAdapter =
-          typeof vercelMod.createVercelAdapter === 'function'
-            ? vercelMod.createVercelAdapter()
-            : typeof vercelMod.default === 'function'
-              ? vercelMod.default()
-              : vercelMod.default;
-        adapter = loadedAdapter as typeof adapter;
-      } catch (err: unknown) {
-        const msg = (err as Error).message ?? String(err);
-        if (args.json) {
-          logger.json({
-            success: false,
-            error: `Failed to load adapter "${args.adapter}": ${msg}`,
-          });
-        } else {
-          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
-        }
-        return 1;
-      }
-    } else if (adapterName === 'cloudflare' || adapterName === '@ranujs/adapter-cloudflare') {
-      try {
-        const cfMod = await loadCloudflareAdapter();
-        const loadedAdapter =
-          typeof cfMod.createCloudflareAdapter === 'function'
-            ? cfMod.createCloudflareAdapter()
-            : typeof cfMod.default === 'function'
-              ? cfMod.default()
-              : cfMod.default;
-        adapter = loadedAdapter as typeof adapter;
-      } catch (err: unknown) {
-        const msg = (err as Error).message ?? String(err);
-        if (args.json) {
-          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
-        } else {
-          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
-        }
-        return 1;
-      }
-    } else if (adapterName === 'node' || adapterName === '@ranujs/adapter-node') {
-      try {
-        const nodeMod = await loadNodeAdapter();
-        const loadedAdapter =
-          typeof nodeMod.createNodeAdapter === 'function'
-            ? nodeMod.createNodeAdapter()
-            : typeof nodeMod.default === 'function'
-              ? nodeMod.default()
-              : nodeMod.default;
-        adapter = loadedAdapter as typeof adapter;
-      } catch (err: unknown) {
-        const msg = (err as Error).message ?? String(err);
-        if (args.json) {
-          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
-        } else {
-          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
-        }
-        return 1;
-      }
-    } else if (adapterName === 'netlify' || adapterName === '@ranujs/adapter-netlify') {
-      try {
-        const netlifyMod = await loadNetlifyAdapter();
-        const loadedAdapter =
-          typeof netlifyMod.createNetlifyAdapter === 'function'
-            ? netlifyMod.createNetlifyAdapter()
-            : typeof netlifyMod.default === 'function'
-              ? netlifyMod.default()
-              : netlifyMod.default;
-        adapter = loadedAdapter as typeof adapter;
-      } catch (err: unknown) {
-        const msg = (err as Error).message ?? String(err);
-        if (args.json) {
-          logger.json({ success: false, error: `Failed to load adapter "${args.adapter}": ${msg}` });
-        } else {
-          logger.error(`Failed to load adapter "${args.adapter}": ${msg}`);
-        }
-        return 1;
-      }
-    } else {
-      const msg = `Unsupported deployment adapter "${args.adapter}". Supported adapters: "vercel", "cloudflare", "node", "netlify".`;
+    const loadResult = await loadDeploymentAdapter(String(args.adapter), {
+      projectRoot: ctx.projectRoot,
+      ...(loaderOptions?.importer ? { importer: loaderOptions.importer } : {}),
+    });
+
+    if (!loadResult.success) {
       if (args.json) {
-        logger.json({ success: false, error: msg });
+        logger.json({
+          success: false,
+          error: loadResult.error,
+          diagnostic: loadResult.diagnostic,
+        });
       } else {
-        logger.error(msg);
+        logger.error(loadResult.error);
+        if (loadResult.diagnostic?.hint) {
+          logger.log(`  Hint: ${loadResult.diagnostic.hint}`);
+        }
       }
       return 1;
     }
+
+    adapter = loadResult.adapter;
+  } else if (typeof adapter === 'string') {
+    const loadResult = await loadDeploymentAdapter(adapter, {
+      projectRoot: ctx.projectRoot,
+      ...(loaderOptions?.importer ? { importer: loaderOptions.importer } : {}),
+    });
+
+    if (!loadResult.success) {
+      if (args.json) {
+        logger.json({
+          success: false,
+          error: loadResult.error,
+          diagnostic: loadResult.diagnostic,
+        });
+      } else {
+        logger.error(loadResult.error);
+        if (loadResult.diagnostic?.hint) {
+          logger.log(`  Hint: ${loadResult.diagnostic.hint}`);
+        }
+      }
+      return 1;
+    }
+
+    adapter = loadResult.adapter;
   }
 
   if (!adapter) {
@@ -166,54 +108,70 @@ export default defineConfig({
     return 1;
   }
 
-  if (typeof adapter.adapt === 'function') {
-    logger.log(`Executing deployment adapter: ${adapter.name ?? 'custom'}...`);
-    try {
-      const result = await adapter.adapt({
-        projectRoot: ctx.projectRoot,
-        logger,
+  if (typeof adapter.adapt !== 'function') {
+    const errMsg = 'The configured deployment adapter does not implement a valid adapt() method.';
+    if (args.json) {
+      logger.json({
+        success: false,
+        error: errMsg,
+        diagnostic: {
+          code: 'RANU_DEPLOY_ADAPTER_INVALID',
+          severity: 'error',
+          message: errMsg,
+          hint: 'Ensure the adapter implements the RanuDeploymentAdapter interface with an adapt(context) method.',
+        },
       });
-      const isSuccess = result?.success !== false;
-      if (args.json) {
-        logger.json({
-          success: isSuccess,
-          adapter: adapter.name ?? 'custom',
-          outputDirectory: result?.outputDirectory,
-          files: result?.files,
-        });
-      } else {
-        if (isSuccess) {
-          logger.success(`Deployment preparation complete for ${adapter.name ?? 'custom'}.`);
-          if (result?.outputDirectory) {
-            logger.log(`Output: ${result.outputDirectory}`);
-          }
-        } else {
-          logger.error(`Deployment preparation failed for ${adapter.name ?? 'custom'}.`);
-        }
-      }
-      return isSuccess ? 0 : 1;
-    } catch (err: unknown) {
-      const msg = (err as Error).message ?? String(err);
-      if (args.json) {
-        logger.json({
-          success: false,
-          error: msg,
-          adapter: adapter.name ?? 'custom',
-        });
-      } else {
-        logger.error(`Deployment adaptation failed: ${msg}`);
-      }
-      return 1;
+    } else {
+      logger.error(errMsg);
+      logger.log(
+        '  Hint: Ensure the adapter implements the RanuDeploymentAdapter interface with an adapt(context) method.',
+      );
     }
+    return 1;
   }
 
-  if (args.json) {
-    logger.json({
-      success: false,
-      error: 'The configured deployment adapter does not implement a valid adapt() method',
+  logger.log(`Executing deployment adapter: ${adapter.name ?? 'custom'}...`);
+  try {
+    const buildDir = path.join(ctx.projectRoot, '.ranu', 'build');
+    const result = await adapter.adapt({
+      projectRoot: ctx.projectRoot,
+      buildDir,
+      rootDir: ctx.projectRoot,
+      logger,
+      config: ctx.config,
     });
-  } else {
-    logger.error('The configured deployment adapter does not implement a valid adapt() method.');
+    const isSuccess = result?.success !== false;
+    if (args.json) {
+      logger.json({
+        success: isSuccess,
+        adapter: adapter.name ?? 'custom',
+        outputDirectory: result?.outputDirectory,
+        files: result?.files,
+        warnings: result?.warnings,
+        diagnostics: result?.diagnostics,
+      });
+    } else {
+      if (isSuccess) {
+        logger.success(`Deployment preparation complete for ${adapter.name ?? 'custom'}.`);
+        if (result?.outputDirectory) {
+          logger.log(`Output: ${result.outputDirectory}`);
+        }
+      } else {
+        logger.error(`Deployment preparation failed for ${adapter.name ?? 'custom'}.`);
+      }
+    }
+    return isSuccess ? 0 : 1;
+  } catch (err: unknown) {
+    const msg = (err as Error).message ?? String(err);
+    if (args.json) {
+      logger.json({
+        success: false,
+        error: msg,
+        adapter: adapter.name ?? 'custom',
+      });
+    } else {
+      logger.error(`Deployment adaptation failed: ${msg}`);
+    }
+    return 1;
   }
-  return 1;
 }

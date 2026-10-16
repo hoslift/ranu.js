@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   MANIFEST_SCHEMA_VERSION,
+  SUPPORTED_BUILD_RUNTIMES,
   validateBuildDescriptor,
   validateRouteManifest,
   validateServerManifest,
@@ -8,6 +9,7 @@ import {
   validateStaticManifest,
   isAbsolutePath,
   type BuildDescriptor,
+  type BuildRuntimeTarget,
   type RouteManifest,
   type ServerManifest,
   type ClientManifest,
@@ -17,6 +19,17 @@ import {
 describe('@ranu/manifests', () => {
   it('exports correct MANIFEST_SCHEMA_VERSION', () => {
     expect(MANIFEST_SCHEMA_VERSION).toBe(1);
+  });
+
+  it('exports SUPPORTED_BUILD_RUNTIMES constant with universal runtime targets', () => {
+    expect(SUPPORTED_BUILD_RUNTIMES).toEqual([
+      'node',
+      'edge',
+      'workerd',
+      'bun',
+      'deno',
+      'static',
+    ]);
   });
 
   describe('isAbsolutePath helper', () => {
@@ -67,12 +80,33 @@ describe('@ranu/manifests', () => {
       expect(result.diagnostics[0].code).toBe('RANU_SERVER_MANIFEST_VERSION');
     });
 
-    it('rejects unsupported runtimes', () => {
+    it.each(['node', 'edge', 'workerd', 'bun', 'deno', 'static'] as const)(
+      'accepts supported build runtime target %j',
+      (runtime: BuildRuntimeTarget) => {
+        const desc: BuildDescriptor = {
+          schemaVersion: 1,
+          buildId: 'build_123',
+          frameworkVersion: '0.0.0',
+          runtime,
+          manifests: {
+            routes: './routes.json',
+            server: './server.json',
+            client: './client.json',
+            static: './static.json',
+          },
+        };
+        const result = validateBuildDescriptor(desc);
+        expect(result.success).toBe(true);
+        expect(result.diagnostics).toHaveLength(0);
+      },
+    );
+
+    it('rejects unsupported runtimes with actionable diagnostic message', () => {
       const desc = {
         schemaVersion: 1,
         buildId: 'build_123',
         frameworkVersion: '0.0.0',
-        runtime: 'vercel', // Unsupported provider target in core
+        runtime: 'vercel',
         manifests: {
           routes: './routes.json',
           server: './server.json',
@@ -82,7 +116,84 @@ describe('@ranu/manifests', () => {
       };
       const result = validateBuildDescriptor(desc as any);
       expect(result.success).toBe(false);
-      expect(result.diagnostics[0].message).toContain('Unsupported build runtime target');
+      expect(result.diagnostics[0].code).toBe('RANU_BUILD_MANIFEST_INVALID');
+      expect(result.diagnostics[0].message).toBe(
+        'Unsupported build runtime target: "vercel". Target must be one of: "node", "edge", "workerd", "bun", "deno", "static".',
+      );
+    });
+
+    it.each([
+      'vercel',
+      'aws',
+      '',
+      'cloudflare',
+      'netlify',
+      'lambda',
+      null,
+      undefined,
+    ])('rejects unsupported runtime target %j with actionable diagnostic', (runtime) => {
+      const desc = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        frameworkVersion: '0.0.0',
+        runtime,
+        manifests: {
+          routes: './routes.json',
+          server: './server.json',
+          client: './client.json',
+          static: './static.json',
+        },
+      };
+      const result = validateBuildDescriptor(desc as any);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics[0].code).toBe('RANU_BUILD_MANIFEST_INVALID');
+      expect(result.diagnostics[0].message).toBe(
+        `Unsupported build runtime target: "${runtime}". Target must be one of: "node", "edge", "workerd", "bun", "deno", "static".`,
+      );
+    });
+
+    it('safely rejects Symbol runtime without throwing TypeError', () => {
+      const desc = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        frameworkVersion: '0.0.0',
+        runtime: Symbol('node'),
+        manifests: {
+          routes: './routes.json',
+          server: './server.json',
+          client: './client.json',
+          static: './static.json',
+        },
+      };
+      const result = validateBuildDescriptor(desc as any);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics).toHaveLength(1);
+      expect(result.diagnostics[0].code).toBe('RANU_BUILD_MANIFEST_INVALID');
+      expect(result.diagnostics[0].message).toBe(
+        'Unsupported build runtime target: "Symbol(node)". Target must be one of: "node", "edge", "workerd", "bun", "deno", "static".',
+      );
+    });
+
+    it('safely rejects Object.create(null) runtime without throwing TypeError', () => {
+      const desc = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        frameworkVersion: '0.0.0',
+        runtime: Object.create(null),
+        manifests: {
+          routes: './routes.json',
+          server: './server.json',
+          client: './client.json',
+          static: './static.json',
+        },
+      };
+      const result = validateBuildDescriptor(desc as any);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics).toHaveLength(1);
+      expect(result.diagnostics[0].code).toBe('RANU_BUILD_MANIFEST_INVALID');
+      expect(result.diagnostics[0].message).toBe(
+        'Unsupported build runtime target: "[object Object]". Target must be one of: "node", "edge", "workerd", "bun", "deno", "static".',
+      );
     });
 
     it('rejects absolute paths inside descriptor', () => {

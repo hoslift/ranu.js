@@ -7,6 +7,14 @@ packages:
   - "tooling/*"
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@turbo/darwin-64@2.11.8'
+  - '@turbo/darwin-arm64@2.11.8'
+  - '@turbo/linux-64@2.11.8'
+  - '@turbo/linux-arm64@2.11.8'
+  - '@turbo/windows-64@2.11.8'
+  - '@turbo/windows-arm64@2.11.8'
+  - turbo@2.11.8
 overrides:
   "brace-expansion@1": "1.1.21"
   "brace-expansion@2": "2.1.7"
@@ -18,4 +26,3 @@ overrides:
   "@vitest/coverage-v8": "4.1.11"
   "@vitest/mocker": "4.1.11"
   "tinypool": ">=2.1.2"
-

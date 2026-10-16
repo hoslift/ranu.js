@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   cookies,
@@ -6,6 +6,7 @@ import {
   redirect,
   notFound,
   getRequestContext,
+  waitUntil,
 } from '../src/index.js';
 import {
   registerRequestContextStore,
@@ -51,6 +52,8 @@ function createMockContext(init?: {
     signal: request.signal,
     responseCookies: [],
     depth: init?.depth ?? 1,
+    waitUntil: () => {},
+    waitUntilPromises: [],
   };
 }
 
@@ -426,6 +429,37 @@ describe('@ranu/server — Server Helpers', () => {
       const [resA, resB] = await Promise.all([taskA, taskB]);
       expect(resA).toBe('A_done');
       expect(resB).toBe('B_done');
+    });
+  });
+
+  describe('waitUntil Background Execution Helper', () => {
+    it('delegates to context.waitUntil within active request lifecycle', async () => {
+      const waitUntilFn = vi.fn();
+      const ctx = createMockContext();
+      (ctx as any).waitUntil = waitUntilFn;
+
+      await store.run(ctx, async () => {
+        const promise = Promise.resolve('data');
+        waitUntil(promise);
+        expect(waitUntilFn).toHaveBeenCalledWith(promise);
+      });
+    });
+
+    it('throws error when called outside active request lifecycle', () => {
+      expect(() => waitUntil(Promise.resolve())).toThrow(
+        /getRequestContext\(\) was called outside a valid request lifecycle/,
+      );
+    });
+
+    it('throws RANU_SSG_DYNAMIC_ACCESS when called during Static Site Generation (SSG)', async () => {
+      const ctx = createMockContext();
+      ctx.locals.set('__ranu_ssg__', true);
+
+      await store.run(ctx, async () => {
+        expect(() => waitUntil(Promise.resolve())).toThrowError(
+          /Dynamic server helpers.*cannot be accessed during Static Site Generation/,
+        );
+      });
     });
   });
 });

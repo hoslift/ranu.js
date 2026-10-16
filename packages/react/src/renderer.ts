@@ -7,9 +7,15 @@ import type {
   RanuHydrationPayload,
   ResolvedMetadata,
   RouteClientAssets,
+  RouteParams,
 } from './types.js';
 import { resolveHierarchyMetadata } from './metadata.js';
-import { composeComponentTree, composeNotFoundTree, composeErrorDocument } from './composition.js';
+import {
+  composeComponentTree,
+  composeNotFoundTree,
+  composeErrorDocument,
+  wrapRouteParams,
+} from './composition.js';
 import { renderReactToStream } from './stream.js';
 import { sanitizeRenderError } from './sanitizer.js';
 
@@ -54,8 +60,9 @@ export class ReactRenderer implements RanuRenderer {
   ): Promise<Response> {
     const mode = this.options.mode ?? 'production';
     const searchParams = parseSearchParams(context.url);
+    const rawParams = Object.freeze({ ...context.params });
     const pageProps: PageProps = {
-      params: Object.freeze({ ...context.params }),
+      params: wrapRouteParams(rawParams),
       searchParams,
     };
 
@@ -93,7 +100,7 @@ export class ReactRenderer implements RanuRenderer {
       if (rawRouteAssets || rawBootstrapAssets) {
         resolvedClientAssets = mergeClientAssets(
           rawRouteAssets ?? { js: [], css: [] },
-          rawBootstrapAssets ?? { js: [], css: [] }
+          rawBootstrapAssets ?? { js: [], css: [] },
         );
       }
 
@@ -122,7 +129,7 @@ export class ReactRenderer implements RanuRenderer {
           buildId,
           routeId: target.routeId,
           pathname: context.url.pathname,
-          params: pageProps.params,
+          params: rawParams,
           searchParams: pageProps.searchParams,
           publicEnv: Object.freeze({ ...(this.options.publicEnv ?? {}) }),
           assets: resolvedClientAssets!,
@@ -187,7 +194,7 @@ export class ReactRenderer implements RanuRenderer {
   private async renderNotFound(
     context: RanuRequestContext,
     target: PageRenderTarget,
-    params: Readonly<Record<string, string | string[]>>,
+    params: RouteParams,
     mode: 'development' | 'production',
   ): Promise<Response> {
     try {

@@ -49,22 +49,6 @@ describe('Dynamic Deployment Adapter Loader', () => {
       }
     });
 
-    it('resolves full official package names as package specifiers', () => {
-      const packages = [
-        '@ranujs/adapter-vercel',
-        '@ranujs/adapter-cloudflare',
-        '@ranujs/adapter-node',
-        '@ranujs/adapter-netlify',
-      ];
-
-      for (const pkg of packages) {
-        const resolved = resolveAdapterSpecifier(pkg, { projectRoot: tempDir });
-        expect(resolved.kind).toBe('package');
-        expect(resolved.resolvedTarget).toBe(pkg);
-        expect(resolved.importSpecifier).toBe(pkg);
-      }
-    });
-
     it('resolves custom package specifiers', () => {
       const packages = ['@myorg/custom-adapter', 'ranu-adapter-aws', '@scope/adapter'];
 
@@ -272,7 +256,7 @@ describe('Dynamic Deployment Adapter Loader', () => {
       outputDirectory: '/out',
     });
 
-    it('successfully loads cloudflare adapter via mock importer for shorthands', async () => {
+    it('successfully loads an adapter via mock importer for shorthands', async () => {
       const adapter: RanuDeploymentAdapter = {
         name: 'cloudflare-test',
         apiVersion: 1,
@@ -296,82 +280,6 @@ describe('Dynamic Deployment Adapter Loader', () => {
         expect(result.specifier.resolvedTarget).toBe('@ranujs/adapter-cloudflare');
       }
       expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('successfully loads node adapter via mock importer for shorthands', async () => {
-      const adapter: RanuDeploymentAdapter = {
-        name: 'node-test',
-        apiVersion: 1,
-        capabilities: {},
-        adapt: dummyAdapt,
-      };
-      const importer = vi.fn(async (spec: string) => {
-        expect(spec).toBe('@ranujs/adapter-node');
-        return { createNodeAdapter: () => adapter };
-      });
-
-      const result = await loadDeploymentAdapter('node', {
-        projectRoot: tempDir,
-        importer,
-      });
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.adapter).toBe(adapter);
-        expect(result.specifier.kind).toBe('shorthand');
-        expect(result.specifier.resolvedTarget).toBe('@ranujs/adapter-node');
-      }
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('successfully loads netlify adapter via mock importer for shorthands', async () => {
-      const adapter: RanuDeploymentAdapter = {
-        name: 'netlify-test',
-        apiVersion: 1,
-        capabilities: {},
-        adapt: dummyAdapt,
-      };
-      const importer = vi.fn(async (spec: string) => {
-        expect(spec).toBe('@ranujs/adapter-netlify');
-        return { createNetlifyAdapter: () => adapter };
-      });
-
-      const result = await loadDeploymentAdapter('netlify', {
-        projectRoot: tempDir,
-        importer,
-      });
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.adapter).toBe(adapter);
-        expect(result.specifier.kind).toBe('shorthand');
-        expect(result.specifier.resolvedTarget).toBe('@ranujs/adapter-netlify');
-      }
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('successfully loads adapters via full package specifiers', async () => {
-      const cfAdapter: RanuDeploymentAdapter = {
-        name: 'cloudflare',
-        apiVersion: 1,
-        capabilities: {},
-        adapt: dummyAdapt,
-      };
-      const importer = vi.fn(async (spec: string) => {
-        expect(spec).toBe('@ranujs/adapter-cloudflare');
-        return { default: cfAdapter };
-      });
-
-      const result = await loadDeploymentAdapter('@ranujs/adapter-cloudflare', {
-        projectRoot: tempDir,
-        importer,
-      });
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.adapter).toBe(cfAdapter);
-        expect(result.specifier.kind).toBe('package');
-      }
     });
 
     it('successfully loads an adapter from a custom package specifier', async () => {

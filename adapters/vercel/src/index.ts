@@ -399,24 +399,6 @@ export default async function handler(req, res) {
         '@ranu/runtime',
         '@ranu/runtime-node',
       ];
-      const workspaceRuntimeEntry = path.resolve(
-        sourceDir,
-        '../../../packages/runtime-node/src/index.ts',
-      );
-      const workspacePackageAliases = fs.existsSync(workspaceRuntimeEntry)
-        ? {
-            '@ranu/core': path.resolve(sourceDir, '../../../packages/core/src/index.ts'),
-            '@ranu/diagnostics': path.resolve(
-              sourceDir,
-              '../../../packages/diagnostics/src/index.ts',
-            ),
-            '@ranu/manifests': path.resolve(sourceDir, '../../../packages/manifests/src/index.ts'),
-            '@ranu/react': path.resolve(sourceDir, '../../../packages/react/src/index.ts'),
-            '@ranu/router': path.resolve(sourceDir, '../../../packages/router/src/index.ts'),
-            '@ranu/runtime': path.resolve(sourceDir, '../../../packages/runtime/src/index.ts'),
-            '@ranu/runtime-node': workspaceRuntimeEntry,
-          }
-        : undefined;
       buildSync({
         stdin: {
           contents: funcEntrySource,
@@ -429,7 +411,6 @@ export default async function handler(req, res) {
         format: 'esm',
         platform: 'node',
         target: 'node22',
-        ...(workspacePackageAliases ? { alias: workspacePackageAliases } : {}),
         external: Object.keys(projectDeps).filter(
           (dependency) => !bundledRuntimePackages.includes(dependency),
         ),

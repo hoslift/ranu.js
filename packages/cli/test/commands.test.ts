@@ -6,13 +6,7 @@ import * as buildModule from '@ranu/build';
 import * as devModule from '@ranu/dev';
 import * as nodeServerModule from '@ranu/runtime-node';
 import { runBuildCommand } from '../src/commands/build.js';
-import {
-  runDeployCommand,
-  loadVercelAdapter,
-  loadCloudflareAdapter,
-  loadNodeAdapter,
-  loadNetlifyAdapter,
-} from '../src/commands/deploy.js';
+import { runDeployCommand, loadVercelAdapter } from '../src/commands/deploy.js';
 import { runDevCommand } from '../src/commands/dev.js';
 import { runStartCommand } from '../src/commands/start.js';
 import { runHelpCommand } from '../src/commands/help.js';
@@ -218,10 +212,15 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(
         await runWithMock({ args: [], root: tempDir, adapter: 'vercel', json: true }, logger),
       ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "vercel": adapter unavailable',
-      });
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Failed to load adapter "vercel": adapter unavailable',
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_LOAD_FAILED',
+          }),
+        }),
+      );
       vi.doUnmock('@ranujs/adapter-vercel');
     });
 
@@ -260,338 +259,32 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(importer).toHaveBeenCalledOnce();
     });
 
-    it('loads the Cloudflare adapter factory and reports text and JSON success', async () => {
-      const adapt = vi
-        .fn()
-        .mockResolvedValue({ outputDirectory: '/cloudflare-output', files: ['_worker.js'] });
-      const createCloudflareAdapter = vi.fn(() => ({ name: 'cloudflare', adapt }));
-      vi.doMock('@ranujs/adapter-cloudflare', () => ({ createCloudflareAdapter }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
+    it('reports diagnostic error for unresolvable CLI adapters in text and JSON modes', async () => {
       const logger = createCliLogger({ quiet: true });
-      const log = vi.spyOn(logger, 'log');
+      const error = vi.spyOn(logger, 'error');
       const json = vi.spyOn(logger, 'json');
 
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'cloudflare' }, logger)).toBe(0);
-      expect(createCloudflareAdapter).toHaveBeenCalledOnce();
-      expect(log).toHaveBeenCalledWith('Output: /cloudflare-output');
+      expect(
+        await runDeployCommand({ args: [], root: tempDir, adapter: 'non-existent-adapter' }, logger),
+      ).toBe(1);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load adapter "non-existent-adapter"'),
+      );
 
       expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: '@ranujs/adapter-cloudflare', json: true },
+        await runDeployCommand(
+          { args: [], root: tempDir, adapter: 'non-existent-adapter', json: true },
           logger,
         ),
-      ).toBe(0);
-      expect(json).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          success: true,
-          adapter: 'cloudflare',
-          outputDirectory: '/cloudflare-output',
-          files: ['_worker.js'],
-        }),
-      );
-      vi.doUnmock('@ranujs/adapter-cloudflare');
-    });
-
-    it('falls back to Cloudflare default factory and adapter object', async () => {
-      const adapt = vi.fn().mockResolvedValue({ success: true });
-      const defaultFactory = vi.fn(() => ({ name: 'cloudflare-default', adapt }));
-      vi.doMock('@ranujs/adapter-cloudflare', () => ({
-        createCloudflareAdapter: undefined,
-        default: defaultFactory,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-
-      expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: 'cloudflare' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      expect(defaultFactory).toHaveBeenCalledOnce();
-      expect(adapt).toHaveBeenCalledOnce();
-      vi.doUnmock('@ranujs/adapter-cloudflare');
-
-      const defaultObj = { name: 'cloudflare-obj', adapt };
-      vi.doMock('@ranujs/adapter-cloudflare', () => ({
-        createCloudflareAdapter: undefined,
-        default: defaultObj,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithObj } = await import('../src/commands/deploy.js');
-      expect(
-        await runWithObj(
-          { args: [], root: tempDir, adapter: 'cloudflare' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      vi.doUnmock('@ranujs/adapter-cloudflare');
-    });
-
-    it('reports Cloudflare adapter load failures in text and JSON modes', async () => {
-      vi.doMock('@ranujs/adapter-cloudflare', () => ({
-        createCloudflareAdapter: undefined,
-        default: () => {
-          throw new Error('cloudflare adapter unavailable');
-        },
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const error = vi.spyOn(logger, 'error');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'cloudflare' }, logger)).toBe(1);
-      expect(error).toHaveBeenCalledWith('Failed to load adapter "cloudflare": cloudflare adapter unavailable');
-      expect(
-        await runWithMock({ args: [], root: tempDir, adapter: 'cloudflare', json: true }, logger),
-      ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "cloudflare": cloudflare adapter unavailable',
-      });
-      vi.doUnmock('@ranujs/adapter-cloudflare');
-    });
-
-    it('loads the canonical Cloudflare adapter package directly', async () => {
-      const adapter = { name: 'cloudflare' };
-      const importer = vi.fn(async (id: string) => {
-        expect(id).toBe('@ranujs/adapter-cloudflare');
-        return adapter;
-      });
-
-      const result = await loadCloudflareAdapter(importer);
-      expect(result).toBe(adapter);
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('loads the Node adapter factory and reports text and JSON success', async () => {
-      const adapt = vi
-        .fn()
-        .mockResolvedValue({ outputDirectory: '/node-output', files: ['server.mjs'] });
-      const createNodeAdapter = vi.fn(() => ({ name: 'node', adapt }));
-      vi.doMock('@ranujs/adapter-node', () => ({ createNodeAdapter }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const log = vi.spyOn(logger, 'log');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'node' }, logger)).toBe(0);
-      expect(createNodeAdapter).toHaveBeenCalledOnce();
-      expect(log).toHaveBeenCalledWith('Output: /node-output');
-
-      expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: '@ranujs/adapter-node', json: true },
-          logger,
-        ),
-      ).toBe(0);
-      expect(json).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          success: true,
-          adapter: 'node',
-          outputDirectory: '/node-output',
-          files: ['server.mjs'],
-        }),
-      );
-      vi.doUnmock('@ranujs/adapter-node');
-    });
-
-    it('falls back to Node default factory and adapter object', async () => {
-      const adapt = vi.fn().mockResolvedValue({ success: true });
-      const defaultFactory = vi.fn(() => ({ name: 'node-default', adapt }));
-      vi.doMock('@ranujs/adapter-node', () => ({
-        createNodeAdapter: undefined,
-        default: defaultFactory,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-
-      expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: 'node' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      expect(defaultFactory).toHaveBeenCalledOnce();
-      expect(adapt).toHaveBeenCalledOnce();
-      vi.doUnmock('@ranujs/adapter-node');
-
-      const defaultObj = { name: 'node-obj', adapt };
-      vi.doMock('@ranujs/adapter-node', () => ({
-        createNodeAdapter: undefined,
-        default: defaultObj,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithObj } = await import('../src/commands/deploy.js');
-      expect(
-        await runWithObj(
-          { args: [], root: tempDir, adapter: 'node' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      vi.doUnmock('@ranujs/adapter-node');
-    });
-
-    it('reports Node adapter load failures in text and JSON modes', async () => {
-      vi.doMock('@ranujs/adapter-node', () => ({
-        createNodeAdapter: undefined,
-        default: () => {
-          throw new Error('node adapter unavailable');
-        },
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const error = vi.spyOn(logger, 'error');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'node' }, logger)).toBe(1);
-      expect(error).toHaveBeenCalledWith('Failed to load adapter "node": node adapter unavailable');
-      expect(
-        await runWithMock({ args: [], root: tempDir, adapter: 'node', json: true }, logger),
-      ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "node": node adapter unavailable',
-      });
-      vi.doUnmock('@ranujs/adapter-node');
-    });
-
-    it('loads the canonical Node adapter package directly', async () => {
-      const adapter = { name: 'node' };
-      const importer = vi.fn(async (id: string) => {
-        expect(id).toBe('@ranujs/adapter-node');
-        return adapter;
-      });
-
-      const result = await loadNodeAdapter(importer);
-      expect(result).toBe(adapter);
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('loads the Netlify adapter factory and reports text and JSON success', async () => {
-      const adapt = vi
-        .fn()
-        .mockResolvedValue({ outputDirectory: '/netlify-output', files: ['netlify.toml'] });
-      const createNetlifyAdapter = vi.fn(() => ({ name: 'netlify', adapt }));
-      vi.doMock('@ranujs/adapter-netlify', () => ({ createNetlifyAdapter }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const log = vi.spyOn(logger, 'log');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'netlify' }, logger)).toBe(0);
-      expect(createNetlifyAdapter).toHaveBeenCalledOnce();
-      expect(log).toHaveBeenCalledWith('Output: /netlify-output');
-
-      expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: '@ranujs/adapter-netlify', json: true },
-          logger,
-        ),
-      ).toBe(0);
-      expect(json).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          success: true,
-          adapter: 'netlify',
-          outputDirectory: '/netlify-output',
-          files: ['netlify.toml'],
-        }),
-      );
-      vi.doUnmock('@ranujs/adapter-netlify');
-    });
-
-    it('falls back to Netlify default factory and adapter object', async () => {
-      const adapt = vi.fn().mockResolvedValue({ success: true });
-      const defaultFactory = vi.fn(() => ({ name: 'netlify-default', adapt }));
-      vi.doMock('@ranujs/adapter-netlify', () => ({
-        createNetlifyAdapter: undefined,
-        default: defaultFactory,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-
-      expect(
-        await runWithMock(
-          { args: [], root: tempDir, adapter: 'netlify' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      expect(defaultFactory).toHaveBeenCalledOnce();
-      expect(adapt).toHaveBeenCalledOnce();
-      vi.doUnmock('@ranujs/adapter-netlify');
-
-      const defaultObj = { name: 'netlify-obj', adapt };
-      vi.doMock('@ranujs/adapter-netlify', () => ({
-        createNetlifyAdapter: undefined,
-        default: defaultObj,
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithObj } = await import('../src/commands/deploy.js');
-      expect(
-        await runWithObj(
-          { args: [], root: tempDir, adapter: 'netlify' },
-          createCliLogger({ quiet: true }),
-        ),
-      ).toBe(0);
-      vi.doUnmock('@ranujs/adapter-netlify');
-    });
-
-    it('reports Netlify adapter load failures in text and JSON modes', async () => {
-      vi.doMock('@ranujs/adapter-netlify', () => ({
-        createNetlifyAdapter: undefined,
-        default: () => {
-          throw new Error('netlify adapter unavailable');
-        },
-      }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-      const error = vi.spyOn(logger, 'error');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'netlify' }, logger)).toBe(1);
-      expect(error).toHaveBeenCalledWith('Failed to load adapter "netlify": netlify adapter unavailable');
-      expect(
-        await runWithMock({ args: [], root: tempDir, adapter: 'netlify', json: true }, logger),
-      ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "netlify": netlify adapter unavailable',
-      });
-      vi.doUnmock('@ranujs/adapter-netlify');
-    });
-
-    it('loads the canonical Netlify adapter package directly', async () => {
-      const adapter = { name: 'netlify' };
-      const importer = vi.fn(async (id: string) => {
-        expect(id).toBe('@ranujs/adapter-netlify');
-        return adapter;
-      });
-
-      const result = await loadNetlifyAdapter(importer);
-      expect(result).toBe(adapter);
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('rejects unsupported CLI adapters in text and JSON modes', async () => {
-      const logger = createCliLogger({ quiet: true });
-      const error = vi.spyOn(logger, 'error');
-      const json = vi.spyOn(logger, 'json');
-
-      expect(await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown' }, logger)).toBe(
-        1,
-      );
-      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported deployment adapter'));
-      expect(
-        await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown', json: true }, logger),
       ).toBe(1);
       expect(json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, error: expect.stringContaining('Unsupported') }),
+        expect.objectContaining({
+          success: false,
+          error: expect.stringContaining('Failed to load adapter'),
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_NOT_FOUND',
+          }),
+        }),
       );
     });
 
