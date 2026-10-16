@@ -146,6 +146,8 @@ describe('Middleware Runtime Execution & Signals', () => {
       locals: new Map(),
       signal: request.signal,
       responseCookies: [],
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
   }
 

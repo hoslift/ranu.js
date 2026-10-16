@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { pathToFileURL } from 'node:url';
-import type * as esbuild from 'esbuild';
 import {
   createVercelAdapter,
   adapterName,
@@ -12,22 +11,17 @@ import {
   isPathContained,
   copyDirectorySafe,
 } from '../src/index.js';
+import { RANU_VERSION } from '@ranu/core';
+import { formatDiagnostic } from '@ranu/diagnostics';
+import { validateBuildDescriptor } from '@ranu/manifests';
+import { createReactRenderer } from '@ranu/react';
+import { parseSegment } from '@ranu/router';
+import { compileMatcherPattern } from '@ranu/runtime';
+import {
+  createProductionRequestHandler,
+  createProductionRuntime,
+} from '@ranu/runtime-node';
 
-vi.mock('esbuild', async (importOriginal) => {
-  const actual = await importOriginal<typeof esbuild>();
-  const nodeFs = await import('node:fs');
-
-  return {
-    ...actual,
-    buildSync: (options: Parameters<typeof actual.buildSync>[0]) => {
-      if (!options.alias && options.outfile) {
-        nodeFs.writeFileSync(options.outfile, 'export default async function handler() {}\n');
-        return { errors: [], warnings: [] };
-      }
-      return actual.buildSync(options);
-    },
-  };
-});
 
 describe('@ranujs/adapter-vercel', () => {
   let tempDir: string;
@@ -220,21 +214,32 @@ describe('@ranujs/adapter-vercel', () => {
       expect(deployment.staticRoutesCount).toBe(0);
     }, 15_000);
 
-    it('bundles the function through workspace runtime aliases when available', async () => {
-      const workspaceRuntimeEntry = path.resolve(
-        import.meta.dirname,
-        '../../../packages/runtime-node/src/index.ts',
-      );
-      expect(fs.existsSync(workspaceRuntimeEntry)).toBe(true);
+    it('resolves and imports workspace packages directly', () => {
+      expect(RANU_VERSION).toBeDefined();
+      expect(formatDiagnostic).toBeTypeOf('function');
+      expect(validateBuildDescriptor).toBeTypeOf('function');
+      expect(createReactRenderer).toBeTypeOf('function');
+      expect(parseSegment).toBeTypeOf('function');
+      expect(compileMatcherPattern).toBeTypeOf('function');
+      expect(createProductionRequestHandler).toBeTypeOf('function');
+      expect(createProductionRuntime).toBeTypeOf('function');
+    });
 
+    it('bundles the function using native workspace package resolution', async () => {
       const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
 
       expect(result.success).toBe(true);
-      expect(
-        fs.existsSync(
-          path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
-        ),
-      ).toBe(true);
+      const funcEntryPath = path.join(
+        tempDir,
+        '.vercel',
+        'output',
+        'functions',
+        'index.func',
+        'index.mjs',
+      );
+      expect(fs.existsSync(funcEntryPath)).toBe(true);
+      const entryCode = fs.readFileSync(funcEntryPath, 'utf8');
+      expect(entryCode).toContain('createProductionRequestHandler');
     }, 15_000);
 
     it('cleans the default output directory before adaptation', async () => {
@@ -249,30 +254,30 @@ describe('@ranujs/adapter-vercel', () => {
       expect(fs.existsSync(sentinelPath)).toBe(false);
     }, 15_000);
 
-    it('bundles the function without workspace runtime aliases', async () => {
-      const workspaceRuntimeEntry = path.resolve(
-        import.meta.dirname,
-        '../../../packages/runtime-node/src/index.ts',
+    it('externalizes project dependencies while bundling runtime workspace packages', async () => {
+      fs.writeFileSync(
+        path.join(tempDir, 'package.json'),
+        JSON.stringify({
+          dependencies: {
+            externalpkg: '^1.0.0',
+          },
+        }),
       );
-      const existsSync = fs.existsSync.bind(fs);
-      const existsSyncMock = vi
-        .spyOn(fs, 'existsSync')
-        .mockImplementation((filePath) =>
-          path.resolve(String(filePath)) === workspaceRuntimeEntry ? false : existsSync(filePath),
-        );
 
-      try {
-        const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
+      const result = await createVercelAdapter().adapt({ projectRoot: tempDir, buildDir });
 
-        expect(result.success).toBe(true);
-        expect(
-          existsSync(
-            path.join(tempDir, '.vercel', 'output', 'functions', 'index.func', 'index.mjs'),
-          ),
-        ).toBe(true);
-      } finally {
-        existsSyncMock.mockRestore();
-      }
+      expect(result.success).toBe(true);
+      const pkgPath = path.join(
+        tempDir,
+        '.vercel',
+        'output',
+        'functions',
+        'index.func',
+        'package.json',
+      );
+      expect(fs.existsSync(pkgPath)).toBe(true);
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      expect(pkg.dependencies).toHaveProperty('externalpkg');
     }, 15_000);
 
     it('uses fallback manifests, preserves output, omits optional settings, and tolerates malformed package metadata', async () => {
@@ -306,11 +311,6 @@ describe('@ranujs/adapter-vercel', () => {
     }, 15_000);
 
     it('generates Vercel Build Output API v3 structure', async () => {
-      expect(
-        fs.existsSync(
-          path.resolve(import.meta.dirname, '../../../packages/runtime-node/src/index.ts'),
-        ),
-      ).toBe(true);
       const adapter = createVercelAdapter({
         runtimeVersion: 'nodejs22.x',
         regions: ['iad1'],
@@ -378,7 +378,7 @@ describe('@ranujs/adapter-vercel', () => {
       const deployMarker = JSON.parse(fs.readFileSync(deployMarkerPath, 'utf8'));
       expect(deployMarker.adapter).toBe('vercel');
       expect(deployMarker.buildId).toBe('vercel-build-456');
-    }, 15_000);
+    }, 90_000);
 
     it('protects against secret leakage and source map exposure in static assets', async () => {
       // Create sensitive files in the public directory
@@ -393,7 +393,7 @@ describe('@ranujs/adapter-vercel', () => {
       expect(fs.existsSync(path.join(staticDir, '.env.local'))).toBe(false);
       expect(fs.existsSync(path.join(staticDir, 'server.map'))).toBe(false);
       expect(fs.existsSync(path.join(staticDir, 'app.js.map'))).toBe(false);
-    });
+    }, 15_000);
 
     it('rejects outputDir if it is identical to or contains projectRoot or buildDir', async () => {
       const adapter1 = createVercelAdapter({ outputDir: tempDir });

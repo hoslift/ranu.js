@@ -98,6 +98,15 @@ export async function renderStaticRoute(
     signal: request.signal,
     responseCookies: [],
     depth: seq,
+    waitUntil: () => {
+      const error = new Error(
+        'Dynamic server helpers (waitUntil, getRequestContext) cannot be accessed during Static Site Generation (SSG).'
+      );
+      (error as any).code = 'RANU_SSG_DYNAMIC_ACCESS';
+      locals.set('__ranu_ssg_error__', error);
+      throw error;
+    },
+    waitUntilPromises: [],
   };
 
   // 3. Render through the authoritative ReactRenderer within the isolated request context

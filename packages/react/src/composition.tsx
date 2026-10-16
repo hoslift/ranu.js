@@ -9,6 +9,7 @@ import type {
   ResolvedMetadata,
   RanuHydrationPayload,
   RouteClientAssets,
+  RouteParams,
 } from './types.js';
 import { MetadataHeadElements } from './metadata.js';
 import { DefaultDocumentShell } from './document.js';
@@ -60,7 +61,7 @@ export function HydrationBootstrapScript({
   if (!assets || !assets.js || assets.js.length === 0) return null;
   return (
     <>
-      {assets.js.map(src => (
+      {assets.js.map((src) => (
         <script key={src} type="module" src={src} />
       ))}
     </>
@@ -79,11 +80,37 @@ export function HydrationStylesheetLinks({
   const uniqueCss = Array.from(new Set(assets.css));
   return (
     <>
-      {uniqueCss.map(href => (
+      {uniqueCss.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
     </>
   );
+}
+
+/**
+ * Wraps route params into a dual synchronous property access and asynchronous Promise object
+ * adhering to React 19 async params convention.
+ */
+export function wrapRouteParams<T extends Record<string, string | string[]>>(
+  params: T,
+): Promise<T> & Readonly<T> {
+  const cloned = { ...params };
+  for (const [key, value] of Object.entries(cloned)) {
+    if (Array.isArray(value)) {
+      (cloned as any)[key] = Object.freeze([...value]);
+    }
+  }
+  const frozen = Object.freeze(cloned);
+  const promise = Promise.resolve(frozen);
+  for (const [key, value] of Object.entries(frozen)) {
+    Object.defineProperty(promise, key, {
+      value,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
+  }
+  return (promise as unknown) as Promise<T> & Readonly<T>;
 }
 
 /**
@@ -143,12 +170,12 @@ export function composeNotFoundTree({
   notFound,
   layouts,
   metadata,
-  params,
+  params = {},
 }: {
   readonly notFound?: NotFoundModule | undefined;
   readonly layouts: readonly LayoutModule[];
   readonly metadata?: ResolvedMetadata | undefined;
-  readonly params: Readonly<Record<string, string | string[]>>;
+  readonly params?: RouteParams | undefined;
 }): ReactNode {
   let content: ReactNode;
 
@@ -163,7 +190,9 @@ export function composeNotFoundTree({
   } else {
     // Default 404 content
     content = (
-      <div style={{ fontFamily: 'system-ui, sans-serif', textAlign: 'center', padding: '4rem 1rem' }}>
+      <div
+        style={{ fontFamily: 'system-ui, sans-serif', textAlign: 'center', padding: '4rem 1rem' }}
+      >
         <MetadataHeadElements metadata={metadata ?? { title: '404 - Page Not Found' }} />
         <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>404 - Page Not Found</h1>
         <p style={{ color: '#666' }}>This page could not be found.</p>
@@ -206,8 +235,17 @@ export function composeErrorDocument({
 }): ReactNode {
   return (
     <DefaultDocumentShell title="500 - Internal Server Error">
-      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '3rem 1.5rem', maxWidth: '800px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '1.75rem', color: '#e11d48', marginBottom: '1rem' }}>500 — Server Error</h1>
+      <div
+        style={{
+          fontFamily: 'system-ui, sans-serif',
+          padding: '3rem 1.5rem',
+          maxWidth: '800px',
+          margin: '0 auto',
+        }}
+      >
+        <h1 style={{ fontSize: '1.75rem', color: '#e11d48', marginBottom: '1rem' }}>
+          500 — Server Error
+        </h1>
         <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{message}</p>
         {requestId ? (
           <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>

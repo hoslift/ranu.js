@@ -8,6 +8,9 @@
   "linked": [
     [
       "@ranujs/adapter-vercel",
+      "@ranujs/adapter-cloudflare",
+      "@ranujs/adapter-node",
+      "@ranujs/adapter-netlify",
       "@ranujs/adapter-bun",
       "@ranujs/adapter-deno"
     ]

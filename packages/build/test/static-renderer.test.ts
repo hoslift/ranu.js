@@ -110,7 +110,8 @@ describe('Phase 15 Stage 15B: Static HTML Document Renderer', () => {
 
     expect(artifact.status).toBe(200);
     expect(artifact.file).toBe('./static/pages/blog/first-post.html');
-    expect(receivedProps?.params).toEqual({ slug: 'first-post' });
+    expect(await receivedProps?.params).toEqual({ slug: 'first-post' });
+    expect(receivedProps?.params.slug).toBe('first-post');
     expect(receivedProps?.searchParams).toEqual({});
 
     const filePath = path.join(tempDir, 'static', 'pages', 'blog', 'first-post.html');

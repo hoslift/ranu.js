@@ -58,6 +58,7 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {

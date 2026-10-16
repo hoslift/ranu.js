@@ -19,6 +19,9 @@ describe('@ranu/runtime', () => {
       params: { id: '42' },
       locals: new Map<string, unknown>(),
       signal: req.signal,
+      responseCookies: [],
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
     expect(ctx.requestId).toBe('req-123');
     expect(ctx.params.id).toBe('42');

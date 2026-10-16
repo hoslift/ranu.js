@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/diagnostics" },
+    { "path": "../../packages/manifests" },
+    { "path": "../../packages/react" },
+    { "path": "../../packages/router" },
+    { "path": "../../packages/runtime" },
+    { "path": "../../packages/runtime-node" }
+  ],
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
+}

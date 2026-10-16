@@ -57,3 +57,20 @@ export function getActiveRequestContext(): RanuRequestContext | undefined {
   }
   return innermost;
 }
+
+/**
+ * Extends the execution lifetime of the current request to keep running asynchronous tasks
+ * in the background after the response has been sent to the client.
+ * Throws an error if called outside an active request lifecycle.
+ */
+export function waitUntil(promise: Promise<unknown>): void {
+  const context = getActiveRequestContext();
+  if (!context) {
+    throw new Error(
+      'waitUntil() was called outside a valid request lifecycle. ' +
+      'Background execution must be scheduled during active request processing.'
+    );
+  }
+  context.waitUntil(promise);
+}
+

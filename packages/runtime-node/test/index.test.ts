@@ -334,6 +334,9 @@ describe('@ranu/runtime-node', () => {
           params: { id },
           locals: new Map<string, unknown>(),
           signal: req.signal,
+          responseCookies: [],
+          waitUntil: () => {},
+          waitUntilPromises: [],
         };
       };
 
@@ -380,6 +383,9 @@ describe('@ranu/runtime-node', () => {
         params: { id: '42' },
         locals: new Map(),
         signal: req.signal,
+        responseCookies: [],
+        waitUntil: () => {},
+        waitUntilPromises: [],
       };
 
       const res = await dispatcher.dispatch(req, ctx, {
@@ -410,6 +416,9 @@ describe('@ranu/runtime-node', () => {
         params: {},
         locals: new Map(),
         signal: req.signal,
+        responseCookies: [],
+        waitUntil: () => {},
+        waitUntilPromises: [],
       };
 
       await expect(
@@ -443,6 +452,9 @@ describe('@ranu/runtime-node', () => {
         params: {},
         locals: new Map(),
         signal: req.signal,
+        responseCookies: [],
+        waitUntil: () => {},
+        waitUntilPromises: [],
       };
 
       const res = await dispatcher.dispatch(req, ctx, {
@@ -474,6 +486,9 @@ describe('@ranu/runtime-node', () => {
         params: {},
         locals: new Map(),
         signal: req.signal,
+        responseCookies: [],
+        waitUntil: () => {},
+        waitUntilPromises: [],
       };
 
       const res = await dispatcher.dispatch(req, ctx, {

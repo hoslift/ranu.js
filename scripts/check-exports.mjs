@@ -21,6 +21,24 @@ const publishedPackages = [
     technicalExports: []
   },
   { 
+    dir: 'adapters/cloudflare', 
+    name: '@ranujs/adapter-cloudflare', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/node', 
+    name: '@ranujs/adapter-node', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
+    dir: 'adapters/netlify', 
+    name: '@ranujs/adapter-netlify', 
+    canonicalExports: ['.'],
+    technicalExports: []
+  },
+  { 
     dir: 'adapters/bun', 
     name: '@ranujs/adapter-bun', 
     canonicalExports: ['.'],

@@ -247,6 +247,8 @@ export default function DashboardPage() {
       locals: new Map(),
       signal: request.signal,
       responseCookies: [],
+      waitUntil: () => {},
+      waitUntilPromises: [],
     };
 
     const target: PageRenderTarget = {

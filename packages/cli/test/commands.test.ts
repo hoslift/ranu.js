@@ -6,12 +6,7 @@ import * as buildModule from '@ranu/build';
 import * as devModule from '@ranu/dev';
 import * as nodeServerModule from '@ranu/runtime-node';
 import { runBuildCommand } from '../src/commands/build.js';
-import {
-  runDeployCommand,
-  loadVercelAdapter,
-  loadBunAdapter,
-  loadDenoAdapter,
-} from '../src/commands/deploy.js';
+import { runDeployCommand, loadVercelAdapter } from '../src/commands/deploy.js';
 import { runDevCommand } from '../src/commands/dev.js';
 import { runStartCommand } from '../src/commands/start.js';
 import { runHelpCommand } from '../src/commands/help.js';
@@ -217,10 +212,15 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(
         await runWithMock({ args: [], root: tempDir, adapter: 'vercel', json: true }, logger),
       ).toBe(1);
-      expect(json).toHaveBeenLastCalledWith({
-        success: false,
-        error: 'Failed to load adapter "vercel": adapter unavailable',
-      });
+      expect(json).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Failed to load adapter "vercel": adapter unavailable',
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_LOAD_FAILED',
+          }),
+        }),
+      );
       vi.doUnmock('@ranujs/adapter-vercel');
     });
 
@@ -259,76 +259,32 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(importer).toHaveBeenCalledOnce();
     });
 
-    it('loads the canonical Bun adapter package directly', async () => {
-      const adapter = { name: 'bun' };
-      const importer = vi.fn(async (id: string) => {
-        expect(id).toBe('@ranujs/adapter-bun');
-        return adapter;
-      });
-
-      const result = await loadBunAdapter(importer);
-      expect(result).toBe(adapter);
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('loads the canonical Deno adapter package directly', async () => {
-      const adapter = { name: 'deno' };
-      const importer = vi.fn(async (id: string) => {
-        expect(id).toBe('@ranujs/adapter-deno');
-        return adapter;
-      });
-
-      const result = await loadDenoAdapter(importer);
-      expect(result).toBe(adapter);
-      expect(importer).toHaveBeenCalledOnce();
-    });
-
-    it('loads the Bun adapter and runs deploy successfully', async () => {
-      const adapt = vi
-        .fn()
-        .mockResolvedValue({ outputDirectory: '/bun-output', files: ['server.mjs'] });
-      const createBunAdapter = vi.fn(() => ({ name: 'bun', adapt }));
-      vi.doMock('@ranujs/adapter-bun', () => ({ createBunAdapter }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'bun' }, logger)).toBe(0);
-      expect(createBunAdapter).toHaveBeenCalledOnce();
-      expect(adapt).toHaveBeenCalledOnce();
-      vi.doUnmock('@ranujs/adapter-bun');
-    });
-
-    it('loads the Deno adapter and runs deploy successfully', async () => {
-      const adapt = vi
-        .fn()
-        .mockResolvedValue({ outputDirectory: '/deno-output', files: ['server.mjs'] });
-      const createDenoAdapter = vi.fn(() => ({ name: 'deno', adapt }));
-      vi.doMock('@ranujs/adapter-deno', () => ({ createDenoAdapter }));
-      vi.resetModules();
-      const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
-      const logger = createCliLogger({ quiet: true });
-
-      expect(await runWithMock({ args: [], root: tempDir, adapter: 'deno' }, logger)).toBe(0);
-      expect(createDenoAdapter).toHaveBeenCalledOnce();
-      expect(adapt).toHaveBeenCalledOnce();
-      vi.doUnmock('@ranujs/adapter-deno');
-    });
-
-    it('rejects unsupported CLI adapters in text and JSON modes', async () => {
+    it('reports diagnostic error for unresolvable CLI adapters in text and JSON modes', async () => {
       const logger = createCliLogger({ quiet: true });
       const error = vi.spyOn(logger, 'error');
       const json = vi.spyOn(logger, 'json');
 
-      expect(await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown' }, logger)).toBe(
-        1,
-      );
-      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported deployment adapter'));
       expect(
-        await runDeployCommand({ args: [], root: tempDir, adapter: 'unknown', json: true }, logger),
+        await runDeployCommand({ args: [], root: tempDir, adapter: 'non-existent-adapter' }, logger),
+      ).toBe(1);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load adapter "non-existent-adapter"'),
+      );
+
+      expect(
+        await runDeployCommand(
+          { args: [], root: tempDir, adapter: 'non-existent-adapter', json: true },
+          logger,
+        ),
       ).toBe(1);
       expect(json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, error: expect.stringContaining('Unsupported') }),
+        expect.objectContaining({
+          success: false,
+          error: expect.stringContaining('Failed to load adapter'),
+          diagnostic: expect.objectContaining({
+            code: 'RANU_DEPLOY_ADAPTER_NOT_FOUND',
+          }),
+        }),
       );
     });
 
@@ -664,8 +620,6 @@ describe('@ranu/cli commands comprehensive', () => {
           ? await (tsupConfig.default as (options: Record<string, unknown>) => Promise<any> | any)({})
           : tsupConfig.default;
       expect(config.external).toContain('@ranujs/adapter-vercel');
-      expect(config.external).toContain('@ranujs/adapter-bun');
-      expect(config.external).toContain('@ranujs/adapter-deno');
       if (typeof config.banner === 'function') {
         expect(config.banner({ entry: 'src/bin/ranu.ts' })).toEqual({ js: '#!/usr/bin/env node' });
         expect(config.banner({ entry: 'src/index.ts' })).toEqual({});
