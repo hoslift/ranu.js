@@ -26,3 +26,7 @@ overrides:
   "@vitest/coverage-v8": "4.1.11"
   "@vitest/mocker": "4.1.11"
   "tinypool": ">=2.1.2"
+  "react": "^19.3.0"
+  "react-dom": "^19.3.0"
+  "@types/react": "^19.3.0"
+  "@types/react-dom": "^19.3.0"

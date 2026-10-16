@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ranujs/core": "workspace:*",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",
