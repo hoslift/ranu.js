@@ -110,7 +110,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === '--template' || arg === '-t') {
       i++;
       const val = argv[i];
-      const validTemplates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes'];
+      const validTemplates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas'];
       if (!val || val.startsWith('-') || !validTemplates.includes(val as TemplateName)) {
         throw new Error(`Invalid template "${val}". Supported: ${validTemplates.join(', ')}.`);
       }
@@ -182,7 +182,7 @@ Usage:
   $ npm create ranujs@latest <project-directory> [options]
 
 Options:
-  -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes)
+  -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes, saas)
   -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
   --tests                       Configure unit and component test suites (vitest)
   --no-tests                    Skip test configuration (default)
