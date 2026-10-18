@@ -53,6 +53,7 @@ Commands:
   check     Perform fast dry-run AST and boundary validation
   fix       Automatically apply self-healing patches for diagnostic errors
   generate  Generate boilerplate routes, APIs, components, or AI context
+  add       Configure official add-ons (tailwind, drizzle, auth)
   help      Show help information for commands
   version   Show Ranu.js framework and CLI version
 

@@ -11,6 +11,7 @@ export type CliCommand =
   | 'check'
   | 'fix'
   | 'generate'
+  | 'add'
   | 'help'
   | 'version';
 
