@@ -18,6 +18,7 @@
     { "path": "./packages/plugin" },
     { "path": "./packages/testing" },
     { "path": "./packages/devtools" },
+    { "path": "./packages/ai" },
     { "path": "./adapters/vercel" },
     { "path": "./adapters/cloudflare" },
     { "path": "./adapters/node" },
