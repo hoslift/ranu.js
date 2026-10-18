@@ -55,6 +55,30 @@
     "./server-only": {
       "types": "./dist/server-only.d.ts",
       "import": "./dist/server-only.js"
+    },
+    "./ai": {
+      "types": "./dist/ai.d.ts",
+      "import": "./dist/ai.js"
+    },
+    "./ai/gemini": {
+      "types": "./dist/ai/gemini.d.ts",
+      "import": "./dist/ai/gemini.js"
+    },
+    "./ai/groq": {
+      "types": "./dist/ai/groq.d.ts",
+      "import": "./dist/ai/groq.js"
+    },
+    "./ai/claude": {
+      "types": "./dist/ai/claude.d.ts",
+      "import": "./dist/ai/claude.js"
+    },
+    "./ai/openai": {
+      "types": "./dist/ai/openai.d.ts",
+      "import": "./dist/ai/openai.js"
+    },
+    "./ai/custom": {
+      "types": "./dist/ai/custom.d.ts",
+      "import": "./dist/ai/custom.js"
     }
   },
   "files": [
@@ -75,6 +99,12 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@ranu/ai": "workspace:*",
+    "@ranu/ai-claude": "workspace:*",
+    "@ranu/ai-custom": "workspace:*",
+    "@ranu/ai-gemini": "workspace:*",
+    "@ranu/ai-groq": "workspace:*",
+    "@ranu/ai-openai": "workspace:*",
     "@ranu/build": "workspace:*",
     "@ranu/cli": "workspace:*",
     "@ranu/config": "workspace:*",
