@@ -70,6 +70,39 @@ export interface AIProvider {
   model(modelId: string): AIModelInstance;
 }
 
+export interface BoundedStreamOptions {
+  /**
+   * High water mark (in bytes) defining maximum buffered chunk queue size before backpressure is asserted.
+   * Defaults to 64 KB (65,536 bytes).
+   */
+  readonly highWaterMark?: number | undefined;
+
+  /**
+   * Optional AbortSignal from client or request context to cancel streaming immediately.
+   */
+  readonly signal?: AbortSignal | undefined;
+
+  /**
+   * Maximum total bytes allowed through the stream before aborting with an error limit.
+   */
+  readonly maxBytes?: number | undefined;
+
+  /**
+   * Callback fired on each enqueued chunk with chunk byte size and total accumulated bytes.
+   */
+  readonly onChunk?: ((chunkSize: number, totalBytes: number) => void) | undefined;
+}
+
+export interface StreamingDrainMetrics {
+  readonly totalBytes: number;
+  readonly chunkCount: number;
+  readonly backpressurePauses: number;
+  readonly startTime: number;
+  readonly elapsedMs: number;
+}
+
+export type AIHeadersInit = Headers | [string, string][] | Record<string, string>;
+
 export interface StreamAIOptions<_T = unknown> {
   readonly model: AIModelInstance;
   readonly prompt?: string | undefined;
@@ -78,4 +111,15 @@ export interface StreamAIOptions<_T = unknown> {
   readonly maxTokens?: number | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly schema?: unknown;
+  readonly tools?: readonly unknown[] | undefined;
+  readonly toolChoice?: unknown;
+  readonly headers?: AIHeadersInit | undefined;
+  readonly status?: number | undefined;
+  readonly statusText?: string | undefined;
+  readonly highWaterMark?: number | undefined;
+  readonly maxBytes?: number | undefined;
+  readonly onChunk?: ((chunkSize: number, totalBytes: number) => void) | undefined;
+  readonly [key: string]: unknown;
 }
+
+
