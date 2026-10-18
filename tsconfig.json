@@ -25,6 +25,8 @@
     { "path": "./adapters/netlify" },
     { "path": "./adapters/bun" },
     { "path": "./adapters/deno" },
-    { "path": "./create-ranu" }
+    { "path": "./create-ranu" },
+    { "path": "./ai-models/gemini" },
+    { "path": "./ai-models/groq" }
   ]
 }
