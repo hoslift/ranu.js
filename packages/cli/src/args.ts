@@ -1,4 +1,4 @@
-import type { CliCommand, ParsedCliArgs } from './types.js';
+import type { CliCommand, ParsedCliArgs, OutputFormat } from './types.js';
 
 const KNOWN_COMMANDS: readonly CliCommand[] = [
   'dev',
@@ -6,6 +6,9 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'start',
   'create',
   'deploy',
+  'describe',
+  'check',
+  'generate',
   'help',
   'version',
 ];
@@ -84,7 +87,9 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let debug = false;
   let quiet = false;
   let json = false;
+  let format: OutputFormat | undefined;
   let adapter: string | undefined;
+  let client = false;
   let help = false;
   let version = false;
 
@@ -162,6 +167,29 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--json') {
       json = true;
+      format = 'json';
+      continue;
+    }
+
+    if (arg === '--format' || arg.startsWith('--format=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--format=')) {
+        val = arg.slice('--format='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      const normalized = val.trim().toLowerCase();
+      if (normalized !== 'json' && normalized !== 'text') {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      format = normalized as OutputFormat;
+      if (format === 'json') {
+        json = true;
+      }
       continue;
     }
 
@@ -172,6 +200,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
         throw new Error('Flag "--adapter" requires a valid adapter name.');
       }
       adapter = val.trim();
+      continue;
+    }
+
+    if (arg === '--client') {
+      client = true;
       continue;
     }
 
@@ -205,7 +238,9 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     debug: debug ? true : undefined,
     quiet: quiet ? true : undefined,
     json: json ? true : undefined,
+    format,
     adapter,
+    client: client ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

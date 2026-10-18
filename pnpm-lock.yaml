@@ -745,6 +745,12 @@ importers:
       '@ranu/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      '@ranu/manifests':
+        specifier: workspace:*
+        version: link:../manifests
+      '@ranu/router':
+        specifier: workspace:*
+        version: link:../router
       '@ranu/runtime-node':
         specifier: workspace:*
         version: link:../runtime-node
