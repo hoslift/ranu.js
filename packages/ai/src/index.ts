@@ -11,4 +11,11 @@ export {
   createStreamingDrainTracker,
   formatAIChunkToSSE,
 } from './stream.js';
+export {
+  generateObject,
+  AIValidationError,
+  isStandardSchema,
+  extractJsonFromText,
+  validateWithSchema,
+} from './schema.js';
 

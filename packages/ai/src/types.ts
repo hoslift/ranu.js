@@ -122,4 +122,198 @@ export interface StreamAIOptions<_T = unknown> {
   readonly [key: string]: unknown;
 }
 
+/**
+ * Standard Schema v1 specification issue format.
+ */
+export interface StandardSchemaV1Issue {
+  readonly message: string;
+  readonly path?: readonly (string | number | symbol | { readonly key: string | number | symbol })[] | undefined;
+}
 
+/**
+ * Standard Schema v1 validation success result.
+ */
+export interface StandardSchemaV1Success<Output> {
+  readonly value: Output;
+  readonly issues?: undefined;
+}
+
+/**
+ * Standard Schema v1 validation failure result.
+ */
+export interface StandardSchemaV1Failure {
+  readonly issues: readonly StandardSchemaV1Issue[];
+  readonly value?: undefined;
+}
+
+/**
+ * Standard Schema v1 validation result union.
+ */
+export type StandardSchemaV1Result<Output> =
+  | StandardSchemaV1Success<Output>
+  | StandardSchemaV1Failure;
+
+/**
+ * Standard Schema v1 metadata and validation specification.
+ */
+export interface StandardSchemaV1Props<Input = unknown, Output = Input> {
+  readonly version: 1;
+  readonly vendor: string;
+  readonly validate: (
+    value: unknown,
+  ) => StandardSchemaV1Result<Output> | Promise<StandardSchemaV1Result<Output>>;
+  readonly types?: {
+    readonly input: Input;
+    readonly output: Output;
+  };
+}
+
+/**
+ * Standard Schema v1 interface (~standard specification).
+ */
+export interface StandardSchemaV1<Input = unknown, Output = Input> {
+  readonly '~standard': StandardSchemaV1Props<Input, Output>;
+}
+
+/**
+ * Normalized validation issue for AIValidationError.
+ */
+export interface AIValidationIssue {
+  readonly message: string;
+  readonly path?: readonly (string | number | symbol)[] | undefined;
+}
+
+/**
+ * Zod/Valibot-style safeParse contract.
+ */
+export interface SafeParseSchema<T> {
+  safeParse(data: unknown):
+    | { readonly success: true; readonly data: T }
+    | {
+        readonly success: false;
+        readonly error?: {
+          readonly issues?: readonly {
+            readonly message: string;
+            readonly path?: readonly (string | number | symbol | { readonly key: string | number | symbol })[];
+          }[];
+        };
+      }
+    | Promise<
+        | { readonly success: true; readonly data: T }
+        | {
+            readonly success: false;
+            readonly error?: {
+              readonly issues?: readonly {
+                readonly message: string;
+                readonly path?: readonly (string | number | symbol | { readonly key: string | number | symbol })[];
+              }[];
+            };
+          }
+      >;
+}
+
+/**
+ * Zod/ArkType-style parse contract.
+ */
+export interface ParseSchema<T> {
+  parse(data: unknown): T | Promise<T>;
+}
+
+/**
+ * Custom validator function contract.
+ */
+export type ValidatorFunction<T> = (value: unknown) => Promise<T> | T;
+
+/**
+ * Union of supported schema definitions for generateObject.
+ */
+export type SupportedSchema<T = unknown> =
+  | StandardSchemaV1<unknown, T>
+  | SafeParseSchema<T>
+  | ParseSchema<T>
+  | ValidatorFunction<T>;
+
+/**
+ * Configuration options for generateObject.
+ */
+export interface GenerateObjectOptions<T = unknown> {
+  /**
+   * The AI model instance to execute the generation request against.
+   */
+  readonly model: AIModelInstance;
+
+  /**
+   * Schema to validate the extracted JSON against (Standard Schema v1, safeParse, parse, or validator function).
+   */
+  readonly schema: SupportedSchema<T>;
+
+  /**
+   * Optional name or identifier for the target schema.
+   */
+  readonly schemaName?: string | undefined;
+
+  /**
+   * Optional description or constraint specification of the schema for model prompting.
+   */
+  readonly schemaDescription?: string | undefined;
+
+  /**
+   * Optional user prompt.
+   */
+  readonly prompt?: string | undefined;
+
+  /**
+   * Optional list of conversational messages.
+   */
+  readonly messages?: readonly AIMessage[] | undefined;
+
+  /**
+   * Sampling temperature.
+   */
+  readonly temperature?: number | undefined;
+
+  /**
+   * Maximum tokens to generate.
+   */
+  readonly maxTokens?: number | undefined;
+
+  /**
+   * Optional AbortSignal for cancellation.
+   */
+  readonly signal?: AbortSignal | undefined;
+
+  /**
+   * Optional custom HTTP headers for provider requests.
+   */
+  readonly headers?: AIHeadersInit | undefined;
+
+  /**
+   * Additional provider-specific options.
+   */
+  readonly [key: string]: unknown;
+}
+
+/**
+ * Result returned by generateObject upon successful schema validation.
+ */
+export interface GenerateObjectResult<T> {
+  /**
+   * Strongly-typed object validated against the target schema.
+   */
+  readonly object: T;
+
+  /**
+   * Raw text response received from the model.
+   */
+  readonly rawText: string;
+
+  /**
+   * Token usage metadata if provided by the model.
+   */
+  readonly usage?: AIUsage | undefined;
+
+  /**
+   * Finish reason reported by the model.
+   */
+  readonly finishReason?: string | undefined;
+}
