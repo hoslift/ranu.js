@@ -13,7 +13,8 @@
     { "path": "../plugin" },
     { "path": "../react" },
     { "path": "../runtime-node" },
-    { "path": "../server" }
+    { "path": "../server" },
+    { "path": "../testing" }
   ],
   "include": ["src"],
   "exclude": ["dist", "node_modules"]
