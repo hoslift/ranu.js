@@ -14,7 +14,8 @@
     { "path": "../react" },
     { "path": "../runtime-node" },
     { "path": "../server" },
-    { "path": "../testing" }
+    { "path": "../testing" },
+    { "path": "../devtools" }
   ],
   "include": ["src"],
   "exclude": ["dist", "node_modules"]
