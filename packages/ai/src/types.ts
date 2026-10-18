@@ -70,7 +70,7 @@ export interface AIProvider {
   model(modelId: string): AIModelInstance;
 }
 
-export interface StreamAIOptions<T = unknown> {
+export interface StreamAIOptions<_T = unknown> {
   readonly model: AIModelInstance;
   readonly prompt?: string | undefined;
   readonly messages?: readonly AIMessage[] | undefined;

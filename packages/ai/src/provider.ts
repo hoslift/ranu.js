@@ -201,6 +201,12 @@ function buildRequestBody(
       if (options.temperature !== undefined) {
         body['temperature'] = options.temperature;
       }
+      if (options.tools) {
+        body['tools'] = options.tools;
+      }
+      if (options.toolChoice) {
+        body['tool_choice'] = options.toolChoice;
+      }
 
       return body;
     }
@@ -296,6 +302,17 @@ function parseStreamLine(line: string, family: ProviderFamily, enqueue: (chunk: 
       const json = JSON.parse(rawData) as Record<string, unknown>;
 
       // Claude message events
+      if (json['type'] === 'content_block_start') {
+        const block = json['content_block'] as Record<string, unknown> | undefined;
+        if (block?.['type'] === 'tool_use') {
+          const toolCall: { id?: string | undefined; name?: string | undefined; arguments?: string | undefined } = {};
+          if (typeof block['id'] === 'string') toolCall.id = block['id'];
+          if (typeof block['name'] === 'string') toolCall.name = block['name'];
+          enqueue({ type: 'tool-call', toolCall });
+          return;
+        }
+      }
+
       if (json['type'] === 'content_block_delta') {
         const delta = json['delta'] as Record<string, unknown> | undefined;
         if (delta?.['type'] === 'text_delta' && typeof delta['text'] === 'string') {
@@ -304,6 +321,13 @@ function parseStreamLine(line: string, family: ProviderFamily, enqueue: (chunk: 
         }
         if (delta?.['type'] === 'thinking_delta' && typeof delta['thinking'] === 'string') {
           enqueue({ type: 'reasoning', reasoning: delta['thinking'] });
+          return;
+        }
+        if (delta?.['type'] === 'input_json_delta' && typeof delta['partial_json'] === 'string') {
+          enqueue({
+            type: 'tool-call',
+            toolCall: { arguments: delta['partial_json'] },
+          });
           return;
         }
       }
@@ -378,9 +402,40 @@ function parseStreamLine(line: string, family: ProviderFamily, enqueue: (chunk: 
             const usage = usageObj
               ? buildUsage(usageObj['prompt_tokens'], usageObj['completion_tokens'], usageObj['total_tokens'])
               : undefined;
-            enqueue(createFinishChunk(String(choice['finish_reason']), usage));
+            const rawFinish = choice['finish_reason'];
+            const finishReason =
+              typeof rawFinish === 'string'
+                ? rawFinish
+                : typeof rawFinish === 'number'
+                  ? String(rawFinish)
+                  : undefined;
+            enqueue(createFinishChunk(finishReason, usage));
           }
         }
+        return;
+      }
+
+      // Generic / custom provider SSE payloads (e.g. data: {"text": "..."} or {"content": "..."})
+      let emittedGenericText = false;
+      if (typeof json['text'] === 'string') {
+        enqueue({ type: 'text', text: json['text'] });
+        emittedGenericText = true;
+      } else if (typeof json['content'] === 'string') {
+        enqueue({ type: 'text', text: json['content'] });
+        emittedGenericText = true;
+      } else if (typeof json['response'] === 'string') {
+        enqueue({ type: 'text', text: json['response'] });
+        emittedGenericText = true;
+      }
+
+      if (json['done'] === true || typeof json['finish_reason'] === 'string') {
+        const rawReason = json['finish_reason'];
+        const finishReason = typeof rawReason === 'string' ? rawReason : 'stop';
+        enqueue(createFinishChunk(finishReason));
+        return;
+      }
+
+      if (emittedGenericText) {
         return;
       }
     } catch {
