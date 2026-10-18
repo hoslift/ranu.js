@@ -141,4 +141,32 @@ describe('@ranu/cli describe command', () => {
 
     expect(exitCode).toBe(1);
   });
+
+  it('outputs minified route array when --format compact is specified', async () => {
+    setupSampleProject();
+
+    let loggedData: unknown;
+    const logger = createCliLogger({ json: true });
+    vi.spyOn(logger, 'json').mockImplementation((data) => {
+      loggedData = data;
+    });
+
+    const exitCode = await runDescribeCommand(
+      { args: [], root: tempDir, format: 'compact' },
+      logger
+    );
+
+    expect(exitCode).toBe(0);
+    expect(Array.isArray(loggedData)).toBe(true);
+    const compactList = loggedData as unknown[][];
+    expect(compactList).toHaveLength(3);
+
+    // Verify token efficiency: serialized compact JSON is very small (<300 characters / <75 tokens)
+    const serialized = JSON.stringify(compactList);
+    expect(serialized.length).toBeLessThan(300);
+
+    // Each element is [methods, pathname, kind, renderMode, sourceFile]
+    const rootEntry = compactList.find((entry) => entry[1] === '/');
+    expect(rootEntry).toEqual(['GET', '/', 'page', 'server', 'app/page.tsx']);
+  });
 });

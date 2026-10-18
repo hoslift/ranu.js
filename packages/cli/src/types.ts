@@ -9,11 +9,12 @@ export type CliCommand =
   | 'deploy'
   | 'describe'
   | 'check'
+  | 'fix'
   | 'generate'
   | 'help'
   | 'version';
 
-export type OutputFormat = 'text' | 'json';
+export type OutputFormat = 'text' | 'json' | 'compact';
 
 export interface ParsedCliArgs {
   readonly command?: CliCommand | undefined;
@@ -30,6 +31,8 @@ export interface ParsedCliArgs {
   readonly format?: OutputFormat | undefined;
   readonly adapter?: string | undefined;
   readonly client?: boolean | undefined;
+  readonly dryRun?: boolean | undefined;
+  readonly yes?: boolean | undefined;
   readonly help?: boolean | undefined;
   readonly version?: boolean | undefined;
   readonly [key: string]: unknown;

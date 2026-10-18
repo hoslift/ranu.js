@@ -13,7 +13,7 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
       name: 'ranu',
       command: subcommand ?? 'root',
       usage: subcommand ? `ranu ${subcommand} [options]` : 'ranu <command> [options]',
-      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'generate', 'help', 'version'],
+      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'help', 'version'],
       options: [
         { flag: '-r, --root <path>', description: 'Project root directory' },
         { flag: '-p, --port <number>', description: 'Port number to listen on' },
@@ -24,7 +24,9 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
         { flag: '--debug', description: 'Enable debug diagnostics and stack traces' },
         { flag: '-q, --quiet', description: 'Suppress non-essential console output' },
         { flag: '--json', description: 'Output results in machine-readable JSON format' },
-        { flag: '--format <json|text>', description: 'Output format (json or text)' },
+        { flag: '--format <json|compact|text>', description: 'Output format (json, compact, or text)' },
+        { flag: '--dry-run', description: 'Show proposed changes without writing to disk' },
+        { flag: '-y, --yes', description: 'Automatically accept changes without prompting' },
         { flag: '--help', description: 'Show help for command' },
         { flag: '-v, --version', description: 'Show CLI version' },
       ],
@@ -49,6 +51,7 @@ Commands:
   deploy    Prepare deployment artifacts for hosting adapter
   describe  Introspect application route graph and contracts
   check     Perform fast dry-run AST and boundary validation
+  fix       Automatically apply self-healing patches for diagnostic errors
   generate  Generate boilerplate routes, APIs, components, or AI context
   help      Show help information for commands
   version   Show Ranu.js framework and CLI version
@@ -179,6 +182,23 @@ Description:
 
 Options:
   -r, --root <path>         Project root directory
+  --format <json|text>      Output format (default: text)
+  --json                    Alias for --format json
+`);
+      break;
+
+    case 'fix':
+      log(`
+Usage:
+  $ ranu fix [options]
+
+Description:
+  Automatically applies self-healing unified diff patches for invariant diagnostic errors.
+
+Options:
+  -r, --root <path>         Project root directory
+  --dry-run                 Show proposed changes without writing to disk
+  -y, --yes                 Automatically apply patches without prompt
   --format <json|text>      Output format (default: text)
   --json                    Alias for --format json
 `);
