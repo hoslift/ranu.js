@@ -27,6 +27,8 @@
     { "path": "./adapters/deno" },
     { "path": "./create-ranu" },
     { "path": "./ai-models/gemini" },
-    { "path": "./ai-models/groq" }
+    { "path": "./ai-models/groq" },
+    { "path": "./ai-models/claude" },
+    { "path": "./ai-models/openai" }
   ]
 }
