@@ -219,7 +219,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
             code: 'RANU_ROUTE_CASE_COLLISION',
             severity: 'error',
             message: `Case portability collision: Sibling directories differ only in casing: ${dirs.join(', ')}`,
-            location: { file: path.relative(resolvedAppDir, path.join(dirPath, dirs[0]!)) }
+            location: { file: path.relative(resolvedAppDir, path.join(dirPath, dirs[0]!)) },
+            hint: 'Rename one of the sibling directories to have a distinct, non-conflicting name.',
           });
         }
       }
@@ -236,7 +237,10 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
         code: err.message.includes('INVALID_PARAM') ? 'RANU_ROUTE_INVALID_PARAM' : 'RANU_ROUTE_INVALID_SEGMENT',
         severity: 'error',
         message: err.message || 'Invalid route segment syntax',
-        location: { file: relativeDirPath || '.' }
+        location: { file: relativeDirPath || '.' },
+        hint: err.message.includes('INVALID_PARAM')
+          ? 'Use valid identifier syntax for route parameters (e.g. [id] or [...slug]).'
+          : 'Ensure route folder names follow framework conventions and do not claim reserved prefixes like _ranu.',
       });
       return; // Skip invalid segment subtree
     }
@@ -288,7 +292,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_DUPLICATE_MODULE',
           severity: 'error',
           message: `Multiple files found for the same reserved role "${role}" in directory: ${relativeDirPath || '.'}`,
-          location: { file: paths[0]! }
+          location: { file: paths[0]! },
+          hint: `Remove or rename duplicate files for role "${role}" so that only one file exists per role.`,
         });
       }
       const canonicalPath = paths[0]!;
@@ -308,7 +313,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_INVALID_SEGMENT',
           severity: 'error',
           message: `Reserved route module 'page' was found inside private directory: ${node.page}. Reserved files inside private directories do not become public routes.`,
-          location: { file: node.page }
+          location: { file: node.page },
+          hint: 'Move public route modules outside of private directories (directories prefixed with "_").',
         });
         delete node.page;
       }
@@ -317,7 +323,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_INVALID_SEGMENT',
           severity: 'error',
           message: `Reserved route module 'route' was found inside private directory: ${node.route}. Reserved files inside private directories do not become public routes.`,
-          location: { file: node.route }
+          location: { file: node.route },
+          hint: 'Move public route modules outside of private directories (directories prefixed with "_").',
         });
         delete node.route;
       }
@@ -329,7 +336,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
         code: 'RANU_ROUTE_KIND_COLLISION',
         severity: 'error',
         message: `Route kind collision: Both page and route own the same URL endpoint in directory: ${relativeDirPath || '.'}`,
-        location: { file: node.page }
+        location: { file: node.page },
+        hint: 'Separate page.tsx and route.ts into distinct directories to avoid path collisions.',
       });
     }
 
@@ -413,7 +421,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
             code: 'RANU_ROUTE_INVALID_CATCH_ALL',
             severity: 'error',
             message: `Catch-all segment must be the terminal segment in path: ${node.id}`,
-            location: { file: fileTarget }
+            location: { file: fileTarget },
+            hint: 'Catch-all segments ([...slug] or [[...slug]]) must be terminal and placed at the end of the route path.',
           });
         }
       }
@@ -425,7 +434,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_DUPLICATE_PARAM',
           severity: 'error',
           message: `Duplicate parameter name "${duplicates[0]}" along the route path: ${node.id}`,
-          location: { file: fileTarget }
+          location: { file: fileTarget },
+          hint: 'Rename duplicate parameters along the route path to have unique names.',
         });
       }
 
@@ -450,7 +460,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_INVALID_SEGMENT',
           severity: 'error',
           message: `Application route cannot claim reserved framework namespace: "${pathnameTemplate}"`,
-          location: { file: fileTarget }
+          location: { file: fileTarget },
+          hint: 'Do not use "_ranu" in route paths; "_ranu" is reserved for internal framework endpoints.',
         });
       }
 
@@ -482,7 +493,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
               code: 'RANU_ROUTE_FILE_READ_ERROR',
               severity: 'error',
               message: `Failed to read API route file: ${err.message}`,
-              location: { file: fileTarget }
+              location: { file: fileTarget },
+              hint: 'Verify file permissions and ensure the file exists on disk.',
             });
           }
         }
@@ -494,7 +506,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
             code: 'RANU_ROUTE_NO_METHODS',
             severity: 'error',
             message: `API route module has no supported HTTP method exports. An API route must export at least one HTTP method (GET, POST, etc.).`,
-            location: { file: fileTarget }
+            location: { file: fileTarget },
+            hint: 'Export at least one uppercase HTTP handler (e.g. export async function GET(req) { ... }).',
           });
         }
 
@@ -544,14 +557,16 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
           code: 'RANU_ROUTE_KIND_COLLISION',
           severity: 'error',
           message: `Route kind collision: Both page and route own the same URL endpoint: ${signature}. Conflicting files: ${files.join(', ')}`,
-          location: { file: files[0]! }
+          location: { file: files[0]! },
+          hint: 'Separate page.tsx and route.ts into distinct directories to avoid path collisions.',
         });
       } else {
         diagnostics.push({
           code: 'RANU_ROUTE_COLLISION',
           severity: 'error',
           message: `Route collision: Multiple endpoints resolve to the same public URL signature: ${signature}. Conflicting files: ${files.join(', ')}`,
-          location: { file: files[0]! }
+          location: { file: files[0]! },
+          hint: 'Ensure each route endpoint resolves to a distinct URL pattern.',
         });
       }
     }
@@ -579,7 +594,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
       const diag: RanuDiagnostic = {
         code: 'RANU_ROUTE_AMBIGUOUS',
         severity: 'error',
-        message: `Ambiguous sibling catch-all/optional catch-all under path: ${node.id}`
+        message: `Ambiguous sibling catch-all/optional catch-all under path: ${node.id}`,
+        hint: 'Do not combine sibling catch-all and optional catch-all folders under the same parent directory.',
       };
       if (conflictFile) {
         diag.location = { file: conflictFile };
@@ -597,7 +613,8 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     diagnostics.push({
       code: 'RANU_ROUTE_MISSING_ROOT_LAYOUT',
       severity: 'error',
-      message: 'Page routes exist, but no root layout file ("layout.*") was found in the app directory root.'
+      message: 'Page routes exist, but no root layout file ("layout.*") was found in the app directory root.',
+      hint: 'Create app/layout.tsx exporting a default React component wrapping children.',
     });
   }
 

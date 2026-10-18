@@ -70,6 +70,7 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
       // 1. Check for ranu/server-only import
       if (imp.specifier === 'ranu/server-only') {
         const chain = findShortestImportChain(node.id, graph.clientEntries, graph);
+        const fullChain = chain ? [...chain, imp.specifier] : [node.id, imp.specifier];
         const chainText = chain ? `\nImport chain: ${chain.join(' -> ')} -> ${imp.specifier}` : '';
 
         diagnostics.push({
@@ -81,12 +82,15 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
             line: imp.line,
             column: imp.column,
           },
+          importChain: fullChain,
+          hint: 'Remove server-only import from this client module, or move server-dependent operations to an API route.',
         });
       }
 
       // 2. Check for Node built-in imports in client graph
       if (imp.isNodeBuiltin) {
         const chain = findShortestImportChain(node.id, graph.clientEntries, graph);
+        const fullChain = chain ? [...chain, imp.specifier] : [node.id, imp.specifier];
         const chainText = chain ? `\nImport chain: ${chain.join(' -> ')} -> ${imp.specifier}` : '';
 
         diagnostics.push({
@@ -98,6 +102,8 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
             line: imp.line,
             column: imp.column,
           },
+          importChain: fullChain,
+          hint: 'Replace Node.js built-in with standard Web APIs (e.g. fetch, crypto.subtle), or isolate usage to a server route.',
         });
       }
 
@@ -108,6 +114,7 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
         );
         if (resolvedNode?.isServerOnly) {
           const chain = findShortestImportChain(resolvedNode.id, graph.clientEntries, graph);
+          const fullChain = chain ?? [node.id, resolvedNode.id];
           const chainText = chain ? `\nImport chain: ${chain.join(' -> ')}` : '';
 
           diagnostics.push({
@@ -119,6 +126,8 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
               line: imp.line,
               column: imp.column,
             },
+            importChain: fullChain,
+            hint: 'Client components cannot import modules located in server/. Expose data via an API route handler.',
           });
         }
       }
