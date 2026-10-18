@@ -28,6 +28,7 @@ import { buildModuleGraph } from './graph/module-classifier.js';
 import { validateGraphBoundaries } from './graph/boundary-validator.js';
 import { validateGraphEnvAccess } from './env/env-validator.js';
 import { validateNonSerializableProps } from './compiler/props-validator.js';
+import { validateGraphDbPools } from './compiler/db-pool-validator.js';
 import { copyPublicDirectory } from './assets/public-dir.js';
 import { syncAgentContextGuide } from './assets/agent-guide.js';
 
@@ -365,6 +366,13 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         duration: Date.now() - startTime,
       };
     }
+
+    // Stage 8d: Validate Serverless Database Connection Pools
+    const dbPoolCheck = validateGraphDbPools(
+      moduleGraph,
+      resolvedConfig.deployment?.adapter
+    );
+    diagnostics.push(...dbPoolCheck.diagnostics);
 
     // Stage 10: Server graph compilation
     const serverResult = await runServerGraphStage(ctx, routeResult.routes);
