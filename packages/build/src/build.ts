@@ -29,6 +29,7 @@ import { validateGraphBoundaries } from './graph/boundary-validator.js';
 import { validateGraphEnvAccess } from './env/env-validator.js';
 import { validateNonSerializableProps } from './compiler/props-validator.js';
 import { copyPublicDirectory } from './assets/public-dir.js';
+import { syncAgentContextGuide } from './assets/agent-guide.js';
 
 /**
  * Main Ranu.js production build orchestrator.
@@ -269,6 +270,9 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         duration: Date.now() - startTime,
       };
     }
+
+    // Synchronize AI agent context guides (public/llms.txt and .ranu/AGENT_GUIDE.md)
+    syncAgentContextGuide(projectRoot, routeResult.routes);
 
     // Plugin Hooks: routes, route, extendBuild
     const pluginRoutes: PluginRouteInfo[] = routeResult.routes.map((r) => ({

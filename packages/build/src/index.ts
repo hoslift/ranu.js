@@ -113,3 +113,7 @@ export {
   writeContainerArtifacts,
   type DockerfileOptions,
 } from './container.js';
+export {
+  generateAgentGuideMarkdown,
+  syncAgentContextGuide,
+} from './assets/agent-guide.js';
