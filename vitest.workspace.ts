@@ -24,6 +24,7 @@ const sharedAliases = {
   '@ranu/ai-groq': path.resolve(__dirname, 'ai-models/groq/src/index.ts'),
   '@ranu/ai-claude': path.resolve(__dirname, 'ai-models/claude/src/index.ts'),
   '@ranu/ai-openai': path.resolve(__dirname, 'ai-models/openai/src/index.ts'),
+  '@ranu/ai-custom': path.resolve(__dirname, 'ai-models/custom/src/index.ts'),
   '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@ranujs/adapter-cloudflare': path.resolve(__dirname, 'adapters/cloudflare/src/index.ts'),
   '@ranujs/adapter-node': path.resolve(__dirname, 'adapters/node/src/index.ts'),

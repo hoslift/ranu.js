@@ -29,6 +29,7 @@
     { "path": "./ai-models/gemini" },
     { "path": "./ai-models/groq" },
     { "path": "./ai-models/claude" },
-    { "path": "./ai-models/openai" }
+    { "path": "./ai-models/openai" },
+    { "path": "./ai-models/custom" }
   ]
 }
