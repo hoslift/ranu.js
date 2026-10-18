@@ -12,6 +12,8 @@ export type CliCommand =
   | 'fix'
   | 'generate'
   | 'add'
+  | 'ai'
+  | 'prompt'
   | 'help'
   | 'version';
 
@@ -34,6 +36,12 @@ export interface ParsedCliArgs {
   readonly client?: boolean | undefined;
   readonly dryRun?: boolean | undefined;
   readonly yes?: boolean | undefined;
+  readonly model?: string | undefined;
+  readonly provider?: string | undefined;
+  readonly files?: readonly string[] | undefined;
+  readonly target?: string | undefined;
+  readonly copy?: boolean | undefined;
+  readonly stdout?: boolean | undefined;
   readonly help?: boolean | undefined;
   readonly version?: boolean | undefined;
   readonly [key: string]: unknown;

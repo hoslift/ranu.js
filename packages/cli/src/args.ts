@@ -11,6 +11,8 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'fix',
   'generate',
   'add',
+  'ai',
+  'prompt',
   'help',
   'version',
 ];
@@ -94,6 +96,12 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let client = false;
   let dryRun = false;
   let yes = false;
+  let model: string | undefined;
+  let provider: string | undefined;
+  const files: string[] = [];
+  let target: string | undefined;
+  let copy = false;
+  let stdout = false;
   let help = false;
   let version = false;
 
@@ -222,6 +230,76 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--model' || arg.startsWith('--model=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--model=')) {
+        val = arg.slice('--model='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--model" requires a valid model identifier.');
+      }
+      model = val.trim();
+      continue;
+    }
+
+    if (arg === '--provider' || arg.startsWith('--provider=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--provider=')) {
+        val = arg.slice('--provider='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--provider" requires a valid provider name.');
+      }
+      provider = val.trim();
+      continue;
+    }
+
+    if (arg === '--file' || arg.startsWith('--file=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--file=')) {
+        val = arg.slice('--file='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--file" requires a valid file path.');
+      }
+      files.push(val.trim());
+      continue;
+    }
+
+    if (arg === '--target' || arg.startsWith('--target=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--target=')) {
+        val = arg.slice('--target='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--target" requires a valid target name.');
+      }
+      target = val.trim();
+      continue;
+    }
+
+    if (arg === '--copy') {
+      copy = true;
+      continue;
+    }
+
+    if (arg === '--stdout') {
+      stdout = true;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown flag "${arg}". Run "ranu --help" to see available options.`);
     }
@@ -257,6 +335,12 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     client: client ? true : undefined,
     dryRun: dryRun ? true : undefined,
     yes: yes ? true : undefined,
+    model,
+    provider,
+    files: files.length > 0 ? files : undefined,
+    target,
+    copy: copy ? true : undefined,
+    stdout: stdout ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

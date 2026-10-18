@@ -858,6 +858,24 @@ importers:
 
   packages/cli:
     dependencies:
+      '@ranu/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@ranu/ai-claude':
+        specifier: workspace:*
+        version: link:../../ai-models/claude
+      '@ranu/ai-custom':
+        specifier: workspace:*
+        version: link:../../ai-models/custom
+      '@ranu/ai-gemini':
+        specifier: workspace:*
+        version: link:../../ai-models/gemini
+      '@ranu/ai-groq':
+        specifier: workspace:*
+        version: link:../../ai-models/groq
+      '@ranu/ai-openai':
+        specifier: workspace:*
+        version: link:../../ai-models/openai
       '@ranu/build':
         specifier: workspace:*
         version: link:../build
