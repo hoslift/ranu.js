@@ -96,6 +96,9 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let client = false;
   let dryRun = false;
   let yes = false;
+  let force = false;
+  let name: string | undefined;
+  let endpoint: string | undefined;
   let model: string | undefined;
   let provider: string | undefined;
   const files: string[] = [];
@@ -230,6 +233,41 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--force' || arg === '-f') {
+      force = true;
+      continue;
+    }
+
+    if (arg === '--name' || arg.startsWith('--name=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--name=')) {
+        val = arg.slice('--name='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--name" requires a valid name string.');
+      }
+      name = val.trim();
+      continue;
+    }
+
+    if (arg === '--endpoint' || arg.startsWith('--endpoint=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--endpoint=')) {
+        val = arg.slice('--endpoint='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--endpoint" requires a valid endpoint URL.');
+      }
+      endpoint = val.trim();
+      continue;
+    }
+
     if (arg === '--model' || arg.startsWith('--model=')) {
       let val: string | undefined;
       if (arg.startsWith('--model=')) {
@@ -335,6 +373,9 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     client: client ? true : undefined,
     dryRun: dryRun ? true : undefined,
     yes: yes ? true : undefined,
+    force: force ? true : undefined,
+    name,
+    endpoint,
     model,
     provider,
     files: files.length > 0 ? files : undefined,
