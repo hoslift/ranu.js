@@ -499,11 +499,12 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
             const analysis = analyzeRouteMethods(fileTarget, fileContent);
             discoveredMethods = analysis.methods;
             diagnostics.push(...analysis.diagnostics);
-          } catch (err: any) {
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
             diagnostics.push({
               code: 'RANU_ROUTE_FILE_READ_ERROR',
               severity: 'error',
-              message: `Failed to read API route file: ${err.message}`,
+              message: `Failed to read API route file: ${message}`,
               location: { file: fileTarget }
             });
           }
