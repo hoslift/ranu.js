@@ -252,11 +252,12 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     let parsedSegment: RouteSegment;
     try {
       parsedSegment = parentId ? parseSegment(segmentName) : { raw: '', type: 'static' };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid route segment syntax';
       diagnostics.push({
-        code: err.message.includes('INVALID_PARAM') ? 'RANU_ROUTE_INVALID_PARAM' : 'RANU_ROUTE_INVALID_SEGMENT',
+        code: message.includes('INVALID_PARAM') ? 'RANU_ROUTE_INVALID_PARAM' : 'RANU_ROUTE_INVALID_SEGMENT',
         severity: 'error',
-        message: err.message || 'Invalid route segment syntax',
+        message,
         location: { file: relativeDirPath || '.' }
       });
       return; // Skip invalid segment subtree
