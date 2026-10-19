@@ -150,9 +150,30 @@ export function safeDecodeSegment(segment: string): string | null {
   }
 }
 
+/** File metadata required while discovering routes */
+export interface RouteFileSystemEntry {
+  isSymbolicLink(): boolean;
+  isDirectory(): boolean;
+  isFile(): boolean;
+}
+
+/** Directory metadata required for route collision checks */
+export interface RouteFileSystemDirectoryEntry {
+  isDirectory(): boolean;
+}
+
+/** File system operations required while discovering routes */
+export interface RouteFileSystem {
+  existsSync(path: string): boolean;
+  lstatSync(path: string): RouteFileSystemEntry;
+  readdirSync(path: string): string[];
+  statSync(path: string): RouteFileSystemDirectoryEntry;
+  readFileSync(path: string, encoding: BufferEncoding): string;
+}
+
 /** Discover all route modules in the configured app directory */
 export interface DiscoverRoutesOptions {
-  fsModule?: any;
+  fsModule?: RouteFileSystem;
   analyzeRouteMethods?: (filePath: string, fileContent: string) => { methods: HttpMethod[]; diagnostics: RanuDiagnostic[] };
 }
 
@@ -182,7 +203,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
       return; // Stop traversal
     }
 
-    let stats: fs.Stats;
+    let stats: RouteFileSystemEntry;
     try {
       stats = fsModule.lstatSync(dirPath);
     } catch {
@@ -256,7 +277,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     const filesByRole: Record<string, string[]> = {};
     for (const item of items) {
       const full = path.join(dirPath, item);
-      let itemStats: fs.Stats;
+      let itemStats: RouteFileSystemEntry;
       try {
         itemStats = fsModule.lstatSync(full);
       } catch {
@@ -339,7 +360,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     // Recurse into directories
     for (const item of items) {
       const full = path.join(dirPath, item);
-      let itemStats: fs.Stats;
+      let itemStats: RouteFileSystemEntry;
       try {
         itemStats = fsModule.lstatSync(full);
       } catch {
