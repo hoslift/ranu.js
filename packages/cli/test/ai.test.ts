@@ -7,6 +7,8 @@ import {
   runAiCommand,
   validateAIGenerationPlan,
   AIGenerationPlanSchema,
+  sanitizeTargetFilePath,
+  createUnifiedDiff,
   type AiCommandResult,
 } from '../src/commands/ai.js';
 import { createCliLogger } from '../src/logger.js';
@@ -333,6 +335,109 @@ describe('@ranu/cli ai command', () => {
 
       expect(exitCode).toBe(1);
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('rate limit'));
+    });
+  });
+
+  describe('sanitizeTargetFilePath security containment', () => {
+    it('strictly rejects directory traversal with ../../etc/passwd', () => {
+      expect(() => sanitizeTargetFilePath(tempDir, '../../etc/passwd')).toThrow(
+        /Path traversal violation: file path "\.\.\/\.\.\/etc\/passwd" escapes project root\./
+      );
+    });
+
+    it('strictly rejects Windows directory traversal with ..\\..\\Windows', () => {
+      expect(() => sanitizeTargetFilePath(tempDir, '..\\..\\Windows')).toThrow(
+        /Path traversal violation: file path "\.\.\\\.\.\\Windows" escapes project root\./
+      );
+    });
+
+    it('strictly rejects sibling directory prefix collision escape', () => {
+      const siblingDir = `${tempDir}-sibling`;
+      const siblingFile = path.join(siblingDir, 'secret.txt');
+      expect(() => sanitizeTargetFilePath(tempDir, siblingFile)).toThrow(
+        /Path traversal violation.*escapes project root\./
+      );
+    });
+
+    it('strictly rejects relative sibling directory escape', () => {
+      expect(() => sanitizeTargetFilePath(tempDir, '../test-sibling/secret.txt')).toThrow(
+        /Path traversal violation.*escapes project root\./
+      );
+    });
+
+    it('strictly rejects empty path or root directory reference', () => {
+      expect(() => sanitizeTargetFilePath(tempDir, '')).toThrow(/Path traversal violation/);
+      expect(() => sanitizeTargetFilePath(tempDir, '.')).toThrow(/Path traversal violation/);
+    });
+
+    it('accepts safe relative paths within project root', () => {
+      const safePath = sanitizeTargetFilePath(tempDir, 'app/routes/page.tsx');
+      expect(safePath).toBe(path.resolve(tempDir, 'app/routes/page.tsx'));
+    });
+
+    it('normalizes internal dot segments that remain inside root', () => {
+      const safePath = sanitizeTargetFilePath(tempDir, 'app/components/../routes/page.tsx');
+      expect(safePath).toBe(path.resolve(tempDir, 'app/routes/page.tsx'));
+    });
+
+    it('aborts runAiCommand with exit code 1 and writes zero files on traversal attack in plan', async () => {
+      setupMockProject();
+
+      const maliciousPlan = {
+        explanation: 'Attempt traversal attack',
+        files: [
+          {
+            path: '../../etc/passwd',
+            content: 'malicious payload',
+            action: 'create',
+          },
+        ],
+      };
+
+      const mockModel = createMockStreamingModel(maliciousPlan);
+      const logger = createCliLogger({ quiet: true });
+      const errorSpy = vi.spyOn(logger, 'error');
+
+      const exitCode = await runAiCommand(
+        {
+          args: ['exploit vulnerability'],
+          root: tempDir,
+          yes: true,
+        },
+        logger,
+        { model: mockModel }
+      );
+
+      expect(exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Path traversal violation'));
+
+      // Invariant: zero files created outside or mutated inside project root
+      const escapedTarget = path.resolve(tempDir, '..', '..', 'etc', 'passwd');
+      expect(fs.existsSync(escapedTarget)).toBe(false);
+      const internalTarget = path.join(tempDir, 'etc', 'passwd');
+      expect(fs.existsSync(internalTarget)).toBe(false);
+    });
+  });
+
+  describe('createUnifiedDiff formatting', () => {
+    it('creates clean diff without extraneous deletion line for new files', () => {
+      const diff = createUnifiedDiff('app/routes/new.tsx', '', 'export default function New() {\n  return <div>New</div>;\n}');
+      expect(diff).toContain('--- a/app/routes/new.tsx');
+      expect(diff).toContain('+++ b/app/routes/new.tsx');
+      expect(diff).toContain('+ export default function New() {');
+      expect(diff).not.toMatch(/^- /m);
+    });
+
+    it('creates clean diff without extraneous insertion line for deleted files', () => {
+      const diff = createUnifiedDiff('app/routes/old.tsx', 'export const old = true;', '');
+      expect(diff).toContain('- export const old = true;');
+      expect(diff).not.toMatch(/^\+ /m);
+    });
+
+    it('creates balanced diff for modified files', () => {
+      const diff = createUnifiedDiff('app/routes/page.tsx', 'const a = 1;', 'const a = 2;');
+      expect(diff).toContain('- const a = 1;');
+      expect(diff).toContain('+ const a = 2;');
     });
   });
 });

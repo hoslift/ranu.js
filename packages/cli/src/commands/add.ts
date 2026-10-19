@@ -14,7 +14,7 @@ export interface AddOnResult {
 
 const SUPPORTED_ADDONS = ['tailwind', 'tailwindcss', 'drizzle', 'auth'] as const;
 
-export async function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
+export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<number> {
   const isJson = Boolean(args.json);
   const isDryRun = Boolean(args.dryRun);
   const addonName = args.args[0]?.toLowerCase().trim();
@@ -22,22 +22,22 @@ export async function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Pro
   if (!addonName) {
     const errorMsg = 'Missing add-on name. Available add-ons: tailwind, drizzle, auth';
     if (isJson) {
-      console.log(JSON.stringify({ success: false, error: errorMsg }));
+      logger.json({ success: false, error: errorMsg });
     } else {
       logger.error(errorMsg);
       logger.info('Usage: ranu add <tailwind|drizzle|auth> [--dry-run]');
     }
-    return 1;
+    return Promise.resolve(1);
   }
 
-  if (!SUPPORTED_ADDONS.includes(addonName as any)) {
+  if (!(SUPPORTED_ADDONS as readonly string[]).includes(addonName)) {
     const errorMsg = `Unsupported add-on "${addonName}". Available add-ons: tailwind, drizzle, auth`;
     if (isJson) {
-      console.log(JSON.stringify({ success: false, error: errorMsg }));
+      logger.json({ success: false, error: errorMsg });
     } else {
       logger.error(errorMsg);
     }
-    return 1;
+    return Promise.resolve(1);
   }
 
   const cwd = process.cwd();
@@ -188,7 +188,7 @@ export async function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Pro
   };
 
   if (isJson) {
-    console.log(JSON.stringify(result, null, 2));
+    logger.json(result);
   } else {
     logger.success(`Successfully configured add-on "${addonName}"${isDryRun ? ' (dry-run)' : ''}!`);
     if (filesCreated.length > 0) {
@@ -201,5 +201,5 @@ export async function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Pro
     }
   }
 
-  return 0;
+  return Promise.resolve(0);
 }

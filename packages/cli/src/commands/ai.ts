@@ -8,10 +8,11 @@ import { discoverProjectInfo } from '../prompt-builder.js';
 
 /**
  * Generates a unified diff representation for console or JSON logging.
+ * Cleanly handles newly created files and deleted files without spurious blank lines.
  */
 export function createUnifiedDiff(filePath: string, original: string, modified: string): string {
-  const origLines = original.split(/\r?\n/);
-  const modLines = modified.split(/\r?\n/);
+  const origLines = original.length > 0 ? original.split(/\r?\n/) : [];
+  const modLines = modified.length > 0 ? modified.split(/\r?\n/) : [];
   const diffLines: string[] = [
     `--- a/${filePath.replace(/\\/g, '/')}`,
     `+++ b/${filePath.replace(/\\/g, '/')}`,
@@ -20,7 +21,7 @@ export function createUnifiedDiff(filePath: string, original: string, modified: 
   let i = 0;
   let j = 0;
   while (i < origLines.length || j < modLines.length) {
-    if (origLines[i] === modLines[j]) {
+    if (i < origLines.length && j < modLines.length && origLines[i] === modLines[j]) {
       i++;
       j++;
     } else {
@@ -142,14 +143,24 @@ export const AIGenerationPlanSchema: StandardSchemaV1<unknown, AIGenerationPlan>
 };
 
 /**
- * Sanitizes and verifies that a relative file path stays within the project root.
+ * Sanitizes and verifies that a target file path stays strictly within the project root.
+ * Strictly rejects directory traversal attacks (e.g. `../../etc/passwd` or `..\..\Windows`)
+ * and sibling prefix collision escapes (e.g. `../app-sibling/secret.txt`).
+ *
+ * @param projectRoot - Absolute path to the verified project root directory
+ * @param relativePath - Path proposed by the AI model or CLI argument
+ * @returns Fully resolved, verified safe absolute path
+ * @throws Error if path attempts to escape the project root boundary
  */
-function sanitizeTargetFilePath(projectRoot: string, relativePath: string): string {
-  const normalized = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const resolved = path.resolve(projectRoot, normalized);
-  if (!resolved.startsWith(projectRoot)) {
+export function sanitizeTargetFilePath(projectRoot: string, relativePath: string): string {
+  const resolvedRoot = path.resolve(projectRoot);
+  const resolved = path.resolve(resolvedRoot, relativePath);
+  const rel = path.relative(resolvedRoot, resolved);
+
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`Path traversal violation: file path "${relativePath}" escapes project root.`);
   }
+
   return resolved;
 }
 
