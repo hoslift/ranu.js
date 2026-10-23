@@ -1,9 +1,13 @@
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import type {
+  AIStudioPartner,
+  AIStudioState,
+  DevToolsDockPosition,
   DevToolsDockState,
   DevToolsListener,
   DevToolsTab,
   HydrationMismatchItem,
+  PendingDiff,
   RouteHierarchyInfo,
   StreamingChunkMetric,
 } from './types.js';
@@ -15,6 +19,7 @@ function createInitialState(): DevToolsDockState {
   return {
     isOpen: false,
     activeTab: 'waterfall',
+    dockPosition: 'bottom',
     streamingChunks: [],
     currentRoute: undefined,
     hydration: {
@@ -23,6 +28,15 @@ function createInitialState(): DevToolsDockState {
       mismatches: [],
     },
     diagnostics: [],
+    aiStudio: {
+      isGenerating: false,
+      selectedPartner: 'gemini',
+      currentPrompt: '',
+      pendingDiff: undefined,
+      streamingResponse: undefined,
+      error: undefined,
+      diffViewMode: 'unified',
+    },
   };
 }
 
@@ -130,3 +144,85 @@ export function resetDevToolsState(): void {
   currentState = createInitialState();
   notify();
 }
+
+export function setAIStudioState(partial: Partial<AIStudioState>): void {
+  currentState = {
+    ...currentState,
+    aiStudio: {
+      ...currentState.aiStudio,
+      ...partial,
+    },
+  };
+  notify();
+}
+
+export function setSelectedPartner(partner: AIStudioPartner): void {
+  setAIStudioState({ selectedPartner: partner });
+}
+
+export function setCurrentPrompt(prompt: string): void {
+  setAIStudioState({ currentPrompt: prompt });
+}
+
+export function setPendingDiff(diff: PendingDiff | undefined): void {
+  setAIStudioState({ pendingDiff: diff });
+}
+
+export function setDevToolsDockPosition(pos: DevToolsDockPosition): void {
+  currentState = {
+    ...currentState,
+    dockPosition: pos,
+  };
+  notify();
+}
+
+export async function acceptAIChanges(diff: PendingDiff): Promise<{ success: boolean }> {
+  if (typeof fetch !== 'undefined') {
+    try {
+      await fetch('/api/ai/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(diff),
+      });
+    } catch {
+      // Dev server endpoint may not exist in mock or preview mode
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ranu:ai-changes-accepted', { detail: diff }));
+    // Trigger Fast Refresh / HMR
+    const refreshRuntime = (window as unknown as { __ranu_refresh__?: { performReactRefresh?: () => void } }).__ranu_refresh__;
+    if (refreshRuntime && typeof refreshRuntime.performReactRefresh === 'function') {
+      refreshRuntime.performReactRefresh();
+    }
+    window.dispatchEvent(new CustomEvent('ranu:fast-refresh', { detail: { diff } }));
+  }
+
+  currentState = {
+    ...currentState,
+    aiStudio: {
+      ...currentState.aiStudio,
+      pendingDiff: undefined,
+      isGenerating: false,
+    },
+  };
+  notify();
+  return { success: true };
+}
+
+export function revertAIChanges(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ranu:ai-changes-reverted'));
+  }
+  currentState = {
+    ...currentState,
+    aiStudio: {
+      ...currentState.aiStudio,
+      pendingDiff: undefined,
+      isGenerating: false,
+    },
+  };
+  notify();
+}
+

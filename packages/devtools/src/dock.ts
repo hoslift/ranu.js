@@ -3,8 +3,14 @@ import {
   subscribeDevTools,
   toggleDevToolsDock,
   setActiveDevToolsTab,
+  setSelectedPartner,
+  setCurrentPrompt,
+  acceptAIChanges,
+  revertAIChanges,
 } from './state.js';
-import type { DevToolsDockState } from './types.js';
+import type { DevToolsDockState, AIStudioPartner } from './types.js';
+import { computeLineDiff } from './diff.js';
+import { submitAIPrompt, abortAIGeneration } from './client-stream.js';
 
 /**
  * Injects or mounts the floating Ranu DevTools dock into the DOM.
@@ -19,6 +25,23 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
   const existing = activeDoc.getElementById('ranu-devtools-dock');
   if (existing) {
     return undefined;
+  }
+
+  // Keyboard shortcut listener for Alt+D and Ctrl+Shift+D / Cmd+Shift+D
+  const handleKeyDown = (evt: Event): void => {
+    const e = evt as KeyboardEvent;
+    const isAltD = e.altKey && (e.key === 'd' || e.key === 'D');
+    const isCtrlShiftD =
+      (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'd' || e.key === 'D');
+    if (isAltD || isCtrlShiftD) {
+      if (typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      toggleDevToolsDock();
+    }
+  };
+  if (typeof activeDoc.addEventListener === 'function') {
+    activeDoc.addEventListener('keydown', handleKeyDown);
   }
 
   const container = activeDoc.createElement('div');
@@ -162,6 +185,156 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
       color: #e2e8f0;
       border: 1px solid #1e293b;
     }
+    .partner-pill {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .partner-pill.active {
+      background: #1e293b;
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+    .partner-pill:hover:not(.active) {
+      color: #f8fafc;
+      border-color: #64748b;
+    }
+    .ai-prompt-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .ai-prompt-input {
+      flex: 1;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #f8fafc;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    .ai-prompt-input:focus {
+      border-color: #38bdf8;
+    }
+    .ai-btn-generate {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ai-btn-generate:hover {
+      background: #0369a1;
+    }
+    .ai-btn-stop {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ai-btn-stop:hover {
+      background: #dc2626;
+    }
+    .ai-btn-accept {
+      background: #059669;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ai-btn-accept:hover {
+      background: #047857;
+    }
+    .ai-btn-revert {
+      background: #334155;
+      color: #fca5a5;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ai-btn-revert:hover {
+      background: #475569;
+      color: #ffffff;
+    }
+    .diff-container {
+      display: flex;
+      flex-direction: column;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .diff-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+    }
+    .diff-table {
+      overflow-y: auto;
+      max-height: 180px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .diff-line {
+      display: flex;
+      padding: 2px 8px;
+      line-height: 1.4;
+    }
+    .diff-line.added {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border-left: 3px solid #22c55e;
+    }
+    .diff-line.removed {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border-left: 3px solid #ef4444;
+    }
+    .diff-line.unchanged {
+      color: #94a3b8;
+      border-left: 3px solid transparent;
+    }
+    .diff-gutter {
+      width: 32px;
+      color: #64748b;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .diff-sign {
+      width: 16px;
+      font-weight: bold;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .diff-text {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   `;
 
   shadow.appendChild(style);
@@ -202,6 +375,7 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
       { id: 'routes', label: 'Route Hierarchy' },
       { id: 'hydration', label: `Hydration (${state.hydration.status})` },
       { id: 'diagnostics', label: `Diagnostics (${state.diagnostics.length})` },
+      { id: 'ai-studio', label: 'AI Studio ✨' },
     ];
 
     tabList.forEach((t) => {
@@ -309,6 +483,198 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
         });
         content.appendChild(diagList);
       }
+    } else if (state.activeTab === 'ai-studio') {
+      const aiStudioContainer = activeDoc.createElement('div');
+      aiStudioContainer.className = 'ai-studio-container';
+      aiStudioContainer.style.display = 'flex';
+      aiStudioContainer.style.flexDirection = 'column';
+      aiStudioContainer.style.gap = '8px';
+
+      // 1. Partner pills
+      const partnersRow = activeDoc.createElement('div');
+      partnersRow.style.display = 'flex';
+      partnersRow.style.gap = '6px';
+      partnersRow.style.alignItems = 'center';
+      partnersRow.style.flexWrap = 'wrap';
+
+      const partnerLabel = activeDoc.createElement('span');
+      partnerLabel.style.fontSize = '11px';
+      partnerLabel.style.color = '#94a3b8';
+      partnerLabel.style.fontWeight = '600';
+      partnerLabel.textContent = 'PARTNER:';
+      partnersRow.appendChild(partnerLabel);
+
+      const partners: Array<{ id: AIStudioPartner; label: string }> = [
+        { id: 'gemini', label: '✦ Gemini' },
+        { id: 'groq', label: '⚡ Groq' },
+        { id: 'claude', label: '▲ Claude' },
+        { id: 'openai', label: '● OpenAI' },
+        { id: 'custom', label: '⚙ Custom' },
+      ];
+
+      partners.forEach((p) => {
+        const pill = activeDoc.createElement('button');
+        pill.className = `partner-pill ${state.aiStudio.selectedPartner === p.id ? 'active' : ''}`;
+        pill.textContent = p.label;
+        pill.onclick = () => setSelectedPartner(p.id);
+        partnersRow.appendChild(pill);
+      });
+      aiStudioContainer.appendChild(partnersRow);
+
+      // 2. Prompt bar
+      const promptBar = activeDoc.createElement('div');
+      promptBar.className = 'ai-prompt-bar';
+
+      const promptInput = activeDoc.createElement('input') as HTMLInputElement;
+      promptInput.className = 'ai-prompt-input';
+      promptInput.placeholder =
+        'Describe UI or API changes (e.g. "Add streaming counter", "Convert to Client Component")...';
+      promptInput.value = state.aiStudio.currentPrompt;
+      promptInput.disabled = state.aiStudio.isGenerating;
+      promptInput.oninput = (e: Event) => {
+        const target = e.target as HTMLInputElement | null;
+        setCurrentPrompt(target?.value ?? promptInput.value);
+      };
+      promptInput.onkeydown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey && promptInput.value.trim()) {
+          void submitAIPrompt(promptInput.value);
+        }
+      };
+      promptBar.appendChild(promptInput);
+
+      if (state.aiStudio.isGenerating) {
+        const stopBtn = activeDoc.createElement('button');
+        stopBtn.className = 'ai-btn-stop';
+        stopBtn.textContent = 'Stop';
+        stopBtn.onclick = () => abortAIGeneration();
+        promptBar.appendChild(stopBtn);
+      } else {
+        const generateBtn = activeDoc.createElement('button');
+        generateBtn.className = 'ai-btn-generate';
+        generateBtn.textContent = 'Generate';
+        generateBtn.onclick = () => {
+          if (promptInput.value.trim()) {
+            void submitAIPrompt(promptInput.value);
+          }
+        };
+        promptBar.appendChild(generateBtn);
+      }
+      aiStudioContainer.appendChild(promptBar);
+
+      // 3. Error message if any
+      if (state.aiStudio.error) {
+        const errBox = activeDoc.createElement('div');
+        errBox.style.color = '#f87171';
+        errBox.style.background = 'rgba(239, 68, 68, 0.1)';
+        errBox.style.border = '1px solid #ef4444';
+        errBox.style.padding = '8px 12px';
+        errBox.style.borderRadius = '6px';
+        errBox.style.fontSize = '12px';
+        errBox.textContent = `Error: ${state.aiStudio.error}`;
+        aiStudioContainer.appendChild(errBox);
+      }
+
+      // 4. Visual Diff or Streaming Preview or Placeholder
+      if (state.aiStudio.pendingDiff) {
+        const diff = state.aiStudio.pendingDiff;
+        const diffContainer = activeDoc.createElement('div');
+        diffContainer.className = 'diff-container';
+
+        const toolbar = activeDoc.createElement('div');
+        toolbar.className = 'diff-toolbar';
+
+        const info = activeDoc.createElement('div');
+        info.style.display = 'flex';
+        info.style.alignItems = 'center';
+        info.style.gap = '8px';
+        info.innerHTML = `
+          <span style="color:#38bdf8;font-weight:600;">📄 ${diff.filePath}</span>
+          <span style="font-size:11px;color:#94a3b8;">${diff.patchSummary}</span>
+        `;
+        toolbar.appendChild(info);
+
+        const actions = activeDoc.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '8px';
+
+        const revertBtn = activeDoc.createElement('button');
+        revertBtn.className = 'ai-btn-revert';
+        revertBtn.textContent = '✕ Discard';
+        revertBtn.onclick = () => revertAIChanges();
+        actions.appendChild(revertBtn);
+
+        const acceptBtn = activeDoc.createElement('button');
+        acceptBtn.className = 'ai-btn-accept';
+        acceptBtn.textContent = '✓ Accept Changes';
+        acceptBtn.onclick = () => {
+          void acceptAIChanges(diff);
+        };
+        actions.appendChild(acceptBtn);
+
+        toolbar.appendChild(actions);
+        diffContainer.appendChild(toolbar);
+
+        const table = activeDoc.createElement('div');
+        table.className = 'diff-table';
+
+        const diffLines = computeLineDiff(diff.originalContent, diff.proposedContent);
+        diffLines.forEach((line) => {
+          const row = activeDoc.createElement('div');
+          row.className = `diff-line ${line.type}`;
+
+          const origGutter = activeDoc.createElement('span');
+          origGutter.className = 'diff-gutter';
+          origGutter.textContent =
+            line.originalLineNumber !== undefined ? String(line.originalLineNumber) : '';
+          row.appendChild(origGutter);
+
+          const modGutter = activeDoc.createElement('span');
+          modGutter.className = 'diff-gutter';
+          modGutter.textContent =
+            line.modifiedLineNumber !== undefined ? String(line.modifiedLineNumber) : '';
+          row.appendChild(modGutter);
+
+          const sign = activeDoc.createElement('span');
+          sign.className = 'diff-sign';
+          sign.textContent = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+          row.appendChild(sign);
+
+          const text = activeDoc.createElement('span');
+          text.className = 'diff-text';
+          text.textContent = line.content;
+          row.appendChild(text);
+
+          table.appendChild(row);
+        });
+
+        diffContainer.appendChild(table);
+        aiStudioContainer.appendChild(diffContainer);
+      } else if (state.aiStudio.streamingResponse) {
+        const preview = activeDoc.createElement('div');
+        preview.className = 'code-block';
+        preview.style.whiteSpace = 'pre-wrap';
+        preview.style.maxHeight = '180px';
+        preview.style.overflowY = 'auto';
+        preview.textContent = state.aiStudio.streamingResponse;
+        aiStudioContainer.appendChild(preview);
+      } else {
+        const placeholder = activeDoc.createElement('div');
+        placeholder.style.color = '#64748b';
+        placeholder.style.textAlign = 'center';
+        placeholder.style.padding = '24px 0';
+        placeholder.textContent =
+          'Select an AI partner, enter your instructions above, and review visual diffs in real-time.';
+        aiStudioContainer.appendChild(placeholder);
+      }
+
+      content.appendChild(aiStudioContainer);
+    }
+
+    if (state.dockPosition === 'top') {
+      panel.style.top = '0';
+      panel.style.bottom = 'auto';
+      panel.style.borderTop = 'none';
+      panel.style.borderBottom = '1px solid #334155';
     }
 
     panel.appendChild(content);
@@ -324,6 +690,9 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
 
   return () => {
     unsubscribe();
+    if (typeof activeDoc.removeEventListener === 'function') {
+      activeDoc.removeEventListener('keydown', handleKeyDown);
+    }
     container.remove();
   };
 }
