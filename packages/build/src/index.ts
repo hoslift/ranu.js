@@ -43,6 +43,9 @@ export {
   validateClientSourceEnv,
   validateGraphEnvAccess,
   buildPublicEnvDefines,
+  KNOWN_AI_SECRET_KEYS,
+  isKnownAiSecretKey,
+  createPrivateEnvDiagnostic,
 } from './env/env-validator.js';
 export {
   isPathContained,
