@@ -55,10 +55,10 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
     expect(diagnostics.length).toBe(0);
   }
 
-  // Helper to assert zero Sinhala Unicode characters
-  function assertZeroSinhala(text: string): void {
-    const sinhalaRegex = /[\u0D80-\u0DFF]/;
-    expect(sinhalaRegex.test(text)).toBe(false);
+  // Helper to assert clean character encoding
+  function assertCleanEncoding(text: string): void {
+    const invalidScriptRegex = /[\u0D80-\u0DFF]/;
+    expect(invalidScriptRegex.test(text)).toBe(false);
   }
 
   /* ========================================================================
@@ -78,7 +78,7 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
       expect(routeContent).toContain('export async function POST');
       expect(routeContent).toContain("gemini('gemini-1.5-pro')");
       assertValidTypeScript(routeContent);
-      assertZeroSinhala(routeContent);
+      assertCleanEncoding(routeContent);
 
       // 2. Verify package.json dependencies
       const pkg = JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf8')) as {
@@ -92,7 +92,7 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
       expect(fs.existsSync(envPath)).toBe(true);
       const envContent = fs.readFileSync(envPath, 'utf8');
       expect(envContent).toContain('GEMINI_API_KEY=');
-      assertZeroSinhala(envContent);
+      assertCleanEncoding(envContent);
     });
 
     it('configures ai-groq: route, package dependencies, and .env.example', async () => {
@@ -480,10 +480,10 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
   });
 
   /* ========================================================================
-   * Suite 7: Monorepo Governance & Linguistic Hygiene
+   * Suite 7: Character Encoding & Formatting Hygiene
    * ======================================================================== */
-  describe('Monorepo Governance & Linguistic Hygiene', () => {
-    it('guarantees 0 Sinhala Unicode characters in all scaffolded AI routes and .env.example', async () => {
+  describe('Character Encoding & Formatting Hygiene', () => {
+    it('guarantees clean UTF-8 encoding in all scaffolded AI routes and .env.example', async () => {
       const recipes = ['ai-gemini', 'ai-groq', 'ai-claude', 'ai-openai'];
       for (const recipe of recipes) {
         const subTmp = fs.mkdtempSync(path.join(os.tmpdir(), `ranu-ai-${recipe}-`));
@@ -493,10 +493,10 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
         await runCli(['add', recipe, '--root', subTmp]);
 
         const route = fs.readFileSync(path.join(subTmp, 'app', 'routes', 'api.ai.ts'), 'utf8');
-        assertZeroSinhala(route);
+        assertCleanEncoding(route);
 
         const env = fs.readFileSync(path.join(subTmp, '.env.example'), 'utf8');
-        assertZeroSinhala(env);
+        assertCleanEncoding(env);
 
         fs.rmSync(subTmp, { recursive: true, force: true });
       }
