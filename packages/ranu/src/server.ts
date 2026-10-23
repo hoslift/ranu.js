@@ -32,6 +32,11 @@ export {
   type StandardSchemaV1,
   type BoundedStreamOptions,
   type StreamingDrainMetrics,
+  createVipMiddleware,
+  verifyVipToken,
+  applyVipHeaders,
+  createVipNotFoundResponse,
+  type VipMiddlewareOptions,
 } from '@ranu/server';
 
 export {
