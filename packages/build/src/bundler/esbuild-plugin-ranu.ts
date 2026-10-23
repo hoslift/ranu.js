@@ -94,6 +94,24 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
         };
       });
 
+      // 2. DevTools Zero-Footprint Production Stripping
+      build.onResolve({ filter: /^@?ranu\/devtools$/ }, (args) => {
+        if (platform === 'browser' && process.env.NODE_ENV === 'production') {
+          return {
+            path: args.path,
+            namespace: 'ranu-virtual-devtools-stub',
+          };
+        }
+        return undefined;
+      });
+
+      build.onLoad({ filter: /.*/, namespace: 'ranu-virtual-devtools-stub' }, () => {
+        return {
+          contents: 'export const DevToolsDock = () => null; export const mountDevToolsDock = () => {}; export const AIStudio = () => null; export default {};',
+          loader: 'js',
+        };
+      });
+
       // Hashed public asset URLs in emitted CSS are runtime URLs, not build-time imports.
       build.onResolve({ filter: /^\/_ranu\/assets\// }, (args) => ({
         path: args.path,
