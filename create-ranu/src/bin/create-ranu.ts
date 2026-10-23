@@ -3,7 +3,9 @@
 import path from 'node:path';
 import { scaffoldProject } from '../scaffold.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
-import type { PackageManager, TemplateName } from '../types.js';
+import type { PackageManager, TemplateName, AIEngineName } from '../types.js';
+import { SUPPORTED_AI_ENGINES } from '../types.js';
+import { promptSelect, AI_ENGINE_CHOICES } from '../prompts.js';
 import { SCAFFOLDER_VERSION } from '../index.js';
 
 /**
@@ -20,6 +22,8 @@ export interface ParsedArgs {
   adapter?: string | undefined;
   /** Whether to configure automated tests. */
   tests?: boolean | undefined;
+  /** AI engine integration choice. */
+  ai?: AIEngineName | undefined;
   /** Whether to install dependencies after scaffolding. */
   install?: boolean | undefined;
   /** Whether to initialize a Git repository. */
@@ -34,6 +38,24 @@ export interface ParsedArgs {
   help?: boolean | undefined;
   /** Whether version information was requested. */
   version?: boolean | undefined;
+}
+
+/**
+ * Normalizes input string to supported AIEngineName, resolving known aliases.
+ * Throws descriptive error if input is unrecognized.
+ */
+export function normalizeAIEngine(val: string): AIEngineName {
+  const normalized = val.trim().toLowerCase();
+  if (['none', 'false', 'zero'].includes(normalized)) return 'none';
+  if (['gemini', 'google', 'ai-gemini'].includes(normalized)) return 'gemini';
+  if (['groq', 'ai-groq'].includes(normalized)) return 'groq';
+  if (['claude', 'anthropic', 'ai-claude'].includes(normalized)) return 'claude';
+  if (['openai', 'gpt', 'ai-openai'].includes(normalized)) return 'openai';
+  if (['custom', 'ollama', 'ai-custom'].includes(normalized)) return 'custom';
+
+  throw new Error(
+    `Invalid AI engine "${val}". Supported: ${SUPPORTED_AI_ENGINES.join(', ')}.`
+  );
 }
 
 /**
@@ -143,6 +165,17 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--ai' || arg === '--ai-engine') {
+      i++;
+      const val = argv[i];
+      if (!val || val.startsWith('-')) {
+        throw new Error(`Flag "${arg}" requires a valid AI engine argument.`);
+      }
+      result.ai = normalizeAIEngine(val);
+      i++;
+      continue;
+    }
+
     if (arg === '--package-manager' || arg === '-p') {
       i++;
       const val = argv[i];
@@ -184,6 +217,7 @@ Usage:
 Options:
   -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes, saas)
   -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
+  --ai, --ai-engine <name>      AI engine to configure (none, gemini, groq, claude, openai, custom) [default: none]
   --tests                       Configure unit and component test suites (vitest)
   --no-tests                    Skip test configuration (default)
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)
@@ -199,6 +233,8 @@ Options:
 
 Examples:
   $ npm create ranujs@latest my-app
+  $ pnpm create ranujs my-app --ai gemini
+  $ pnpm create ranujs my-app --ai none
   $ pnpm create ranujs my-app --template minimal
   $ pnpm create ranujs my-app --template cloudflare
   $ pnpm create ranujs my-app --template node-docker
@@ -212,7 +248,7 @@ Examples:
  * @param argv - Argument strings without node binary and script path.
  * @returns Exit status code (0 for success, 1 for error).
  */
-export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): number {
+export async function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   const wantsJson = argv.includes('--json');
   try {
     const parsed = parseArgs(argv);
@@ -241,6 +277,16 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
       return 0;
     }
 
+    const isInteractive = Boolean(
+      process.stdin.isTTY && !process.env.CI && !parsed.quiet && !parsed.json
+    );
+
+    let selectedAI = parsed.ai;
+    if (selectedAI === undefined && isInteractive) {
+      selectedAI = await promptSelect('Select AI Engine:', AI_ENGINE_CHOICES, 0);
+    }
+    selectedAI = selectedAI ?? 'none';
+
     const targetDir = parsed.targetPath ?? 'my-ranu-app';
     const pm = parsed.packageManager ?? detectPackageManager();
 
@@ -254,6 +300,7 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
       template: parsed.template,
       adapter: parsed.adapter,
       tests: parsed.tests,
+      ai: selectedAI,
       install: parsed.install,
       git: parsed.git,
       force: parsed.force,
@@ -279,6 +326,11 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
       const devCmd = getRunCommand(result.packageManager, 'dev');
 
       console.log(`\x1b[32m✔ Success!\x1b[0m Created \x1b[1m${result.projectName}\x1b[0m at ${result.projectPath}`);
+      if (result.ai && result.ai !== 'none') {
+        console.log(`  AI Engine: \x1b[35m${result.ai}\x1b[0m (streaming route at app/routes/api.ai.ts)`);
+      } else {
+        console.log(`  AI Engine: \x1b[2mNone (Zero AI)\x1b[0m`);
+      }
       console.log('\nInside that directory, you can run several commands:');
       console.log(`\n  \x1b[36m${devCmd}\x1b[0m`);
       console.log('    Starts the development server.\n');
@@ -309,11 +361,12 @@ export function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): 
 /* v8 ignore start */
 if (process.env.NODE_ENV !== 'test') {
   try {
-    const code = runCreateRanu();
+    const code = await runCreateRanu();
     process.exit(code);
   } catch {
     process.exit(1);
   }
 }
 /* v8 ignore stop */
+
 
