@@ -132,7 +132,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === '--template' || arg === '-t') {
       i++;
       const val = argv[i];
-      const validTemplates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas'];
+      const validTemplates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas', 'ai-studio'];
       if (!val || val.startsWith('-') || !validTemplates.includes(val as TemplateName)) {
         throw new Error(`Invalid template "${val}". Supported: ${validTemplates.join(', ')}.`);
       }
