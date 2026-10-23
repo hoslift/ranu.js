@@ -7,7 +7,7 @@ export interface PartnerProfile {
   typicalTtfbMs: number;
   contextWindow: string;
   description: string;
-  sponsorTier: 'Title Partner' | 'Strategic Partner' | 'Open Source Supporter';
+  providerTier: 'Official Driver' | 'Community Driver' | 'Local Driver';
   accentColor: string;
   docsUrl: string;
 }
@@ -22,7 +22,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 140,
     contextWindow: '1,000,000 tokens',
     description: 'DeepMind multimodal reasoning powerhouse with native code understanding and massive 1M context cache.',
-    sponsorTier: 'Title Partner',
+    providerTier: 'Official Driver',
     accentColor: '#4285F4',
     docsUrl: 'https://ai.google.dev',
   },
@@ -35,7 +35,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 8,
     contextWindow: '128,000 tokens',
     description: 'Ultra-low latency Language Processing Unit designed for instant keystroke-speed coding copilot interactions.',
-    sponsorTier: 'Strategic Partner',
+    providerTier: 'Official Driver',
     accentColor: '#F55036',
     docsUrl: 'https://groq.com',
   },
@@ -48,7 +48,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 220,
     contextWindow: '200,000 tokens',
     description: 'Exceptional code architectural fidelity, self-contained artifacts, and deep prompt caching efficiency.',
-    sponsorTier: 'Strategic Partner',
+    providerTier: 'Official Driver',
     accentColor: '#D97706',
     docsUrl: 'https://anthropic.com',
   },
@@ -61,7 +61,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 190,
     contextWindow: '128,000 tokens',
     description: 'Flagship reasoning tokens with high code generation accuracy and structured schema compliance.',
-    sponsorTier: 'Strategic Partner',
+    providerTier: 'Official Driver',
     accentColor: '#10A37F',
     docsUrl: 'https://openai.com',
   },
@@ -74,7 +74,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 110,
     contextWindow: '256,000 tokens',
     description: 'Specialized 80+ language coding intelligence with open weights and high compute efficiency.',
-    sponsorTier: 'Open Source Supporter',
+    providerTier: 'Community Driver',
     accentColor: '#FF7000',
     docsUrl: 'https://mistral.ai',
   },
@@ -87,7 +87,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 6,
     contextWindow: '128,000 tokens',
     description: 'World largest monolithic silicon wafer delivering unprecedented burst inference throughput.',
-    sponsorTier: 'Strategic Partner',
+    providerTier: 'Community Driver',
     accentColor: '#E11D48',
     docsUrl: 'https://cerebras.ai',
   },
@@ -100,7 +100,7 @@ export const PARTNERS: Record<string, PartnerProfile> = {
     typicalTtfbMs: 35,
     contextWindow: '128,000 tokens',
     description: 'Self-hosted privacy-first AI engine running entirely on local machine without external API dependencies.',
-    sponsorTier: 'Open Source Supporter',
+    providerTier: 'Local Driver',
     accentColor: '#6B7280',
     docsUrl: 'https://ollama.ai',
   },

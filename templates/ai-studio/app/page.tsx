@@ -180,7 +180,7 @@ export default function AIStudioShowcasePage() {
                 letterSpacing: '0.05em',
                 color: currentPartner.accentColor,
               }}>
-                {currentPartner.sponsorTier}
+                {currentPartner.providerTier}
               </span>
               <span style={{ color: '#4b5563' }}>•</span>
               <span style={{ fontSize: '13px', color: '#9ca3af' }}>Model: <code>{currentPartner.defaultModel}</code></span>

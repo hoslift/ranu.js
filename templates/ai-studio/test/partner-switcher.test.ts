@@ -37,7 +37,7 @@ describe('AI Studio Partner Switcher & Metadata', () => {
       expect(partner.defaultModel).toBeTruthy();
       expect(partner.headline).toBeTruthy();
       expect(partner.description).toBeTruthy();
-      expect(partner.sponsorTier).toMatch(/Title Partner|Strategic Partner|Open Source Supporter/);
+      expect(partner.providerTier).toMatch(/Official Driver|Community Driver|Local Driver/);
       expect(partner.accentColor).toMatch(/^#[0-9A-Fa-f]{6}$/);
       expect(partner.docsUrl).toMatch(/^https?:\/\//);
     }
