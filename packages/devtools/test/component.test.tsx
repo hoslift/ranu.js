@@ -131,4 +131,44 @@ describe('React 19 <RanuDevTools /> Component', () => {
     const html = renderToString(<RanuDevTools />);
     expect(html).toContain('top:0');
   });
+
+  it('renders floating ⚡ launcher pill in bottom-left corner with z-index 2147483646', () => {
+    const html = renderToString(<RanuDevTools />);
+    expect(html).toContain('z-index:2147483646');
+    expect(html).toContain('bottom:16px');
+    expect(html).toContain('left:16px');
+    expect(html).toContain('⚡');
+    expect(html).toContain('Ranu DevTools');
+  });
+
+  it('gracefully returns null without throwing when React dispatcher is null in Server Component evaluation', () => {
+    const internals =
+      (React as any).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE ||
+      (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+
+    if (internals) {
+      const prevH = internals.H;
+      const prevDispatcher = internals.ReactCurrentDispatcher?.current;
+      try {
+        if ('H' in internals) {
+          internals.H = null;
+        }
+        if (internals.ReactCurrentDispatcher) {
+          internals.ReactCurrentDispatcher.current = null;
+        }
+
+        expect(() => {
+          const result = RanuDevTools();
+          expect(result).toBeNull();
+        }).not.toThrow();
+      } finally {
+        if ('H' in internals) {
+          internals.H = prevH;
+        }
+        if (internals.ReactCurrentDispatcher) {
+          internals.ReactCurrentDispatcher.current = prevDispatcher;
+        }
+      }
+    }
+  });
 });

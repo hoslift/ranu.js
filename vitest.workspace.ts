@@ -44,6 +44,7 @@ const sharedAliases = {
   'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   'ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
   'create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
+  '@ranu/devtools': path.resolve(__dirname, 'packages/devtools/src/index.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
 
@@ -211,6 +212,18 @@ export default [
       name: 'examples',
       include: ['tests/examples/**/*.test.ts'],
       testTimeout: 240000,
+      hookTimeout: 60000,
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'e2e',
+      include: ['tests/e2e/**/*.test.ts'],
+      testTimeout: 120000,
       hookTimeout: 60000,
     },
     resolve: {

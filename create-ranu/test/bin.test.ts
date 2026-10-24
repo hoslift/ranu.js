@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { PassThrough } from 'node:stream';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseArgs, printHelp, runCreateRanu, normalizeAIEngine } from '../src/bin/create-ranu.js';
 import * as scaffoldModule from '../src/scaffold.js';
@@ -146,17 +147,54 @@ describe('create-ranu bin CLI', () => {
           'Invalid AI engine "mistral". Supported: none, gemini, groq, claude, openai, custom.'
         );
       });
+
+      it('parses --api-key and --endpoint flags', () => {
+        const parsed1 = parseArgs(['my-app', '--ai', 'gemini', '--api-key', 'AIzaSyKey123']);
+        expect(parsed1.ai).toBe('gemini');
+        expect(parsed1.apiKey).toBe('AIzaSyKey123');
+
+        const parsed2 = parseArgs([
+          'my-app',
+          '--ai',
+          'custom',
+          '--endpoint',
+          'http://localhost:11434',
+          '--api-key',
+          'ollama-secret',
+        ]);
+        expect(parsed2.ai).toBe('custom');
+        expect(parsed2.endpoint).toBe('http://localhost:11434');
+        expect(parsed2.apiKey).toBe('ollama-secret');
+      });
+
+      it('throws descriptive error when --api-key or --endpoint argument is missing', () => {
+        expect(() => parseArgs(['my-app', '--api-key'])).toThrow(
+          'Flag "--api-key" requires a valid API key argument.'
+        );
+        expect(() => parseArgs(['my-app', '--api-key', '--ai', 'gemini'])).toThrow(
+          'Flag "--api-key" requires a valid API key argument.'
+        );
+        expect(() => parseArgs(['my-app', '--endpoint'])).toThrow(
+          'Flag "--endpoint" requires a valid URL endpoint argument.'
+        );
+        expect(() => parseArgs(['my-app', '--endpoint', '--force'])).toThrow(
+          'Flag "--endpoint" requires a valid URL endpoint argument.'
+        );
+      });
     });
   });
 
   describe('printHelp', () => {
-    it('prints help message with --ai flags to console.log', () => {
+    it('prints help message with --ai, --api-key, and --endpoint flags to console.log', () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       printHelp();
       expect(logSpy).toHaveBeenCalled();
       const output = logSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain('--ai, --ai-engine <name>');
-      expect(output).toContain('--ai gemini');
+      expect(output).toContain('--api-key <key>');
+      expect(output).toContain('--endpoint <url>');
+      expect(output).toContain('--api-key AIzaSy...');
+      expect(output).toContain('--endpoint http://localhost:11434');
       logSpy.mockRestore();
     });
   });
@@ -313,6 +351,143 @@ describe('create-ranu bin CLI', () => {
       expect(code4).toBe(1);
 
       errSpy.mockRestore();
+    });
+
+    it('scaffolds project with --ai gemini and --api-key non-interactively', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const targetDir = path.join(tempDir, 'cli-keyed-gemini');
+      const exitCode = await runCreateRanu([
+        targetDir,
+        '--ai',
+        'gemini',
+        '--api-key',
+        'AIzaSyCLIKey123',
+        '--no-install',
+        '--no-git',
+        '--quiet',
+      ]);
+      expect(exitCode).toBe(0);
+      expect(fs.existsSync(path.join(targetDir, '.env'))).toBe(true);
+
+      const envContent = fs.readFileSync(path.join(targetDir, '.env'), 'utf-8');
+      expect(envContent).toContain('GEMINI_API_KEY=AIzaSyCLIKey123');
+      logSpy.mockRestore();
+    });
+
+    it('scaffolds project with --ai custom, --endpoint, and --api-key non-interactively', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const targetDir = path.join(tempDir, 'cli-custom-endpoint');
+      const exitCode = await runCreateRanu([
+        targetDir,
+        '--ai',
+        'custom',
+        '--endpoint',
+        'http://127.0.0.1:11434',
+        '--api-key',
+        'tok-secret-123',
+        '--no-install',
+        '--no-git',
+        '--quiet',
+      ]);
+      expect(exitCode).toBe(0);
+      expect(fs.existsSync(path.join(targetDir, '.env'))).toBe(true);
+
+      const envContent = fs.readFileSync(path.join(targetDir, '.env'), 'utf-8');
+      expect(envContent).toContain('CUSTOM_AI_ENDPOINT=http://127.0.0.1:11434');
+      expect(envContent).toContain('CUSTOM_AI_KEY=tok-secret-123');
+      logSpy.mockRestore();
+    });
+
+    it('reports hasCredentials in JSON output mode', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const targetDir = path.join(tempDir, 'cli-json-credentials');
+
+      const exitCode1 = await runCreateRanu([
+        targetDir,
+        '--ai',
+        'gemini',
+        '--api-key',
+        'AIzaSyJSONKey',
+        '--no-install',
+        '--no-git',
+        '--json',
+      ]);
+      expect(exitCode1).toBe(0);
+
+      const loggedJSON = JSON.parse(logSpy.mock.calls[0]?.[0] as string);
+      expect(loggedJSON.success).toBe(true);
+      expect(loggedJSON.hasCredentials).toBe(true);
+      expect(loggedJSON.ai).toBe('gemini');
+
+      logSpy.mockRestore();
+    });
+
+    it('runs interactive flow with mock streams: selects AI engine and enters API key', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const inStream = new PassThrough();
+      const outStream = new PassThrough();
+      const targetDir = path.join(tempDir, 'interactive-keyed-app');
+
+      outStream.on('data', (chunk: Buffer) => {
+        const text = chunk.toString();
+        if (text.includes('Enter choice')) {
+          inStream.write('2\n');
+        } else if (text.includes('Enter Google Gemini API Key')) {
+          inStream.write('AIzaSyInteractiveKey999\n');
+        }
+      });
+
+      const exitCode = await runCreateRanu(
+        [targetDir, '--no-install', '--no-git'],
+        { input: inStream, output: outStream }
+      );
+
+      expect(exitCode).toBe(0);
+      expect(fs.existsSync(path.join(targetDir, '.env'))).toBe(true);
+
+      const envContent = fs.readFileSync(path.join(targetDir, '.env'), 'utf-8');
+      expect(envContent).toContain('GEMINI_API_KEY=AIzaSyInteractiveKey999');
+
+      // Check terminal guidance output
+      const allLogs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(allLogs).toContain('✔ Configured in .env');
+      expect(allLogs).toContain('curl http://localhost:3000/api/ai');
+      expect(allLogs).toContain('curl -X POST http://localhost:3000/api/ai');
+
+      logSpy.mockRestore();
+    });
+
+    it('runs interactive flow with mock streams: selects AI engine and presses Enter to skip', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const inStream = new PassThrough();
+      const outStream = new PassThrough();
+      const targetDir = path.join(tempDir, 'interactive-skip-app');
+
+      outStream.on('data', (chunk: Buffer) => {
+        const text = chunk.toString();
+        if (text.includes('Enter choice')) {
+          inStream.write('2\n');
+        } else if (text.includes('Enter Google Gemini API Key')) {
+          inStream.write('\n');
+        }
+      });
+
+      const exitCode = await runCreateRanu(
+        [targetDir, '--no-install', '--no-git'],
+        { input: inStream, output: outStream }
+      );
+
+      expect(exitCode).toBe(0);
+      expect(fs.existsSync(path.join(targetDir, '.env'))).toBe(false);
+      expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true);
+
+      // Check terminal guidance indicates skipped
+      const allLogs = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(allLogs).toContain('⚠ Skipped');
+      expect(allLogs).toContain('set GEMINI_API_KEY in .env');
+      expect(allLogs).toContain('curl http://localhost:3000/api/ai');
+
+      logSpy.mockRestore();
     });
   });
 });

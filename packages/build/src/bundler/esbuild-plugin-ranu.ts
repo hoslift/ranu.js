@@ -106,8 +106,42 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
       });
 
       build.onLoad({ filter: /.*/, namespace: 'ranu-virtual-devtools-stub' }, () => {
+        const stubs = [
+          'export const RanuDevTools = () => null;',
+          'export const DevToolsDock = () => null;',
+          'export const mountDevToolsDock = () => {};',
+          'export const unmountDevToolsDock = () => {};',
+          'export const AIStudio = () => null;',
+          'export const AIStudioDock = () => null;',
+          'export const toggleDevToolsDock = () => false;',
+          'export const setDevToolsDockPosition = () => {};',
+          'export const getDevToolsState = () => ({});',
+          'export const setDevToolsState = () => {};',
+          'export const resetDevToolsState = () => {};',
+          'export const subscribeDevTools = () => () => {};',
+          'export const setActiveDevToolsTab = () => {};',
+          'export const recordStreamingChunk = () => ({ timestamp: Date.now(), bytes: 0, preview: "" });',
+          'export const clearStreamingChunks = () => {};',
+          'export const recordRouteHierarchy = () => {};',
+          'export const recordHydrationStatus = () => {};',
+          'export const recordDevDiagnostics = () => {};',
+          'export const setSelectedPartner = () => {};',
+          'export const setCurrentPrompt = () => {};',
+          'export const setPendingDiff = () => {};',
+          'export const setStreamingResponse = () => {};',
+          'export const setAIStudioError = () => {};',
+          'export const setAIStudioState = () => {};',
+          'export const acceptAIChanges = async () => ({ success: true });',
+          'export const revertAIChanges = () => {};',
+          'export const createInitialState = () => ({});',
+          'export const computeLineDiff = () => [];',
+          'export const computePatchSummary = () => "";',
+          'export const submitAIPrompt = async () => {};',
+          'export const abortAIGeneration = () => {};',
+          'export default RanuDevTools;',
+        ].join(' ');
         return {
-          contents: 'export const DevToolsDock = () => null; export const mountDevToolsDock = () => {}; export const AIStudio = () => null; export default {};',
+          contents: stubs,
           loader: 'js',
         };
       });

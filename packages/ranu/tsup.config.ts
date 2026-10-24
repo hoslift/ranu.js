@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
@@ -31,11 +33,23 @@ export default defineConfig({
     'typescript',
   ],
   noExternal: [/@ranu\/.*/],
-  banner: ({ entry }) => {
+  banner: ({ entry }: { entry?: string } = {}) => {
     if (entry && (entry.includes('bin') || entry.includes('ranu.ts') || entry.includes('ranu.js'))) {
       return { js: '#!/usr/bin/env node\n' };
     }
+    if (entry === 'devtools' || (entry && entry.includes('devtools'))) {
+      return { js: "'use client';\n" };
+    }
     return {};
+  },
+  onSuccess: async () => {
+    const devtoolsPath = path.resolve('dist/devtools.js');
+    if (fs.existsSync(devtoolsPath)) {
+      const content = fs.readFileSync(devtoolsPath, 'utf8');
+      if (!content.startsWith("'use client';") && !content.startsWith('"use client";')) {
+        fs.writeFileSync(devtoolsPath, `'use client';\n${content}`, 'utf8');
+      }
+    }
   },
   tsconfig: 'tsconfig.build.json',
 });

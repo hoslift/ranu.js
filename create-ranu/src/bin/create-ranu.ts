@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 import path from 'node:path';
+import readline from 'node:readline/promises';
+import type { Readable, Writable } from 'node:stream';
 import { scaffoldProject } from '../scaffold.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
 import type { PackageManager, TemplateName, AIEngineName } from '../types.js';
 import { SUPPORTED_AI_ENGINES } from '../types.js';
-import { promptSelect, AI_ENGINE_CHOICES } from '../prompts.js';
+import { promptSelect, promptInput, AI_ENGINE_CHOICES } from '../prompts.js';
 import { SCAFFOLDER_VERSION } from '../index.js';
 
 /**
@@ -24,6 +26,10 @@ export interface ParsedArgs {
   tests?: boolean | undefined;
   /** AI engine integration choice. */
   ai?: AIEngineName | undefined;
+  /** API key or session token for selected AI engine. */
+  apiKey?: string | undefined;
+  /** Custom or local endpoint URL for selected AI engine. */
+  endpoint?: string | undefined;
   /** Whether to install dependencies after scaffolding. */
   install?: boolean | undefined;
   /** Whether to initialize a Git repository. */
@@ -176,6 +182,28 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--api-key') {
+      i++;
+      const val = argv[i];
+      if (!val || val.startsWith('-')) {
+        throw new Error('Flag "--api-key" requires a valid API key argument.');
+      }
+      result.apiKey = val;
+      i++;
+      continue;
+    }
+
+    if (arg === '--endpoint') {
+      i++;
+      const val = argv[i];
+      if (!val || val.startsWith('-')) {
+        throw new Error('Flag "--endpoint" requires a valid URL endpoint argument.');
+      }
+      result.endpoint = val;
+      i++;
+      continue;
+    }
+
     if (arg === '--package-manager' || arg === '-p') {
       i++;
       const val = argv[i];
@@ -218,6 +246,8 @@ Options:
   -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes, saas)
   -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
   --ai, --ai-engine <name>      AI engine to configure (none, gemini, groq, claude, openai, custom) [default: none]
+  --api-key <key>               API key or session token for configured AI engine
+  --endpoint <url>              Custom or local endpoint URL for AI engine (e.g. http://localhost:11434)
   --tests                       Configure unit and component test suites (vitest)
   --no-tests                    Skip test configuration (default)
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)
@@ -234,6 +264,8 @@ Options:
 Examples:
   $ npm create ranujs@latest my-app
   $ pnpm create ranujs my-app --ai gemini
+  $ pnpm create ranujs my-app --ai gemini --api-key AIzaSy...
+  $ pnpm create ranujs my-app --ai custom --endpoint http://localhost:11434
   $ pnpm create ranujs my-app --ai none
   $ pnpm create ranujs my-app --template minimal
   $ pnpm create ranujs my-app --template cloudflare
@@ -248,7 +280,10 @@ Examples:
  * @param argv - Argument strings without node binary and script path.
  * @returns Exit status code (0 for success, 1 for error).
  */
-export async function runCreateRanu(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
+export async function runCreateRanu(
+  argv: readonly string[] = process.argv.slice(2),
+  io: { input?: Readable; output?: Writable } = {}
+): Promise<number> {
   const wantsJson = argv.includes('--json');
   try {
     const parsed = parseArgs(argv);
@@ -278,12 +313,54 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
     }
 
     const isInteractive = Boolean(
-      process.stdin.isTTY && !process.env.CI && !parsed.quiet && !parsed.json
+      (io.input ? true : (process.stdin.isTTY && !process.env.CI)) && !parsed.quiet && !parsed.json
     );
 
     let selectedAI = parsed.ai;
-    if (selectedAI === undefined && isInteractive) {
-      selectedAI = await promptSelect('Select AI Engine:', AI_ENGINE_CHOICES, 0);
+    let apiKey = parsed.apiKey;
+    let endpoint = parsed.endpoint;
+
+    const aiSelectedInteractively = selectedAI === undefined && isInteractive;
+    if (aiSelectedInteractively) {
+      const inStream = io.input ?? process.stdin;
+      const outStream = io.output ?? process.stdout;
+      const rl = readline.createInterface({ input: inStream, output: outStream });
+      try {
+        selectedAI = await promptSelect('Select AI Engine:', AI_ENGINE_CHOICES, 0, { ...io, rl });
+        selectedAI = selectedAI ?? 'none';
+
+        if (selectedAI !== 'none') {
+          if (selectedAI === 'custom') {
+            if (!endpoint) {
+              const inputEndpoint = await promptInput(
+                'Local / Custom AI Endpoint URL',
+                { ...io, rl, defaultValue: 'http://localhost:11434' }
+              );
+              endpoint = inputEndpoint || 'http://localhost:11434';
+            }
+            if (!apiKey) {
+              const inputKey = await promptInput(
+                'Custom AI API Key or Session Token (optional)',
+                { ...io, rl }
+              );
+              apiKey = inputKey || undefined;
+            }
+          } else if (!apiKey) {
+            const providerName =
+              selectedAI === 'gemini'
+                ? 'Google Gemini'
+                : selectedAI === 'groq'
+                  ? 'Groq'
+                  : selectedAI === 'claude'
+                    ? 'Anthropic Claude'
+                    : 'OpenAI';
+            const inputKey = await promptInput(`Enter ${providerName} API Key`, { ...io, rl });
+            apiKey = inputKey || undefined;
+          }
+        }
+      } finally {
+        rl.close();
+      }
     }
     selectedAI = selectedAI ?? 'none';
 
@@ -301,6 +378,8 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
       adapter: parsed.adapter,
       tests: parsed.tests,
       ai: selectedAI,
+      apiKey,
+      endpoint,
       install: parsed.install,
       git: parsed.git,
       force: parsed.force,
@@ -327,7 +406,29 @@ export async function runCreateRanu(argv: readonly string[] = process.argv.slice
 
       console.log(`\x1b[32m✔ Success!\x1b[0m Created \x1b[1m${result.projectName}\x1b[0m at ${result.projectPath}`);
       if (result.ai && result.ai !== 'none') {
-        console.log(`  AI Engine: \x1b[35m${result.ai}\x1b[0m (streaming route at app/routes/api.ai.ts)`);
+        console.log(`  AI Engine: \x1b[35m${result.ai}\x1b[0m`);
+        if (result.hasCredentials) {
+          console.log(`  Credentials: \x1b[32m✔ Configured in .env\x1b[0m \x1b[2m(shielded from git by .gitignore)\x1b[0m`);
+        } else {
+          const envVar =
+            result.ai === 'gemini'
+              ? 'GEMINI_API_KEY'
+              : result.ai === 'groq'
+                ? 'GROQ_API_KEY'
+                : result.ai === 'claude'
+                  ? 'ANTHROPIC_API_KEY'
+                  : result.ai === 'openai'
+                    ? 'OPENAI_API_KEY'
+                    : 'CUSTOM_AI_KEY';
+          console.log(`  Credentials: \x1b[33m⚠ Skipped\x1b[0m \x1b[2m(set ${envVar} in .env before invoking AI routes)\x1b[0m`);
+        }
+
+        console.log('\n  AI Streaming Route:');
+        console.log('    Handler:  app/routes/api.ai.ts');
+        console.log('    Endpoint: http://localhost:3000/api/ai');
+        console.log('\n  To test your AI streaming endpoint after starting the server:');
+        console.log('    \x1b[36mcurl http://localhost:3000/api/ai\x1b[0m');
+        console.log('    \x1b[36mcurl -X POST http://localhost:3000/api/ai -H "Content-Type: application/json" -d "{\\"prompt\\":\\"Hello Ranu!\\"}"\x1b[0m');
       } else {
         console.log(`  AI Engine: \x1b[2mNone (Zero AI)\x1b[0m`);
       }

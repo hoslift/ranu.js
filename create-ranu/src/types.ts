@@ -104,6 +104,16 @@ export interface ScaffoldOptions {
   ai?: AIEngineName | undefined;
 
   /**
+   * API key or session token for selected AI engine.
+   */
+  apiKey?: string | undefined;
+
+  /**
+   * Custom or local endpoint URL for selected AI engine.
+   */
+  endpoint?: string | undefined;
+
+  /**
    * Base working directory for resolving relative project paths.
    * Defaults to process.cwd().
    */
@@ -158,6 +168,11 @@ export interface ScaffoldResult {
    * Configured AI engine.
    */
   ai?: AIEngineName | undefined;
+
+  /**
+   * Whether credentials or endpoint were configured during scaffolding.
+   */
+  hasCredentials?: boolean | undefined;
 
   /**
    * Error message if scaffolding failed.

@@ -11,6 +11,8 @@ export interface GenerateTemplateOptions {
   adapter?: string | undefined;
   tests?: boolean | undefined;
   ai?: AIEngineName | undefined;
+  apiKey?: string | undefined;
+  endpoint?: string | undefined;
 }
 
 /**
@@ -73,7 +75,9 @@ node_modules/
 dist/
 
 # Environment Files
+.env
 .env*.local
+!.env.example
 
 # Logs
 *.log
@@ -303,7 +307,9 @@ CMD ["npm", "start"]
 .ranu/
 dist/
 .git/
+.env
 .env*.local
+!.env.example
 *.log
 `;
 
@@ -894,8 +900,16 @@ describe('${projectName} Smoke Test', () => {
 
   // Include AI streaming route and environment variables template if AI engine selected
   if (aiEngine) {
-    files['app/routes/api.ai.ts'] = getAIRouteTemplate(aiEngine);
-    files['.env.example'] = getEnvExample(aiEngine);
+    files['app/routes/api.ai.ts'] = getAIRouteTemplate(aiEngine, options.endpoint);
+    files['.env.example'] = getEnvExample(aiEngine, options.endpoint);
+
+    const hasKey = Boolean(options.apiKey && options.apiKey.trim().length > 0);
+    const hasCustomEndpoint = Boolean(options.endpoint && options.endpoint.trim().length > 0);
+    const isCustomWithConfig = aiEngine === 'custom' && (hasCustomEndpoint || hasKey);
+
+    if (hasKey || isCustomWithConfig) {
+      files['.env'] = getEnvContent(aiEngine, options.apiKey?.trim(), options.endpoint?.trim());
+    }
   }
 
   // Merge automated agent context files across all templates
@@ -915,7 +929,7 @@ describe('${projectName} Smoke Test', () => {
 /**
  * Returns canonical W3C streaming handler template for chosen AI provider.
  */
-function getAIRouteTemplate(ai: AIEngineName): string {
+function getAIRouteTemplate(ai: AIEngineName, endpoint?: string | undefined): string {
   switch (ai) {
     case 'gemini':
       return `import { streamAI } from '@ranu/ai';
@@ -1029,12 +1043,13 @@ export async function GET(): Promise<Response> {
   });
 }
 `;
-    case 'custom':
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
       return `import { streamAI } from '@ranu/ai';
 import { createCustomAI } from '@ranu/ai-custom';
 
 const customAI = createCustomAI({
-  baseURL: process.env.CUSTOM_AI_ENDPOINT || 'http://localhost:11434',
+  baseURL: process.env.CUSTOM_AI_ENDPOINT || '${ep}',
   apiKey: process.env.CUSTOM_AI_KEY,
 });
 
@@ -1060,11 +1075,12 @@ export async function GET(): Promise<Response> {
   return Response.json({
     status: 'ready',
     provider: 'custom',
-    endpoint: process.env.CUSTOM_AI_ENDPOINT || 'http://localhost:11434',
+    endpoint: process.env.CUSTOM_AI_ENDPOINT || '${ep}',
     defaultModel: process.env.CUSTOM_AI_MODEL || 'llama3',
   });
 }
 `;
+    }
     default:
       return '';
   }
@@ -1073,7 +1089,7 @@ export async function GET(): Promise<Response> {
 /**
  * Returns environment configuration template for chosen AI provider.
  */
-function getEnvExample(ai: AIEngineName): string {
+function getEnvExample(ai: AIEngineName, endpoint?: string | undefined): string {
   switch (ai) {
     case 'gemini':
       return `PORT=3000\nGEMINI_API_KEY=your_gemini_api_key_here\n`;
@@ -1083,10 +1099,40 @@ function getEnvExample(ai: AIEngineName): string {
       return `PORT=3000\nANTHROPIC_API_KEY=your_anthropic_api_key_here\n`;
     case 'openai':
       return `PORT=3000\nOPENAI_API_KEY=your_openai_api_key_here\n`;
-    case 'custom':
-      return `PORT=3000\nCUSTOM_AI_ENDPOINT=http://localhost:11434\nCUSTOM_AI_KEY=your_custom_ai_key_here\n`;
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
+      return `PORT=3000\nCUSTOM_AI_ENDPOINT=${ep}\nCUSTOM_AI_KEY=your_custom_ai_key_here\n`;
+    }
     default:
       return '';
   }
 }
+
+/**
+ * Returns environment configuration populated with user credentials for chosen AI provider.
+ */
+export function getEnvContent(
+  ai: AIEngineName,
+  apiKey?: string | undefined,
+  endpoint?: string | undefined
+): string {
+  switch (ai) {
+    case 'gemini':
+      return `PORT=3000\nGEMINI_API_KEY=${apiKey ?? ''}\n`;
+    case 'groq':
+      return `PORT=3000\nGROQ_API_KEY=${apiKey ?? ''}\n`;
+    case 'claude':
+      return `PORT=3000\nANTHROPIC_API_KEY=${apiKey ?? ''}\n`;
+    case 'openai':
+      return `PORT=3000\nOPENAI_API_KEY=${apiKey ?? ''}\n`;
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
+      const keyLine = apiKey && apiKey.trim().length > 0 ? `CUSTOM_AI_KEY=${apiKey.trim()}\n` : '';
+      return `PORT=3000\nCUSTOM_AI_ENDPOINT=${ep}\n${keyLine}`;
+    }
+    default:
+      return '';
+  }
+}
+
 

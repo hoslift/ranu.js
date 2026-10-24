@@ -287,6 +287,89 @@ describe('scaffoldProject', () => {
       expect(fs.existsSync(path.join(dest, '.env.example'))).toBe(true);
       const envContent = fs.readFileSync(path.join(dest, '.env.example'), 'utf-8');
       expect(envContent).toContain(envKey);
+      expect(fs.existsSync(path.join(dest, '.env'))).toBe(false);
+      expect(result.hasCredentials).toBe(false);
+    });
+
+    it('generates .env and shields credentials in .gitignore when apiKey is provided', () => {
+      const dest = path.join(tempDir, 'app-gemini-keyed');
+      const result = scaffoldProject({
+        projectPath: dest,
+        packageManager: 'pnpm',
+        ai: 'gemini',
+        apiKey: 'AIzaSyTestKey12345',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.hasCredentials).toBe(true);
+      expect(result.filesCreated).toContain('.env');
+      expect(result.filesCreated).toContain('.env.example');
+      expect(fs.existsSync(path.join(dest, '.env'))).toBe(true);
+
+      const envContent = fs.readFileSync(path.join(dest, '.env'), 'utf-8');
+      expect(envContent).toContain('GEMINI_API_KEY=AIzaSyTestKey12345');
+      expect(envContent).toContain('PORT=3000');
+
+      // Verify security shielding in .gitignore
+      const gitignore = fs.readFileSync(path.join(dest, '.gitignore'), 'utf-8');
+      expect(gitignore).toContain('.env\n');
+      expect(gitignore).toContain('.env*.local\n');
+      expect(gitignore).toContain('!.env.example');
+    });
+
+    it.each([
+      { engine: 'groq', key: 'gsk_test123', envVar: 'GROQ_API_KEY' },
+      { engine: 'claude', key: 'sk-ant-test123', envVar: 'ANTHROPIC_API_KEY' },
+      { engine: 'openai', key: 'sk-proj-test123', envVar: 'OPENAI_API_KEY' },
+    ] as const)('generates .env with correct key for $engine', ({ engine, key, envVar }) => {
+      const dest = path.join(tempDir, `app-${engine}-keyed`);
+      const result = scaffoldProject({
+        projectPath: dest,
+        ai: engine,
+        apiKey: key,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.hasCredentials).toBe(true);
+      const envContent = fs.readFileSync(path.join(dest, '.env'), 'utf-8');
+      expect(envContent).toContain(`${envVar}=${key}`);
+    });
+
+    it('generates .env and configures endpoint for custom AI engine', () => {
+      const dest = path.join(tempDir, 'app-custom-ai');
+      const result = scaffoldProject({
+        projectPath: dest,
+        ai: 'custom',
+        endpoint: 'http://localhost:11434',
+        apiKey: 'ollama-token-secret',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.hasCredentials).toBe(true);
+      expect(fs.existsSync(path.join(dest, '.env'))).toBe(true);
+
+      const envContent = fs.readFileSync(path.join(dest, '.env'), 'utf-8');
+      expect(envContent).toContain('CUSTOM_AI_ENDPOINT=http://localhost:11434');
+      expect(envContent).toContain('CUSTOM_AI_KEY=ollama-token-secret');
+
+      const routeContent = fs.readFileSync(path.join(dest, 'app/routes/api.ai.ts'), 'utf-8');
+      expect(routeContent).toContain("baseURL: process.env.CUSTOM_AI_ENDPOINT || 'http://localhost:11434'");
+    });
+
+    it('shields .env in node-docker template .dockerignore', () => {
+      const dest = path.join(tempDir, 'app-docker-shielded');
+      const result = scaffoldProject({
+        projectPath: dest,
+        template: 'node-docker',
+        ai: 'openai',
+        apiKey: 'sk-test',
+      });
+
+      expect(result.success).toBe(true);
+      const dockerignore = fs.readFileSync(path.join(dest, '.dockerignore'), 'utf-8');
+      expect(dockerignore).toContain('.env\n');
+      expect(dockerignore).toContain('.env*.local\n');
+      expect(dockerignore).toContain('!.env.example');
     });
   });
 });
