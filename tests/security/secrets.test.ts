@@ -54,6 +54,53 @@ describe('Suites 2 & 13: Secret Leakage & Deployment Separation (secret-leakage 
     expect(diags[0]?.message).toContain('AWS_SECRET_ACCESS_KEY');
   });
 
+  it('AST Env Validation: rejects bracket notation process["env"]["SECRET"] and process["env"].SECRET', () => {
+    const bracketCode = `
+      "use client";
+      const s1 = process['env']['DB_SECRET_PASS'];
+      const s2 = process["env"].SERVER_KEY;
+    `;
+    const diags = validateClientSourceEnv('/project/app/BracketSecret.tsx', bracketCode);
+    expect(diags).toHaveLength(2);
+    expect(diags[0]?.code).toBe('RANU_BUILD_PRIVATE_ENV_CLIENT');
+    expect(diags[0]?.message).toContain('DB_SECRET_PASS');
+    expect(diags[1]?.code).toBe('RANU_BUILD_PRIVATE_ENV_CLIENT');
+    expect(diags[1]?.message).toContain('SERVER_KEY');
+  });
+
+  it('AST Env Validation: rejects import.meta.env.SECRET and import.meta["env"]["SECRET"]', () => {
+    const metaCode = `
+      "use client";
+      const m1 = import.meta.env.STRIPE_SECRET_KEY;
+      const m2 = import.meta['env']['PAYPAL_SECRET'];
+    `;
+    const diags = validateClientSourceEnv('/project/app/MetaSecret.tsx', metaCode);
+    expect(diags).toHaveLength(2);
+    expect(diags[0]?.code).toBe('RANU_BUILD_PRIVATE_ENV_CLIENT');
+    expect(diags[0]?.message).toContain('STRIPE_SECRET_KEY');
+    expect(diags[1]?.code).toBe('RANU_BUILD_PRIVATE_ENV_CLIENT');
+    expect(diags[1]?.message).toContain('PAYPAL_SECRET');
+  });
+
+  it('AST Env Validation: rejects destructured and aliased secret access', () => {
+    const aliasCode = `
+      "use client";
+      const { SECRET_1 } = process['env'];
+      const { SECRET_2 } = import.meta.env;
+      const p = process;
+      const s3 = p.env.SECRET_3;
+      const { env } = process;
+      const s4 = env.SECRET_4;
+    `;
+    const diags = validateClientSourceEnv('/project/app/AliasSecret.tsx', aliasCode);
+    expect(diags.length).toBeGreaterThanOrEqual(4);
+    expect(diags.every(d => d.code === 'RANU_BUILD_PRIVATE_ENV_CLIENT')).toBe(true);
+    expect(diags.some(d => d.message.includes('SECRET_1'))).toBe(true);
+    expect(diags.some(d => d.message.includes('SECRET_2'))).toBe(true);
+    expect(diags.some(d => d.message.includes('SECRET_3'))).toBe(true);
+    expect(diags.some(d => d.message.includes('SECRET_4'))).toBe(true);
+  });
+
   it('Seeded Secret Scan: builds app with private server secrets and verifies client output is 100% clean', async () => {
     const { projectDir, cleanup } = await createTemporaryFixture('build-boundaries', root);
     const privateSecret = 'RANU_TEST_PRIVATE_SECRET_9f3c8a1b2d';
@@ -137,6 +184,56 @@ export default function BoundaryPage() {
         content.replace(
           'const siteName = process.env.RANU_PUBLIC_SITE_NAME;',
           'const siteName = process.env.SECRET_PRIVATE_API_KEY;',
+        ),
+        'utf8',
+      );
+
+      const res = await runCommand(process.execPath, [cliBin, 'build', '--json'], { cwd: projectDir, env: cliEnv });
+      expect(res.code).toBe(1);
+      const parsed = JSON.parse(res.stdout);
+      expect(parsed.success).toBe(false);
+      const envError = parsed.diagnostics.find((d: any) => d.code === 'RANU_BUILD_PRIVATE_ENV_CLIENT');
+      expect(envError).toBeDefined();
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('Client Private Access Failure: build fails when client component uses bracket notation process["env"]["SECRET"]', async () => {
+    const { projectDir, cleanup } = await createTemporaryFixture('build-boundaries', root);
+    try {
+      const counterFile = path.join(projectDir, 'app/components/Counter.tsx');
+      const content = fs.readFileSync(counterFile, 'utf8');
+      fs.writeFileSync(
+        counterFile,
+        content.replace(
+          'const siteName = process.env.RANU_PUBLIC_SITE_NAME;',
+          'const siteName = process["env"]["SECRET_PRIVATE_API_KEY"];',
+        ),
+        'utf8',
+      );
+
+      const res = await runCommand(process.execPath, [cliBin, 'build', '--json'], { cwd: projectDir, env: cliEnv });
+      expect(res.code).toBe(1);
+      const parsed = JSON.parse(res.stdout);
+      expect(parsed.success).toBe(false);
+      const envError = parsed.diagnostics.find((d: any) => d.code === 'RANU_BUILD_PRIVATE_ENV_CLIENT');
+      expect(envError).toBeDefined();
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('Client Private Access Failure: build fails when client component uses import.meta.env.SECRET', async () => {
+    const { projectDir, cleanup } = await createTemporaryFixture('build-boundaries', root);
+    try {
+      const counterFile = path.join(projectDir, 'app/components/Counter.tsx');
+      const content = fs.readFileSync(counterFile, 'utf8');
+      fs.writeFileSync(
+        counterFile,
+        content.replace(
+          'const siteName = process.env.RANU_PUBLIC_SITE_NAME;',
+          'const siteName = import.meta.env.SECRET_PRIVATE_API_KEY;',
         ),
         'utf8',
       );

@@ -386,4 +386,58 @@ describe('@ranu/config', () => {
       expect(loaded.IS_ENABLED).not.toBe(false);
     });
   });
+
+  describe('decoupled generic typing and adapter re-exports', () => {
+    it('supports generic plugin and adapter typing in RanuUserConfig and ResolvedRanuConfig', () => {
+      interface CustomPlugin {
+        name: string;
+        customHook(): void;
+      }
+
+      interface CustomAdapterConfig {
+        region: string;
+      }
+
+      interface CustomManifest {
+        version: number;
+      }
+
+      const customAdapter: import('../src/index.js').RanuDeploymentAdapter<CustomAdapterConfig, CustomManifest> = {
+        name: 'custom-adapter',
+        apiVersion: 1,
+        capabilities: {
+          runtime: 'node',
+          streaming: true,
+          staticFiles: true,
+        },
+        adapt: async (ctx: import('../src/index.js').DeploymentAdapterContext<CustomAdapterConfig, CustomManifest>) => {
+          return {
+            success: true,
+            target: ctx.config?.region ?? 'default',
+            outputDirectory: ctx.projectRoot + '/out',
+          };
+        },
+      };
+
+      const userConfig: import('../src/index.js').RanuUserConfig<CustomPlugin, CustomAdapterConfig, CustomManifest> = {
+        plugins: [{ name: 'custom', customHook: () => {} }],
+        deployment: {
+          adapter: customAdapter,
+        },
+      };
+
+      const configResult = defineConfig<CustomPlugin, CustomAdapterConfig, CustomManifest>(userConfig);
+      expect(configResult.plugins?.[0].name).toBe('custom');
+
+      const { config, diagnostics } = resolveConfig<CustomPlugin, CustomAdapterConfig, CustomManifest>(
+        userConfig,
+        tempDir,
+        'production'
+      );
+
+      expect(diagnostics).toHaveLength(0);
+      expect(config.plugins[0].name).toBe('custom');
+      expect(config.deployment.adapter?.name).toBe('custom-adapter');
+    });
+  });
 });

@@ -27,7 +27,10 @@ import { runValidationStage } from './pipeline/stage-validate.js';
 import { buildModuleGraph } from './graph/module-classifier.js';
 import { validateGraphBoundaries } from './graph/boundary-validator.js';
 import { validateGraphEnvAccess } from './env/env-validator.js';
+import { validateNonSerializableProps } from './compiler/props-validator.js';
+import { validateGraphDbPools } from './compiler/db-pool-validator.js';
 import { copyPublicDirectory } from './assets/public-dir.js';
+import { syncAgentContextGuide } from './assets/agent-guide.js';
 
 /**
  * Main Ranu.js production build orchestrator.
@@ -269,6 +272,9 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       };
     }
 
+    // Synchronize AI agent context guides (public/llms.txt and .ranu/AGENT_GUIDE.md)
+    syncAgentContextGuide(projectRoot, routeResult.routes);
+
     // Plugin Hooks: routes, route, extendBuild
     const pluginRoutes: PluginRouteInfo[] = routeResult.routes.map((r) => ({
       routeId: r.routeId,
@@ -346,6 +352,27 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
         duration: Date.now() - startTime,
       };
     }
+
+    // Stage 8c: Validate Non-Serializable Props across Server/Client boundary
+    const propsCheck = validateNonSerializableProps(moduleGraph);
+    diagnostics.push(...propsCheck.diagnostics);
+    if (diagnostics.some((d) => d.severity === 'error')) {
+      cleanupTempArtifacts(tempOutDir);
+      return {
+        success: false,
+        buildId,
+        outDir,
+        diagnostics,
+        duration: Date.now() - startTime,
+      };
+    }
+
+    // Stage 8d: Validate Serverless Database Connection Pools
+    const dbPoolCheck = validateGraphDbPools(
+      moduleGraph,
+      resolvedConfig.deployment?.adapter
+    );
+    diagnostics.push(...dbPoolCheck.diagnostics);
 
     // Stage 10: Server graph compilation
     const serverResult = await runServerGraphStage(ctx, routeResult.routes);
