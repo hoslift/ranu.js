@@ -419,7 +419,10 @@ export function createGemini(config?: GeminiConfig): GeminiProvider {
       settings,
       async doStream(options: StreamExecutionOptions): Promise<ReadableStream<AIChunk>> {
         const apiKey = await resolveApiKey(config);
-        const baseURL = (config?.baseURL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+        let baseURL = config?.baseURL ?? DEFAULT_BASE_URL;
+        while (baseURL.endsWith('/')) {
+          baseURL = baseURL.slice(0, -1);
+        }
         const endpoint = `${baseURL}/models/${modelId}:streamGenerateContent?alt=sse`;
 
         const headers: Record<string, string> = {
