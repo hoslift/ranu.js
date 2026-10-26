@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { scaffoldProject } from '../../create-ranu/src/index.js';
 import { build } from '@ranu/build';
 
+// eslint-disable-next-line no-control-regex -- ANSI escape code matching requires control characters
 const ANSI_REGEX = /\x1b\[[0-9;]*[a-zA-Z]/;
 const CLI_PATH = path.resolve(__dirname, '../../create-ranu/dist/bin/create-ranu.js');
 
