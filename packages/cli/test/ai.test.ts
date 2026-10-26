@@ -387,7 +387,7 @@ describe('@ranu/cli ai command', () => {
         explanation: 'Attempt traversal attack',
         files: [
           {
-            path: '../../etc/passwd',
+            path: '../../etc/traversal-attack-canary.txt',
             content: 'malicious payload',
             action: 'create',
           },
@@ -412,9 +412,9 @@ describe('@ranu/cli ai command', () => {
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Path traversal violation'));
 
       // Invariant: zero files created outside or mutated inside project root
-      const escapedTarget = path.resolve(tempDir, '..', '..', 'etc', 'passwd');
+      const escapedTarget = path.resolve(tempDir, '..', '..', 'etc', 'traversal-attack-canary.txt');
       expect(fs.existsSync(escapedTarget)).toBe(false);
-      const internalTarget = path.join(tempDir, 'etc', 'passwd');
+      const internalTarget = path.join(tempDir, 'etc', 'traversal-attack-canary.txt');
       expect(fs.existsSync(internalTarget)).toBe(false);
     });
   });
