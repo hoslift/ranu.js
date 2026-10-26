@@ -13,7 +13,7 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
       name: 'ranu',
       command: subcommand ?? 'root',
       usage: subcommand ? `ranu ${subcommand} [options]` : 'ranu <command> [options]',
-      commands: ['dev', 'build', 'start', 'create', 'deploy', 'help', 'version'],
+      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'help', 'version'],
       options: [
         { flag: '-r, --root <path>', description: 'Project root directory' },
         { flag: '-p, --port <number>', description: 'Port number to listen on' },
@@ -24,6 +24,9 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
         { flag: '--debug', description: 'Enable debug diagnostics and stack traces' },
         { flag: '-q, --quiet', description: 'Suppress non-essential console output' },
         { flag: '--json', description: 'Output results in machine-readable JSON format' },
+        { flag: '--format <json|compact|text>', description: 'Output format (json, compact, or text)' },
+        { flag: '--dry-run', description: 'Show proposed changes without writing to disk' },
+        { flag: '-y, --yes', description: 'Automatically accept changes without prompting' },
         { flag: '--help', description: 'Show help for command' },
         { flag: '-v, --version', description: 'Show CLI version' },
       ],
@@ -41,26 +44,31 @@ Usage:
   $ ranu <command> [options]
 
 Commands:
-  dev      Start the Ranu.js development server with HMR and Fast Refresh
-  build    Create an optimized production build
-  start    Start the production HTTP server
-  create   Scaffold a new Ranu.js application
-  deploy   Prepare deployment artifacts for hosting adapter
-  help     Show help information for commands
-  version  Show Ranu.js framework and CLI version
+  dev       Start the Ranu.js development server with HMR and Fast Refresh
+  build     Create an optimized production build
+  start     Start the production HTTP server
+  create    Scaffold a new Ranu.js application
+  deploy    Prepare deployment artifacts for hosting adapter
+  describe  Introspect application route graph and contracts
+  check     Perform fast dry-run AST and boundary validation
+  fix       Automatically apply self-healing patches for diagnostic errors
+  generate  Generate boilerplate routes, APIs, components, or AI context
+  help      Show help information for commands
+  version   Show Ranu.js framework and CLI version
 
 Options:
-  -r, --root <path>     Project root directory (default: current working directory)
-  -p, --port <number>   Port number to listen on (default: 3000)
-  -h, --host <string>   Host address to bind to (default: 127.0.0.1 for dev, 0.0.0.0 for start)
-  --clean               Clean caches and generated files before running
-  --open                Open browser after server start
-  --verbose             Display verbose output
-  --debug               Enable debug diagnostics and stack traces
-  -q, --quiet           Suppress non-essential console output
-  --json                Output results in machine-readable JSON format
-  --help                Show help for command
-  -v, --version         Show CLI version
+  -r, --root <path>         Project root directory (default: current working directory)
+  -p, --port <number>       Port number to listen on (default: 3000)
+  -h, --host <string>       Host address to bind to (default: 127.0.0.1 for dev, 0.0.0.0 for start)
+  --clean                   Clean caches and generated files before running
+  --open                    Open browser after server start
+  --verbose                 Display verbose output
+  --debug                   Enable debug diagnostics and stack traces
+  -q, --quiet               Suppress non-essential console output
+  --json                    Output results in machine-readable JSON format
+  --format <json|text>      Output format (json or text)
+  --help                    Show help for command
+  -v, --version             Show CLI version
 
 Examples:
   $ ranu dev
@@ -144,6 +152,55 @@ Usage:
 
 Description:
   Prepares and executes deployment adapter build hooks.
+`);
+      break;
+
+    case 'describe':
+      log(`
+Usage:
+  $ ranu describe [options]
+
+Description:
+  Introspects and outputs the complete application route graph, HTTP methods,
+  layouts, and schema descriptors.
+
+Options:
+  -r, --root <path>         Project root directory
+  --format <json|text>      Output format (default: text)
+  --json                    Alias for --format json
+`);
+      break;
+
+    case 'check':
+      log(`
+Usage:
+  $ ranu check [options]
+
+Description:
+  Executes sub-second in-memory dry-run validation of configuration, routes,
+  and compile-time boundary invariants without starting a server.
+
+Options:
+  -r, --root <path>         Project root directory
+  --format <json|text>      Output format (default: text)
+  --json                    Alias for --format json
+`);
+      break;
+
+    case 'fix':
+      log(`
+Usage:
+  $ ranu fix [options]
+
+Description:
+  Automatically applies self-healing unified diff patches for invariant diagnostic errors.
+
+Options:
+  -r, --root <path>         Project root directory
+  --dry-run                 Show proposed changes without writing to disk
+  -y, --yes                 Automatically apply patches without prompt
+  --format <json|text>      Output format (default: text)
+  --json                    Alias for --format json
 `);
       break;
 

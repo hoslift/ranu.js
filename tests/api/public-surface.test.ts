@@ -83,7 +83,16 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       const exportKeys = Object.keys(pkg.exports);
 
       // Canonical and technical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10
-      const expectedExports = ['.', './config', './plugin', './react', './server', './server-only'];
+      const expectedExports = [
+        '.',
+        './config',
+        './plugin',
+        './react',
+        './server',
+        './server-only',
+        './devtools',
+        './testing',
+      ];
 
       expect(exportKeys.sort()).toEqual(expectedExports.sort());
     });
