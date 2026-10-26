@@ -78,6 +78,31 @@ function normalizePath(
   });
 }
 
+function extractCodeBlocks(text: string): string[] {
+  const fence = '```';
+  const blocks: string[] = [];
+  let startIndex = 0;
+  while (startIndex < text.length) {
+    const openIdx = text.indexOf(fence, startIndex);
+    if (openIdx === -1) break;
+    const closeIdx = text.indexOf(fence, openIdx + 3);
+    if (closeIdx === -1) break;
+    let inside = text.slice(openIdx + 3, closeIdx);
+    const newlineIdx = inside.indexOf('\n');
+    if (newlineIdx !== -1) {
+      const firstLine = inside.slice(0, newlineIdx).trim();
+      if (!firstLine.includes('{') && !firstLine.includes('[')) {
+        inside = inside.slice(newlineIdx + 1);
+      }
+    } else {
+      inside = inside.replace(/^(?:json|JSON)\s+/i, '');
+    }
+    blocks.push(inside.trim());
+    startIndex = closeIdx + 3;
+  }
+  return blocks;
+}
+
 /**
  * Extracts and parses JSON from raw model output, handling markdown code fences,
  * embedded objects/arrays, and reporting helpful syntax errors on malformed JSON.
@@ -96,10 +121,8 @@ export function extractJsonFromText(rawText: string): { parsed: unknown; extract
   }
 
   // 2. Check for markdown code fences: ```json ... ``` or ``` ... ```
-  const codeBlockRegex = /```(?:json|JSON)?\s*([\s\S]*?)\s*```/g;
-  let blockMatch: RegExpExecArray | null;
-  while ((blockMatch = codeBlockRegex.exec(trimmed)) !== null) {
-    const candidate = blockMatch[1]?.trim();
+  const codeBlocks = extractCodeBlocks(trimmed);
+  for (const candidate of codeBlocks) {
     if (candidate) {
       try {
         return { parsed: JSON.parse(candidate), extractedText: candidate };
@@ -134,9 +157,8 @@ export function extractJsonFromText(rawText: string): { parsed: unknown; extract
   }
 
   // If a markdown code fence was detected but contained malformed JSON, provide specific error
-  const singleFenceMatch = /```(?:json|JSON)?\s*([\s\S]*?)\s*```/.exec(trimmed);
-  if (singleFenceMatch && singleFenceMatch[1]) {
-    const candidate = singleFenceMatch[1].trim();
+  if (codeBlocks.length > 0 && codeBlocks[0]) {
+    const candidate = codeBlocks[0];
     try {
       JSON.parse(candidate);
     } catch (parseErr) {

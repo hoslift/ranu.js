@@ -17,21 +17,28 @@ type ProviderFamily = 'google' | 'groq' | 'claude' | 'openai' | 'ollama' | 'cust
 
 function detectProviderFamily(name: string, baseURL: string): ProviderFamily {
   const lowerName = name.toLowerCase();
-  const lowerUrl = baseURL.toLowerCase();
+  let host = '';
+  try {
+    host = new URL(baseURL).hostname.toLowerCase();
+  } catch {
+    // If not a valid absolute URL, host remains empty
+  }
 
-  if (lowerName === 'google' || lowerName.includes('gemini') || lowerUrl.includes('generativelanguage.googleapis.com')) {
+  const isHost = (domain: string) => host === domain || host.endsWith('.' + domain);
+
+  if (lowerName === 'google' || lowerName.includes('gemini') || isHost('generativelanguage.googleapis.com')) {
     return 'google';
   }
-  if (lowerName === 'groq' || lowerUrl.includes('api.groq.com')) {
+  if (lowerName === 'groq' || isHost('api.groq.com')) {
     return 'groq';
   }
-  if (lowerName === 'claude' || lowerName === 'anthropic' || lowerUrl.includes('api.anthropic.com')) {
+  if (lowerName === 'claude' || lowerName === 'anthropic' || isHost('api.anthropic.com')) {
     return 'claude';
   }
-  if (lowerName === 'openai' || lowerUrl.includes('api.openai.com')) {
+  if (lowerName === 'openai' || isHost('api.openai.com')) {
     return 'openai';
   }
-  if (lowerName === 'ollama' || lowerName === 'local' || lowerUrl.includes(':11434')) {
+  if (lowerName === 'ollama' || lowerName === 'local' || baseURL.includes(':11434')) {
     return 'ollama';
   }
   return 'custom';
@@ -103,7 +110,10 @@ async function resolveHeaders(
 }
 
 function resolveEndpoint(config: AIProviderConfig, modelId: string, family: ProviderFamily): string {
-  const cleanBase = config.baseURL.replace(/\/+$/, '');
+  let cleanBase = config.baseURL;
+  while (cleanBase.endsWith('/')) {
+    cleanBase = cleanBase.slice(0, -1);
+  }
 
   switch (family) {
     case 'google': {

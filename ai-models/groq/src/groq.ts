@@ -265,7 +265,10 @@ export function createGroq(config?: GroqConfig): GroqProvider {
       },
       async doStream(options: StreamExecutionOptions): Promise<ReadableStream<AIChunk>> {
         const apiKey = await resolveApiKey(config);
-        const baseURL = (config?.baseURL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+        let baseURL = config?.baseURL ?? DEFAULT_BASE_URL;
+        while (baseURL.endsWith('/')) {
+          baseURL = baseURL.slice(0, -1);
+        }
         const endpoint = baseURL.endsWith('/chat/completions')
           ? baseURL
           : `${baseURL}/chat/completions`;
