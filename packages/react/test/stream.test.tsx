@@ -48,4 +48,57 @@ describe('Streaming SSR Bridge', () => {
     abortController.abort();
     expect(stream).toBeDefined();
   });
+
+  it('asserts flight serialization rules in development mode and emits diagnostic', async () => {
+    const ClientButton: any = ({ onClick }: any) => React.createElement('button', { onClick }, 'Click');
+    ClientButton.$$typeof = Symbol.for('react.client.reference');
+    ClientButton.displayName = 'ClientButton';
+
+    const element = React.createElement(
+      'div',
+      null,
+      React.createElement(ClientButton, { onClick: () => console.log('clicked') })
+    );
+
+    let capturedDiagnostic: any;
+    let thrownError: any;
+    try {
+      await renderReactToStream(element, {
+        mode: 'development',
+        onDiagnostic: (diag) => {
+          capturedDiagnostic = diag;
+        },
+      });
+    } catch (err: any) {
+      thrownError = err;
+    }
+
+    expect(thrownError).toBeDefined();
+    expect(thrownError.code).toBe('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+    expect(capturedDiagnostic).toBeDefined();
+    expect(capturedDiagnostic.code).toBe('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+    expect(capturedDiagnostic.severity).toBe('error');
+    expect(capturedDiagnostic.message).toContain('Cannot pass non-serializable function prop');
+    expect(capturedDiagnostic.hint).toContain('Move event handlers and stateful logic inside the Client Component');
+  });
+
+  it('allows serializable client component props in development mode', async () => {
+    const ClientCard: any = ({ title, count }: any) =>
+      React.createElement('div', null, `${title}: ${count}`);
+    ClientCard.$$typeof = Symbol.for('react.client.reference');
+    ClientCard.displayName = 'ClientCard';
+
+    const element = React.createElement(
+      'div',
+      null,
+      React.createElement(ClientCard, { title: 'Total', count: 99 })
+    );
+
+    const stream = await renderReactToStream(element, {
+      mode: 'development',
+    });
+    expect(stream).toBeDefined();
+    const html = await streamToString(stream);
+    expect(html).toContain('Total: 99');
+  });
 });

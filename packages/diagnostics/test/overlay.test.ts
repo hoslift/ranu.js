@@ -338,6 +338,36 @@ describe('Browser Hydration Visual DOM Diff Engine (@ranu/diagnostics/overlay)',
       attachHydrationOverlay();
       expect((globalThis as any).window.addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
       expect((globalThis as any).window.addEventListener).toHaveBeenCalledWith('ranu:hydration-error', expect.any(Function));
+      expect((globalThis as any).window.addEventListener).toHaveBeenCalledWith('ranu:serialization-error', expect.any(Function));
+    });
+  });
+
+  describe('renderSerializationOverlay', () => {
+    let originalDocument: any;
+
+    beforeEach(() => {
+      originalDocument = globalThis.document;
+      (globalThis as any).document = {
+        createElement: (tag: string) => new MockElement(tag),
+      };
+    });
+
+    afterEach(() => {
+      (globalThis as any).document = originalDocument;
+    });
+
+    it('renders serialization error card with code, message, and hint', async () => {
+      const { renderSerializationOverlay } = await import('../src/overlay.js');
+      const overlay = renderSerializationOverlay({
+        code: 'RANU_REACT_STREAM_SERIALIZATION_ERROR',
+        severity: 'error',
+        message: 'Cannot pass non-serializable function prop "onClick" to Client Component <Counter>',
+        location: { file: 'app/page.tsx', line: 12 },
+        hint: 'Move event handlers inside the Client Component',
+      });
+
+      expect(overlay.id).toBe('ranu-serialization-overlay-root');
+      expect(overlay.shadowRoot).toBeDefined();
     });
   });
 });

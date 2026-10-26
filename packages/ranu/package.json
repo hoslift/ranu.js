@@ -44,6 +44,14 @@
       "types": "./dist/plugin.d.ts",
       "import": "./dist/plugin.js"
     },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./devtools": {
+      "types": "./dist/devtools.d.ts",
+      "import": "./dist/devtools.js"
+    },
     "./server-only": {
       "types": "./dist/server-only.d.ts",
       "import": "./dist/server-only.js"
@@ -72,6 +80,7 @@
     "@ranu/config": "workspace:*",
     "@ranu/core": "workspace:*",
     "@ranu/dev": "workspace:*",
+    "@ranu/devtools": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/manifests": "workspace:*",
     "@ranu/plugin": "workspace:*",
@@ -80,6 +89,7 @@
     "@ranu/runtime": "workspace:*",
     "@ranu/runtime-node": "workspace:*",
     "@ranu/server": "workspace:*",
+    "@ranu/testing": "workspace:*",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
