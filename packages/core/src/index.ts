@@ -15,7 +15,7 @@ export const DEFAULT_OUT_DIR = '.ranu';
 export type RanuMode = 'development' | 'production';
 
 /** ranu CLI commands */
-export type RanuCommand = 'dev' | 'build' | 'start' | 'create' | 'deploy' | 'help' | 'version';
+export type RanuCommand = 'dev' | 'build' | 'start' | 'create' | 'deploy' | 'describe' | 'check' | 'fix' | 'generate' | 'add' | 'help' | 'version';
 
 /** Route kinds supported by the framework */
 export type RouteKind = 'page' | 'api';
@@ -178,14 +178,14 @@ export interface DeploymentLogger {
 }
 
 /** Context passed to a deployment adapter during preparation/adaptation */
-export interface DeploymentAdapterContext {
+export interface DeploymentAdapterContext<TConfig = unknown, TManifest = unknown> {
   readonly projectRoot: string;
   readonly buildDir?: string;
   readonly outputDir?: string;
   readonly logger?: DeploymentLogger;
   readonly rootDir?: string;
-  readonly manifest?: unknown;
-  readonly config?: unknown;
+  readonly manifest?: TManifest;
+  readonly config?: TConfig;
 }
 
 /** Result returned by a deployment adapter */
@@ -199,11 +199,11 @@ export interface DeploymentResult {
 }
 
 /** Deployment Adapter contract */
-export interface RanuDeploymentAdapter {
+export interface RanuDeploymentAdapter<TConfig = unknown, TManifest = unknown> {
   readonly name: string;
   readonly apiVersion: number;
   readonly capabilities: DeploymentCapabilities;
-  adapt(context: DeploymentAdapterContext): Promise<DeploymentResult>;
+  adapt(context: DeploymentAdapterContext<TConfig, TManifest>): Promise<DeploymentResult>;
 }
 
 /** Normalized version compatibility helper */
@@ -239,3 +239,5 @@ export type GenerateStaticParamsResult = readonly StaticParamRecord[];
 /** Public function signature for generateStaticParams */
 export type GenerateStaticParams = () =>
   GenerateStaticParamsResult | Promise<GenerateStaticParamsResult>;
+
+export * from './actions.js';

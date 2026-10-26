@@ -93,4 +93,30 @@ describe('definePlugin helper', () => {
       } as any),
     ).toThrow('RANU_PLUGIN_INVALID');
   });
+
+  it('supports decoupled generic typing in definePlugin and adapt hook', () => {
+    interface CustomConfig {
+      theme: string;
+    }
+    interface CustomManifest {
+      chunks: string[];
+    }
+
+    const plugin = definePlugin<CustomConfig, CustomManifest>({
+      name: 'typed-plugin',
+      apiVersion: 1,
+      setup() {
+        return {
+          config(cfg) {
+            return { ...cfg, theme: 'dark' };
+          },
+          adapt(ctx) {
+            expect(ctx.projectRoot).toBeDefined();
+          },
+        };
+      },
+    });
+
+    expect(plugin.name).toBe('typed-plugin');
+  });
 });

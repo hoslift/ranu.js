@@ -20,6 +20,16 @@ export {
   isServerOnlyModule,
 } from './compiler/server-only-detector.js';
 export {
+  validateNonSerializableProps,
+  validateSourceNonSerializableProps,
+} from './compiler/props-validator.js';
+export {
+  validateGraphDbPools,
+  validateSourceDbPool,
+  isServerlessTarget,
+  type DbPoolValidationResult,
+} from './compiler/db-pool-validator.js';
+export {
   buildModuleGraph,
   extractModuleImports,
   resolveImportPath,
@@ -109,3 +119,7 @@ export {
   writeContainerArtifacts,
   type DockerfileOptions,
 } from './container.js';
+export {
+  generateAgentGuideMarkdown,
+  syncAgentContextGuide,
+} from './assets/agent-guide.js';
