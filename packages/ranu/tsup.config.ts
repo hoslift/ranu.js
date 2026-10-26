@@ -7,6 +7,8 @@ export default defineConfig({
     react: 'src/react.ts',
     server: 'src/server.ts',
     plugin: 'src/plugin.ts',
+    testing: 'src/testing.ts',
+    devtools: 'src/devtools.ts',
     'server-only': 'src/server-only.ts',
     'bin/ranu': 'src/bin/ranu.ts',
     'bin/ranujs': 'src/bin/ranu.ts',

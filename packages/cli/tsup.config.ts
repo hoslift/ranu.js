@@ -14,6 +14,8 @@ export default defineConfig({
     '@ranu/config',
     '@ranu/diagnostics',
     '@ranu/build',
+    '@ranu/router',
+    '@ranu/manifests',
     '@ranu/dev',
     '@ranu/runtime-node',
     '@ranujs/adapter-vercel',

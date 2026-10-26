@@ -1,4 +1,4 @@
-import type { CliCommand, ParsedCliArgs } from './types.js';
+import type { CliCommand, ParsedCliArgs, OutputFormat } from './types.js';
 
 const KNOWN_COMMANDS: readonly CliCommand[] = [
   'dev',
@@ -6,6 +6,11 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'start',
   'create',
   'deploy',
+  'describe',
+  'check',
+  'fix',
+  'generate',
+  'add',
   'help',
   'version',
 ];
@@ -72,7 +77,7 @@ export function findClosestCommand(input: string): string | undefined {
  * @returns Parsed commands, positional arguments, options, and enabled flags
  */
 export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
-  let command: CliCommand | undefined;
+  let command: CliCommand | 'check' | undefined;
   const positionalArgs: string[] = [];
 
   let root: string | undefined;
@@ -84,7 +89,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let debug = false;
   let quiet = false;
   let json = false;
+  let format: OutputFormat | undefined;
   let adapter: string | undefined;
+  let client = false;
+  let dryRun = false;
+  let yes = false;
   let help = false;
   let version = false;
 
@@ -162,6 +171,39 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--json') {
       json = true;
+      format = 'json';
+      continue;
+    }
+
+    if (arg === '--format' || arg.startsWith('--format=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--format=')) {
+        val = arg.slice('--format='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      const normalized = val.trim().toLowerCase();
+      if (normalized !== 'json' && normalized !== 'text' && normalized !== 'compact') {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      format = normalized as OutputFormat;
+      if (format === 'json') {
+        json = true;
+      }
+      continue;
+    }
+
+    if (arg === '--dry-run') {
+      dryRun = true;
+      continue;
+    }
+
+    if (arg === '--yes' || arg === '-y') {
+      yes = true;
       continue;
     }
 
@@ -175,14 +217,19 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--client') {
+      client = true;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown flag "${arg}". Run "ranu --help" to see available options.`);
     }
 
     // Positional argument
     if (!command) {
-      if (KNOWN_COMMANDS.includes(arg as CliCommand)) {
-        command = arg as CliCommand;
+      if ((KNOWN_COMMANDS as readonly string[]).includes(arg)) {
+        command = arg as CliCommand | 'check';
       } else {
         const suggestion = findClosestCommand(arg);
         const didYouMean = suggestion ? ` Did you mean "${suggestion}"?` : '';
@@ -194,7 +241,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   }
 
   return {
-    command,
+    command: command as CliCommand | undefined,
     args: positionalArgs,
     root,
     port,
@@ -205,7 +252,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     debug: debug ? true : undefined,
     quiet: quiet ? true : undefined,
     json: json ? true : undefined,
+    format,
     adapter,
+    client: client ? true : undefined,
+    dryRun: dryRun ? true : undefined,
+    yes: yes ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

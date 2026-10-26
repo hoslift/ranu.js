@@ -66,3 +66,22 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
   "tsconfig.json",
 ]
 `;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: saas 1`] = `
+[
+  ".gitignore",
+  "README.md",
+  "app/api/auth/session/route.ts",
+  "app/dashboard/page.tsx",
+  "app/db/index.ts",
+  "app/db/schema.ts",
+  "app/globals.css",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "drizzle.config.ts",
+  "package.json",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
