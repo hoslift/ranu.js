@@ -10,6 +10,8 @@
     { "path": "../config" },
     { "path": "../diagnostics" },
     { "path": "../build" },
+    { "path": "../router" },
+    { "path": "../manifests" },
     { "path": "../dev" },
     { "path": "../runtime-node" },
     { "path": "../../adapters/vercel" },
