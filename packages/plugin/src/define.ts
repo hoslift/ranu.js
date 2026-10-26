@@ -4,7 +4,9 @@ import type { RanuPluginDefinition } from './types.js';
  * Define an authoritative Ranu.js Plugin (Plugin API v1).
  * Validates metadata and enforce tier.
  */
-export function definePlugin(definition: RanuPluginDefinition): RanuPluginDefinition {
+export function definePlugin<TConfig = Record<string, unknown>, TManifest = unknown>(
+  definition: RanuPluginDefinition<TConfig, TManifest>,
+): RanuPluginDefinition<TConfig, TManifest> {
   if (!definition || typeof definition !== 'object') {
     throw new Error('RANU_PLUGIN_INVALID: Plugin definition must be an object');
   }

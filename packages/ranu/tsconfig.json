@@ -13,7 +13,15 @@
     { "path": "../plugin" },
     { "path": "../react" },
     { "path": "../runtime-node" },
-    { "path": "../server" }
+    { "path": "../server" },
+    { "path": "../testing" },
+    { "path": "../devtools" },
+    { "path": "../ai" },
+    { "path": "../../ai-models/gemini" },
+    { "path": "../../ai-models/groq" },
+    { "path": "../../ai-models/claude" },
+    { "path": "../../ai-models/openai" },
+    { "path": "../../ai-models/custom" }
   ],
   "include": ["src"],
   "exclude": ["dist", "node_modules"]

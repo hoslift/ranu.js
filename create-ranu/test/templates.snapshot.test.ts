@@ -4,7 +4,7 @@ import { parseArgs } from '../src/bin/create-ranu.js';
 import type { TemplateName } from '../src/types.js';
 
 describe('create-ranu multi-template scaffolding', () => {
-  const templates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes'];
+  const templates: TemplateName[] = ['default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas'];
 
   it.each(templates)('generates valid deterministic file tree for template: %s', (template) => {
     const files = generateTemplateFiles('my-test-app', 'pnpm', { template });
@@ -17,6 +17,10 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(fileKeys).toContain('tsconfig.json');
     expect(fileKeys).toContain('.gitignore');
     expect(fileKeys).toContain('README.md');
+    expect(fileKeys).toContain('.cursorrules');
+    expect(fileKeys).toContain('AGENTS.md');
+    expect(fileKeys).toContain('CLAUDE.md');
+    expect(fileKeys).toContain('.ranu/AGENT_GUIDE.md');
 
     // Verify package.json is valid JSON
     const pkg = JSON.parse(files['package.json']!);
@@ -24,6 +28,20 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(pkg.dependencies['@ranujs/core']).toBeDefined();
 
     // Snapshot deterministic file list
+    expect(fileKeys).toMatchSnapshot();
+  });
+
+  const aiEngines = ['gemini', 'groq', 'claude', 'openai', 'custom'] as const;
+  it.each(aiEngines)('generates valid deterministic file tree with --ai %s', (ai) => {
+    const files = generateTemplateFiles('my-ai-app', 'pnpm', { template: 'default', ai });
+    const fileKeys = Object.keys(files).sort();
+
+    expect(fileKeys).toContain('app/routes/api.ai.ts');
+    expect(fileKeys).toContain('.env.example');
+    expect(fileKeys).toContain('.cursorrules');
+    expect(fileKeys).toContain('AGENTS.md');
+    expect(fileKeys).toContain('CLAUDE.md');
+    expect(fileKeys).toContain('.ranu/AGENT_GUIDE.md');
     expect(fileKeys).toMatchSnapshot();
   });
 
@@ -86,6 +104,30 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(routeContent).toContain('Response.json');
 
     expect(files['app/page.tsx']).toContain('Ranu.js API Routes');
+  });
+
+  it('scaffolds turnkey saas template with tailwind v4, drizzle orm, auth routes, and dashboard', () => {
+    const files = generateTemplateFiles('saas-app', 'pnpm', { template: 'saas' });
+
+    expect(files['ranu.config.ts']).toContain('@tailwindcss/vite');
+    expect(files['drizzle.config.ts']).toBeDefined();
+    expect(files['app/db/schema.ts']).toContain('sqliteTable');
+    expect(files['app/db/index.ts']).toContain('better-sqlite3');
+    expect(files['app/api/auth/session/route.ts']).toBeDefined();
+    expect(files['app/globals.css']).toContain('@import "tailwindcss"');
+    expect(files['app/layout.tsx']).toContain('globals.css');
+    expect(files['app/page.tsx']).toContain('Welcome to saas-app');
+    expect(files['app/dashboard/page.tsx']).toContain('Dashboard');
+    expect(files['tsconfig.json']).toContain('drizzle.config.ts');
+    expect(files['.gitignore']).toContain('sqlite.db');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies['tailwindcss']).toBeDefined();
+    expect(pkg.dependencies['@tailwindcss/vite']).toBeDefined();
+    expect(pkg.dependencies['drizzle-orm']).toBeDefined();
+    expect(pkg.dependencies['better-sqlite3']).toBeDefined();
+    expect(pkg.devDependencies['drizzle-kit']).toBeDefined();
+    expect(pkg.scripts['db:push']).toBe('drizzle-kit push');
   });
 
   it('configures automated test suite when tests option is enabled', () => {
@@ -159,6 +201,9 @@ describe('create-ranu multi-template scaffolding', () => {
 
       const parsed2 = parseArgs(['my-app', '-t', 'node-docker']);
       expect(parsed2.template).toBe('node-docker');
+
+      const parsed3 = parseArgs(['my-app', '--template', 'saas']);
+      expect(parsed3.template).toBe('saas');
     });
 
     it('throws descriptive error on invalid template', () => {
