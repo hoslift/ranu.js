@@ -98,4 +98,36 @@ describe('Phase 28 — CLI E2E Subprocess Execution', () => {
       await cleanup();
     }
   });
+
+  it('executes ranu describe --format json outputting machine-readable route graph', async () => {
+    const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
+    try {
+      const res = await runCli(['describe', '--format', 'json'], { cwd: projectDir });
+      expect(res.code).toBe(0);
+      const json = JSON.parse(res.stdout.trim());
+      expect(json.frameworkVersion).toBeDefined();
+      expect(json.routesCount).toBeGreaterThan(0);
+      expect(Array.isArray(json.routes)).toBe(true);
+      expect(json.routes[0]?.pathname).toBeDefined();
+      expect(json.routes[0]?.sourceFile).toBeDefined();
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('executes ranu check --format json performing sub-second validation', async () => {
+    const { projectDir, cleanup } = await createTemporaryFixture('build-basic', root);
+    try {
+      const res = await runCli(['check', '--format', 'json'], { cwd: projectDir });
+      expect(res.code).toBe(0);
+      const json = JSON.parse(res.stdout.trim());
+      expect(json.success).toBe(true);
+      expect(json.summary).toBeDefined();
+      expect(json.summary.errors).toBe(0);
+      expect(Array.isArray(json.diagnostics)).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
 });
+
