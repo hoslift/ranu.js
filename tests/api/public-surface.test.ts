@@ -82,7 +82,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       expect(pkg.exports).toBeDefined();
       const exportKeys = Object.keys(pkg.exports);
 
-      // Canonical and technical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10
+      // Canonical and technical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10 and PR #256 AI exports
       const expectedExports = [
         '.',
         './config',
@@ -92,6 +92,12 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         './server-only',
         './devtools',
         './testing',
+        './ai',
+        './ai/claude',
+        './ai/custom',
+        './ai/gemini',
+        './ai/groq',
+        './ai/openai',
       ];
 
       expect(exportKeys.sort()).toEqual(expectedExports.sort());
