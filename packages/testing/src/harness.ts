@@ -139,6 +139,7 @@ export function createTestContext(options: CreateTestContextOptions = {}): TestC
 
   const staticDispatcher: StaticDispatcher = {
     async dispatch() {
+      await Promise.resolve();
       return new Response('Static File Not Found', { status: 404 });
     },
   };
