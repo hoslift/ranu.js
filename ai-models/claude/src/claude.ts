@@ -439,7 +439,10 @@ export function createClaude(config?: ClaudeConfig): ClaudeProvider {
       settings,
       async doStream(options: StreamExecutionOptions): Promise<ReadableStream<AIChunk>> {
         const apiKey = await resolveApiKey(config);
-        const baseURL = (config?.baseURL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+        let baseURL = config?.baseURL ?? DEFAULT_BASE_URL;
+        while (baseURL.endsWith('/')) {
+          baseURL = baseURL.slice(0, -1);
+        }
         const endpoint = baseURL.endsWith('/messages') ? baseURL : `${baseURL}/messages`;
 
         const { system, messages, hasPromptCaching } = normalizeAnthropicMessages(options, settings);
