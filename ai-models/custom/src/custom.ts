@@ -431,7 +431,10 @@ export function createCustomAI(config?: CustomAIConfig): CustomAIProvider {
         }
 
         const rawBase = resolveBaseURL(config);
-        const baseURL = rawBase.replace(/\/+$/, '');
+        let baseURL = rawBase;
+        while (baseURL.endsWith('/')) {
+          baseURL = baseURL.slice(0, -1);
+        }
         const endpoint = baseURL.endsWith('/chat/completions')
           ? baseURL
           : `${baseURL}/chat/completions`;
