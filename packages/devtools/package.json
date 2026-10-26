@@ -4,7 +4,7 @@
   "description": "In-browser visual DevTools dock, streaming waterfall inspector, and route hierarchy viewer for Ranu.js",
   "license": "MIT",
   "type": "module",
-  "private": false,
+  "private": true,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
