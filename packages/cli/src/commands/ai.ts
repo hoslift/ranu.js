@@ -153,8 +153,17 @@ export const AIGenerationPlanSchema: StandardSchemaV1<unknown, AIGenerationPlan>
  * @throws Error if path attempts to escape the project root boundary
  */
 export function sanitizeTargetFilePath(projectRoot: string, relativePath: string): string {
+  if (
+    path.win32.isAbsolute(relativePath) ||
+    path.posix.isAbsolute(relativePath) ||
+    /^[a-zA-Z]:[/\\]/.test(relativePath)
+  ) {
+    throw new Error(`Path traversal violation: file path "${relativePath}" escapes project root.`);
+  }
+
+  const normalized = relativePath.replace(/\\/g, '/');
   const resolvedRoot = path.resolve(projectRoot);
-  const resolved = path.resolve(resolvedRoot, relativePath);
+  const resolved = path.resolve(resolvedRoot, normalized);
   const rel = path.relative(resolvedRoot, resolved);
 
   if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
