@@ -26,6 +26,8 @@
     "@ranu/config": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/build": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/manifests": "workspace:*",
 
     "@ranu/dev": "workspace:*",
     "@ranu/runtime-node": "workspace:*",
