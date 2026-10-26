@@ -348,4 +348,95 @@ describe('ReactRenderer Integration Unit Tests', () => {
     expect(html).toContain('Product p-100');
     expect(html).toContain('Category electronics');
   });
+
+  it('catches flight serialization error in dev mode streaming SSR and emits structured diagnostic overlay script', async () => {
+    const ClientButton: any = ({ onClick }: any) => React.createElement('button', { onClick }, 'Click');
+    ClientButton.$$typeof = Symbol.for('react.client.reference');
+    ClientButton.displayName = 'ClientButton';
+
+    const pageWithClientComp: PageModule = {
+      default: () => {
+        return React.createElement('div', null, [
+          React.createElement('h1', { key: 'h' }, 'Header'),
+          React.createElement(ClientButton, { key: 'btn', onClick: () => alert('clicked') }),
+        ]);
+      },
+    };
+
+    const loader: ComponentModuleLoader = {
+      loadPage: async () => pageWithClientComp,
+      loadLayout: async () => ({ default: ({ children }: any) => children }),
+      loadLoading: async () => undefined,
+      loadError: async () => undefined,
+      loadNotFound: async () => undefined,
+    };
+
+    const renderer = new ReactRenderer({ loader, mode: 'development' });
+    const context = createTestContext();
+
+    const target: PageRenderTarget = {
+      routeId: 'app/button-demo/page.tsx',
+      params: {},
+      layouts: [],
+      errors: [],
+    };
+
+    const response = await contextStore.run(context, async () => {
+      return renderer.render(context.request, context, target);
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('X-Ranu-Diagnostic-Code')).toBe('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+
+    const html = await streamToString(response.body as ReadableStream<Uint8Array>);
+    expect(html).toContain('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+    expect(html).toContain('Cannot pass non-serializable function prop');
+    expect(html).toContain('Client Component &lt;ClientButton&gt;');
+    expect(html).toContain('ranu:serialization-error');
+    expect(html).toContain('window.__ranu_serialization_error__');
+  });
+
+  it('catches non-serializable pageProps for client-rendered route (render = client) in dev mode', async () => {
+    const clientPage: PageModule = {
+      render: 'client',
+      default: () => React.createElement('div', null, 'Client View'),
+    };
+
+    const loader: ComponentModuleLoader = {
+      loadPage: async () => clientPage,
+      loadLayout: async () => ({ default: ({ children }: any) => children }),
+      loadLoading: async () => undefined,
+      loadError: async () => undefined,
+      loadNotFound: async () => undefined,
+    };
+
+    const renderer = new ReactRenderer({
+      loader,
+      mode: 'development',
+      buildId: 'b123',
+      clientAssets: {
+        'app/client/page.tsx': { js: ['/client.js'], css: [] },
+        bootstrap: { js: ['/boot.js'], css: [] },
+      },
+    });
+
+    // Pass invalid function inside params
+    const context = createTestContext('http://localhost/client', { badProp: (() => {}) as any });
+
+    const target: PageRenderTarget = {
+      routeId: 'app/client/page.tsx',
+      params: context.params,
+      layouts: [],
+      errors: [],
+    };
+
+    const response = await contextStore.run(context, async () => {
+      return renderer.render(context.request, context, target);
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('X-Ranu-Diagnostic-Code')).toBe('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+    const html = await streamToString(response.body as ReadableStream<Uint8Array>);
+    expect(html).toContain('RANU_REACT_STREAM_SERIALIZATION_ERROR');
+  });
 });

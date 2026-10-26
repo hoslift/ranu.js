@@ -1,0 +1,40 @@
+{
+  "name": "@ranu/testing",
+  "version": "0.1.0",
+  "description": "Headless in-memory test harness and assertions for Ranu.js full-stack applications",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@ranu/core": "workspace:*",
+    "@ranu/manifests": "workspace:*",
+    "@ranu/router": "workspace:*",
+    "@ranu/runtime": "workspace:*",
+    "@ranu/runtime-node": "workspace:*",
+    "@ranu/server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

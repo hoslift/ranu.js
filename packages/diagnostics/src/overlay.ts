@@ -1,3 +1,5 @@
+import type { RanuDiagnostic } from './index.js';
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface Element {}
@@ -755,6 +757,204 @@ export function renderHydrationOverlay(mismatches: HydrationMismatch[]): HTMLEle
 }
 
 /**
+ * Render the visual serialization error overlay inside an isolated Shadow DOM.
+ * Emitted when Flight serialization boundaries are violated during streaming SSR.
+ *
+ * @param diagnostic - RanuDiagnostic representing the serialization violation.
+ * @returns Host container HTMLElement mounting the Shadow Root.
+ */
+export function renderSerializationOverlay(diagnostic: RanuDiagnostic): HTMLElement {
+  const container = document.createElement('div');
+  container.id = 'ranu-serialization-overlay-root';
+  container.style.position = 'fixed';
+  container.style.zIndex = '999999';
+  container.style.bottom = '20px';
+  container.style.right = '20px';
+  container.style.maxWidth = '680px';
+  container.style.width = 'calc(100vw - 40px)';
+  container.style.maxHeight = '80vh';
+  container.style.pointerEvents = 'auto';
+
+  const shadow = container.attachShadow({ mode: 'open' });
+
+  const style = document.createElement('style');
+  style.textContent = `
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .overlay-card {
+      background: #0f172a;
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      color: #f8fafc;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+    }
+    .header {
+      background: #231c10;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #451a03;
+    }
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbbf24;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge {
+      background: #d97706;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button {
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    button:hover {
+      background: #475569;
+    }
+    button.dismiss-btn {
+      background: #ef4444;
+      color: #ffffff;
+    }
+    button.dismiss-btn:hover {
+      background: #dc2626;
+    }
+    .content {
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .message-text {
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.5;
+    }
+    .hint-box {
+      background: #1e293b;
+      border-left: 3px solid #38bdf8;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+    .location-box {
+      font-size: 11px;
+      color: #64748b;
+    }
+  `;
+
+  const card = document.createElement('div');
+  card.className = 'overlay-card';
+
+  const header = document.createElement('div');
+  header.className = 'header';
+
+  const titleGroup = document.createElement('div');
+  titleGroup.className = 'title-group';
+
+  const title = document.createElement('span');
+  title.className = 'title';
+  title.textContent = 'Serialization Error';
+
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  badge.textContent = diagnostic.code || 'BOUNDARY_ERROR';
+
+  titleGroup.appendChild(title);
+  titleGroup.appendChild(badge);
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.id = 'ranu-serialization-copy';
+  copyBtn.textContent = 'Copy JSON';
+  copyBtn.addEventListener('click', () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(JSON.stringify(diagnostic, null, 2)).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy JSON'; }, 1500);
+      }).catch(() => {
+        copyBtn.textContent = 'Error';
+      });
+    }
+  });
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.id = 'ranu-serialization-dismiss';
+  dismissBtn.className = 'dismiss-btn';
+  dismissBtn.textContent = 'Dismiss';
+  dismissBtn.addEventListener('click', () => {
+    container.remove();
+  });
+
+  actions.appendChild(copyBtn);
+  actions.appendChild(dismissBtn);
+
+  header.appendChild(titleGroup);
+  header.appendChild(actions);
+
+  const content = document.createElement('div');
+  content.className = 'content';
+
+  const msg = document.createElement('div');
+  msg.className = 'message-text';
+  msg.textContent = diagnostic.message;
+  content.appendChild(msg);
+
+  if (diagnostic.hint) {
+    const hintEl = document.createElement('div');
+    hintEl.className = 'hint-box';
+    hintEl.textContent = `Hint: ${diagnostic.hint}`;
+    content.appendChild(hintEl);
+  }
+
+  if (diagnostic.location?.file) {
+    const locEl = document.createElement('div');
+    locEl.className = 'location-box';
+    locEl.textContent = `Location: ${diagnostic.location.file}${diagnostic.location.line ? `:${diagnostic.location.line}` : ''}`;
+    content.appendChild(locEl);
+  }
+
+  card.appendChild(header);
+  card.appendChild(content);
+
+  shadow.appendChild(style);
+  shadow.appendChild(card);
+
+  return container;
+}
+
+/**
  * Auto-initialize the browser hydration overlay listener.
  * Hooks console.error and window error events to detect React 19 hydration mismatches.
  */
@@ -795,6 +995,14 @@ export function attachHydrationOverlay(): void {
     }
   }
 
+  function triggerSerializationOverlay(diag: RanuDiagnostic) {
+    if (document.getElementById('ranu-serialization-overlay-root')) {
+      return;
+    }
+    const overlay = renderSerializationOverlay(diag);
+    document.body.appendChild(overlay);
+  }
+
   // Intercept React hydration mismatch messages on console.error
   const originalConsoleError = console.error;
   console.error = function (...args: unknown[]) {
@@ -811,6 +1019,19 @@ export function attachHydrationOverlay(): void {
     if (isHydrationMismatch) {
       triggerOverlay();
     }
+
+    const isSerializationError =
+      joined.includes('RANU_REACT_STREAM_SERIALIZATION_ERROR') ||
+      /Cannot pass non-serializable/i.test(joined);
+
+    if (isSerializationError) {
+      triggerSerializationOverlay({
+        code: 'RANU_REACT_STREAM_SERIALIZATION_ERROR',
+        severity: 'error',
+        message: joined,
+        hint: 'Move event handlers and stateful logic inside the Client Component ("use client"), or pass plain JSON-serializable data.',
+      });
+    }
   };
 
   // Listen for window error events
@@ -819,10 +1040,26 @@ export function attachHydrationOverlay(): void {
     if (/hydration/i.test(msg) && /mismatch/i.test(msg)) {
       triggerOverlay();
     }
+    if (msg.includes('RANU_REACT_STREAM_SERIALIZATION_ERROR') || /Cannot pass non-serializable/i.test(msg)) {
+      triggerSerializationOverlay({
+        code: 'RANU_REACT_STREAM_SERIALIZATION_ERROR',
+        severity: 'error',
+        message: msg,
+        hint: 'Move event handlers and stateful logic inside the Client Component ("use client"), or pass plain JSON-serializable data.',
+      });
+    }
   });
 
   // Listen for explicit custom event
   window.addEventListener('ranu:hydration-error', (event: any) => {
     triggerOverlay(event?.detail?.mismatches);
+  });
+
+  // Listen for serialization error custom event
+  window.addEventListener('ranu:serialization-error', (event: any) => {
+    const diag = event?.detail?.diagnostic || event?.detail;
+    if (diag) {
+      triggerSerializationOverlay(diag);
+    }
   });
 }
