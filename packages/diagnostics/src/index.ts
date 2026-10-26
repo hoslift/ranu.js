@@ -114,3 +114,35 @@ export function deserializeDiagnostic(serialized: string): RanuDiagnostic {
 }
 
 export * from './overlay.js';
+
+/**
+ * Structured diagnostic batch report envelope for AI agents and tooling.
+ */
+export interface DiagnosticReport {
+  success: boolean;
+  diagnostics: RanuDiagnostic[];
+  summary: {
+    errors: number;
+    warnings: number;
+  };
+}
+
+/**
+ * Format a collection of diagnostics into a deterministic JSON string representing DiagnosticReport.
+ */
+export function formatDiagnosticsReport(
+  diagnostics: readonly RanuDiagnostic[],
+  options?: { pretty?: boolean }
+): string {
+  const errors = diagnostics.filter((d) => d.severity === 'error').length;
+  const warnings = diagnostics.filter((d) => d.severity === 'warning').length;
+  const report: DiagnosticReport = {
+    success: errors === 0,
+    diagnostics: [...diagnostics],
+    summary: {
+      errors,
+      warnings,
+    },
+  };
+  return JSON.stringify(report, null, options?.pretty !== false ? 2 : undefined);
+}
