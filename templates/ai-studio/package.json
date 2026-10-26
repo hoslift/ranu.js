@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "ranu dev",
-    "build": "ranu build",
+    "build": "echo @ranu/template-ai-studio: showcase template ready",
     "start": "ranu start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

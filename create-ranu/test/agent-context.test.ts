@@ -10,7 +10,7 @@ import { generateTemplateFiles } from '../src/template.js';
 import type { AIEngineName } from '../src/types.js';
 
 describe('agent-context file generation & invariants', () => {
-  const sinhalaRegex = /[\u0D80-\u0DFF]/;
+  const invalidScriptRegex = /[\u0D80-\u0DFF]/;
   const aiEngines: AIEngineName[] = ['none', 'gemini', 'groq', 'claude', 'openai', 'custom'];
 
   it('generates zero-ai agent context files by default', () => {
@@ -121,7 +121,7 @@ describe('agent-context file generation & invariants', () => {
     expect(files['.ranu/AGENT_GUIDE.md']).toContain('AI Engine Manifest: CUSTOM');
   });
 
-  it.each(aiEngines)('enforces zero Sinhala characters and anti-hallucination invariants for ai: %s', (ai) => {
+  it.each(aiEngines)('enforces clean encoding and anti-hallucination invariants for ai: %s', (ai) => {
     const files = generateTemplateFiles('invariants-app', 'pnpm', { ai });
 
     const requiredFiles = ['.cursorrules', 'AGENTS.md', 'CLAUDE.md', '.ranu/AGENT_GUIDE.md'];
@@ -130,10 +130,10 @@ describe('agent-context file generation & invariants', () => {
       expect(content, `File ${file} should exist`).toBeDefined();
       expect(content!.length).toBeGreaterThan(100);
 
-      // Strict Zero-Sinhala check
+      // Strict clean encoding check
       expect(
-        sinhalaRegex.test(content!),
-        `File ${file} must not contain any Sinhala characters`
+        invalidScriptRegex.test(content!),
+        `File ${file} must contain only standard character sets`
       ).toBe(false);
 
       // Anti-hallucination checks
@@ -145,8 +145,8 @@ describe('agent-context file generation & invariants', () => {
     // Check all files in template
     for (const [filePath, content] of Object.entries(files)) {
       expect(
-        sinhalaRegex.test(content),
-        `Template file ${filePath} must not contain Sinhala characters`
+        invalidScriptRegex.test(content),
+        `Template file ${filePath} must contain only standard character sets`
       ).toBe(false);
     }
   });
