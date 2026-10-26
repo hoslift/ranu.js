@@ -1,5 +1,7 @@
-import type { RanuMode, RanuCommand, RouteKind, RenderMode } from '@ranu/core';
+import type { RanuMode, RanuCommand, RouteKind, RenderMode, DeploymentAdapterContext } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
+
+export type { DeploymentAdapterContext };
 
 export type PluginEnforce = 'pre' | 'normal' | 'post';
 
@@ -61,13 +63,13 @@ export interface PluginDevContext extends PluginHookContext {
   readonly host?: string;
 }
 
-export interface PluginHooks {
+export interface PluginHooks<TConfig = Record<string, unknown>, TManifest = unknown> {
   config?: (
-    config: Record<string, unknown>,
+    config: TConfig,
     context: PluginHookContext,
-  ) => Record<string, unknown> | void | Promise<Record<string, unknown> | void>;
+  ) => TConfig | void | Promise<TConfig | void>;
   configResolved?: (
-    config: Readonly<Record<string, unknown>>,
+    config: Readonly<TConfig>,
     context: PluginHookContext,
   ) => void | Promise<void>;
   routes?: (
@@ -87,15 +89,27 @@ export interface PluginHooks {
   buildEnd?: (result: PluginBuildResult, context: PluginBuildContext) => void | Promise<void>;
   devStart?: (context: PluginDevContext) => void | Promise<void>;
   devEnd?: (context: PluginDevContext) => void | Promise<void>;
+  adapt?: (
+    context: DeploymentAdapterContext<TConfig, TManifest>,
+    hookContext: PluginHookContext,
+  ) => void | Promise<void>;
 }
 
-export interface RanuPluginDefinition {
+export interface RanuPluginDefinition<TConfig = Record<string, unknown>, TManifest = unknown> {
   readonly name: string;
   readonly apiVersion: 1;
   readonly version?: string;
   readonly ranuVersion?: string;
   readonly enforce?: PluginEnforce;
-  setup(context: PluginSetupContext): PluginHooks | Promise<PluginHooks> | void | Promise<void>;
+  setup(
+    context: PluginSetupContext,
+  ):
+    | PluginHooks<TConfig, TManifest>
+    | Promise<PluginHooks<TConfig, TManifest>>
+    | void
+    | Promise<void>;
 }
 
-export type RanuPlugin = RanuPluginDefinition | (() => RanuPluginDefinition);
+export type RanuPlugin<TConfig = Record<string, unknown>, TManifest = unknown> =
+  | RanuPluginDefinition<TConfig, TManifest>
+  | (() => RanuPluginDefinition<TConfig, TManifest>);
