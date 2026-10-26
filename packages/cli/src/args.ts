@@ -79,7 +79,7 @@ export function findClosestCommand(input: string): string | undefined {
  * @returns Parsed commands, positional arguments, options, and enabled flags
  */
 export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
-  let command: CliCommand | undefined;
+  let command: CliCommand | 'check' | undefined;
   const positionalArgs: string[] = [];
 
   let root: string | undefined;
@@ -306,8 +306,8 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     // Positional argument
     if (!command) {
-      if (KNOWN_COMMANDS.includes(arg as CliCommand)) {
-        command = arg as CliCommand;
+      if ((KNOWN_COMMANDS as readonly string[]).includes(arg)) {
+        command = arg as CliCommand | 'check';
       } else {
         const suggestion = findClosestCommand(arg);
         const didYouMean = suggestion ? ` Did you mean "${suggestion}"?` : '';
@@ -319,7 +319,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   }
 
   return {
-    command,
+    command: command as CliCommand | undefined,
     args: positionalArgs,
     root,
     port,
