@@ -72,9 +72,36 @@ export async function createTemporaryFixture(
 
   copyDirSync(sourceFixture, projectDir);
 
+  let cur = rootDir;
+  let monorepoNodeModules = '';
+  while (cur && cur !== path.dirname(cur)) {
+    const candidate = path.join(cur, 'node_modules');
+    if (fs.existsSync(candidate)) {
+      monorepoNodeModules = candidate;
+      break;
+    }
+    cur = path.dirname(cur);
+  }
+  if (monorepoNodeModules) {
+    const targetNodeModules = path.join(projectDir, 'node_modules');
+    try {
+      fs.symlinkSync(monorepoNodeModules, targetNodeModules, 'junction');
+    } catch {
+      // Fallback if symlink/junction fails
+    }
+  }
+
   return {
     projectDir,
     cleanup: async () => {
+      const targetNodeModules = path.join(projectDir, 'node_modules');
+      if (fs.existsSync(targetNodeModules)) {
+        try {
+          fs.unlinkSync(targetNodeModules);
+        } catch {
+          // Fallback
+        }
+      }
       await removeDirWithRetry(projectDir);
     },
   };
