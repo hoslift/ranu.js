@@ -119,7 +119,7 @@ export function createFormAction<TInput, TOutput>(
         validatedData = result.data;
       } else if (typeof options.schema === 'function') {
         try {
-          validatedData = await (options.schema as Function)(rawData);
+          validatedData = await (options.schema as (...args: any[]) => any)(rawData);
         } catch (err: any) {
           return {
             success: false,
