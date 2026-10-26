@@ -13,7 +13,7 @@ export interface DbPoolValidationResult {
  * Determines whether the current deployment adapter targets a serverless or edge runtime
  * where concurrent microVM instances cause database connection exhaustion.
  */
-export function isServerlessTarget(adapter?: RanuDeploymentAdapter<unknown, unknown> | undefined): boolean {
+export function isServerlessTarget(adapter?: RanuDeploymentAdapter<unknown, unknown>): boolean {
   if (!adapter) {
     return false;
   }
@@ -172,7 +172,7 @@ export function validateSourceDbPool(
  */
 export function validateGraphDbPools(
   moduleGraph: ModuleGraph,
-  adapter?: RanuDeploymentAdapter<unknown, unknown> | undefined
+  adapter?: RanuDeploymentAdapter<unknown, unknown>
 ): DbPoolValidationResult {
   if (!isServerlessTarget(adapter)) {
     return { success: true, diagnostics: [] };

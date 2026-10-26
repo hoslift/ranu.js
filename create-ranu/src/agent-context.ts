@@ -355,16 +355,16 @@ ${aiSection}
  */
 export function generateAgentGuide(options: AgentContextOptions): string {
   const ai = options.aiEngine ?? 'none';
-  const routes: string[] = ['- **PAGE** \`/\` [server] -> \`app/page.tsx\`'];
+  const routes: string[] = ['- **PAGE** `/` [server] -> `app/page.tsx`'];
 
   if (ai !== 'none') {
-    routes.push('- **API** \`/api/ai\` -> \`app/routes/api.ai.ts\`');
+    routes.push('- **API** `/api/ai` -> `app/routes/api.ai.ts`');
   }
   if (options.template === 'api-routes') {
-    routes.push('- **API** \`/api/hello\` -> \`app/api/hello/route.ts\`');
+    routes.push('- **API** `/api/hello` -> `app/api/hello/route.ts`');
   } else if (options.template === 'saas') {
-    routes.push('- **PAGE** \`/dashboard\` [server] -> \`app/dashboard/page.tsx\`');
-    routes.push('- **API** \`/api/auth/session\` -> \`app/api/auth/session/route.ts\`');
+    routes.push('- **PAGE** `/dashboard` [server] -> `app/dashboard/page.tsx`');
+    routes.push('- **API** `/api/auth/session` -> `app/api/auth/session/route.ts`');
   }
 
   let aiManifest = '';
