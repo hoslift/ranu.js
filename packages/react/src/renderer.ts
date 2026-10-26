@@ -270,7 +270,7 @@ export class ReactRenderer implements RanuRenderer {
    * Renders a development mode HTTP 500 error response with structured diagnostic overlay for serialization errors.
    */
   private async renderSerializationErrorResponse(
-    err: FlightSerializationError | any,
+    err: Error & { hint?: string },
     context: RanuRequestContext,
     target: PageRenderTarget,
     mode: 'development' | 'production',
