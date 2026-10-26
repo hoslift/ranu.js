@@ -6,7 +6,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Ranu.js AI Studio — Modular Partner Showcase</title>
+        <title>Ranu.js AI Studio — Multi-Provider AI Showcase</title>
         <style dangerouslySetInnerHTML={{ __html: `
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           body {
@@ -95,7 +95,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             fontSize: '13px',
             color: '#6b7280',
           }}>
-            Ranu.js Open Source Web Framework — Upfront Sponsorship & Partner Ecosystem Showcase
+            Ranu.js Open Source Web Framework — Multi-Provider AI Architecture Showcase
           </footer>
         </div>
       </body>
