@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- relative import within the same package
 import { getPartnerConfig } from '../../../src/partners.js';
 
 export async function POST(request: Request): Promise<Response> {
