@@ -929,7 +929,7 @@ describe('${projectName} Smoke Test', () => {
 /**
  * Returns canonical W3C streaming handler template for chosen AI provider.
  */
-function getAIRouteTemplate(ai: AIEngineName, endpoint?: string | undefined): string {
+function getAIRouteTemplate(ai: AIEngineName, endpoint?: string): string {
   switch (ai) {
     case 'gemini':
       return `import { streamAI } from '@ranu/ai';
@@ -1089,7 +1089,7 @@ export async function GET(): Promise<Response> {
 /**
  * Returns environment configuration template for chosen AI provider.
  */
-function getEnvExample(ai: AIEngineName, endpoint?: string | undefined): string {
+function getEnvExample(ai: AIEngineName, endpoint?: string): string {
   switch (ai) {
     case 'gemini':
       return `PORT=3000\nGEMINI_API_KEY=your_gemini_api_key_here\n`;
@@ -1113,8 +1113,8 @@ function getEnvExample(ai: AIEngineName, endpoint?: string | undefined): string 
  */
 export function getEnvContent(
   ai: AIEngineName,
-  apiKey?: string | undefined,
-  endpoint?: string | undefined
+  apiKey?: string,
+  endpoint?: string
 ): string {
   switch (ai) {
     case 'gemini':
