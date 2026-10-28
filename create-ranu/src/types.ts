@@ -6,12 +6,35 @@ export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 /**
  * Project template names supported for scaffolding.
  */
-export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes';
+export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes' | 'saas' | 'ai-studio';
 
 /**
  * Official deployment adapters supported for scaffolding.
  */
 export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno' | 'vercel';
+
+/**
+ * Supported AI engines for project scaffolding.
+ */
+export type AIEngineName = 'none' | 'gemini' | 'groq' | 'claude' | 'openai' | 'custom';
+
+/**
+ * Type aliases for AIEngineName.
+ */
+export type AIEngine = AIEngineName;
+export type AIEngineChoice = AIEngineName;
+
+/**
+ * Readonly array of all supported AI engines.
+ */
+export const SUPPORTED_AI_ENGINES: readonly AIEngineName[] = [
+  'none',
+  'gemini',
+  'groq',
+  'claude',
+  'openai',
+  'custom',
+] as const;
 
 /**
  * Options controlling project scaffolding in create-ranu.
@@ -28,7 +51,7 @@ export interface ScaffoldOptions {
   projectName?: string | undefined;
 
   /**
-   * Project template to scaffold ('default', 'minimal', 'cloudflare', 'node-docker', 'api-routes').
+   * Project template to scaffold ('default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas').
    * Defaults to 'default'.
    */
   template?: TemplateName | undefined;
@@ -73,6 +96,22 @@ export interface ScaffoldOptions {
    * Defaults to false.
    */
   quiet?: boolean | undefined;
+
+  /**
+   * AI engine integration to scaffold ('none', 'gemini', 'groq', 'claude', 'openai', 'custom').
+   * Defaults to 'none' (Zero AI).
+   */
+  ai?: AIEngineName | undefined;
+
+  /**
+   * API key or session token for selected AI engine.
+   */
+  apiKey?: string | undefined;
+
+  /**
+   * Custom or local endpoint URL for selected AI engine.
+   */
+  endpoint?: string | undefined;
 
   /**
    * Base working directory for resolving relative project paths.
@@ -124,6 +163,16 @@ export interface ScaffoldResult {
    * Status of git repository initialization.
    */
   gitStatus?: 'initialized' | 'skipped' | 'failed' | undefined;
+
+  /**
+   * Configured AI engine.
+   */
+  ai?: AIEngineName | undefined;
+
+  /**
+   * Whether credentials or endpoint were configured during scaffolding.
+   */
+  hasCredentials?: boolean | undefined;
 
   /**
    * Error message if scaffolding failed.

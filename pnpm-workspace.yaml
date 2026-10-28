@@ -1,10 +1,13 @@
 packages:
   - "packages/*"
+  - "ai-models/*"
   - "adapters/*"
   - "create-ranu"
   - "examples/*"
   - "fixtures/*"
   - "tooling/*"
+  - "templates/*"
+  - "test-app"
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:
