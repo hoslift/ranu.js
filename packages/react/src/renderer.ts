@@ -18,6 +18,12 @@ import {
 } from './composition.js';
 import { renderReactToStream } from './stream.js';
 import { sanitizeRenderError } from './sanitizer.js';
+import type { RanuDiagnostic } from '@ranu/diagnostics';
+import {
+  assertFlightSerializable,
+  FlightSerializationError,
+  FLIGHT_SERIALIZATION_ERROR_CODE,
+} from './flight-assertions.js';
 
 export interface ReactRendererOptions {
   readonly loader: ComponentModuleLoader;
@@ -106,6 +112,15 @@ export class ReactRenderer implements RanuRenderer {
 
       let hydrationPayload: RanuHydrationPayload | undefined;
       if (pageModule.render === 'client') {
+        if (mode === 'development') {
+          assertFlightSerializable(rawParams, 'params', pageModule.default?.name || 'ClientPage');
+          assertFlightSerializable(
+            pageProps.searchParams,
+            'searchParams',
+            pageModule.default?.name || 'ClientPage',
+          );
+        }
+
         const buildId = this.options.buildId?.trim();
         if (!buildId) {
           throw new Error(
@@ -152,6 +167,7 @@ export class ReactRenderer implements RanuRenderer {
       let postCommitError: unknown;
       const stream = await renderReactToStream(tree, {
         signal: context.signal,
+        mode,
         onError(err: unknown) {
           postCommitError = err;
           if (mode === 'development') {
@@ -181,6 +197,16 @@ export class ReactRenderer implements RanuRenderer {
         if (err instanceof NotFoundSignal) {
           return this.renderNotFound(context, target, pageProps.params, mode);
         }
+      }
+
+      // Handle Development Streaming Serialization Errors
+      if (
+        mode === 'development' &&
+        (err instanceof FlightSerializationError ||
+          err?.code === FLIGHT_SERIALIZATION_ERROR_CODE ||
+          (err instanceof TypeError && /hydration payload|cannot serialize/i.test(err.message)))
+      ) {
+        return this.renderSerializationErrorResponse(err, context, target, mode);
       }
 
       // Pre-Stream Error: Render safe 500 error response
@@ -237,6 +263,89 @@ export class ReactRenderer implements RanuRenderer {
       });
     } catch (fallbackErr: unknown) {
       return this.renderErrorResponse(fallbackErr, context, mode);
+    }
+  }
+
+  /**
+   * Renders a development mode HTTP 500 error response with structured diagnostic overlay for serialization errors.
+   */
+  private async renderSerializationErrorResponse(
+    err: Error & { hint?: string },
+    context: RanuRequestContext,
+    target: PageRenderTarget,
+    mode: 'development' | 'production',
+  ): Promise<Response> {
+    const diagnostic: RanuDiagnostic = {
+      code: FLIGHT_SERIALIZATION_ERROR_CODE,
+      severity: 'error',
+      message: err.message || 'Cannot pass non-serializable prop across streaming boundary.',
+      location: { file: target.routeId },
+      routeId: target.routeId,
+      hint:
+        err.hint ??
+        'Move event handlers and stateful logic inside the Client Component ("use client"), or pass plain JSON-serializable data.',
+    };
+
+    console.error(`[Ranu SSR Serialization Error] Request ID: ${context.requestId}`, err.message);
+
+    const sanitized = sanitizeRenderError(err, mode, context.requestId);
+    const errorTree = composeErrorDocument({
+      message: `${sanitized.message}\n[${diagnostic.code}] Hint: ${diagnostic.hint}`,
+      requestId: sanitized.requestId,
+      stack: sanitized.stack,
+    });
+
+    const overlayScript = `
+<script>
+  window.__ranu_serialization_error__ = ${JSON.stringify(diagnostic)};
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ranu:serialization-error', {
+      detail: { diagnostic: ${JSON.stringify(diagnostic)} }
+    }));
+  }
+</script>
+`;
+
+    try {
+      const stream = await renderReactToStream(errorTree, {
+        signal: context.signal,
+      });
+
+      const reader = stream.getReader();
+      const decoder = new TextDecoder('utf-8');
+      const encoder = new TextEncoder();
+      let html = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        html += decoder.decode(value, { stream: true });
+      }
+      html += decoder.decode();
+
+      if (html.includes('</body>')) {
+        html = html.replace('</body>', `${overlayScript}</body>`);
+      } else {
+        html += overlayScript;
+      }
+
+      return new Response(encoder.encode(html), {
+        status: 500,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'X-Ranu-Diagnostic-Code': diagnostic.code,
+        },
+      });
+    } catch {
+      return new Response(
+        `<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>${diagnostic.message}</p>${overlayScript}</body></html>`,
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Ranu-Diagnostic-Code': diagnostic.code,
+          },
+        },
+      );
     }
   }
 

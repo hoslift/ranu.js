@@ -16,12 +16,20 @@
     { "path": "./packages/dev" },
     { "path": "./packages/cli" },
     { "path": "./packages/plugin" },
+    { "path": "./packages/testing" },
+    { "path": "./packages/devtools" },
+    { "path": "./packages/ai" },
     { "path": "./adapters/vercel" },
     { "path": "./adapters/cloudflare" },
     { "path": "./adapters/node" },
     { "path": "./adapters/netlify" },
     { "path": "./adapters/bun" },
     { "path": "./adapters/deno" },
-    { "path": "./create-ranu" }
+    { "path": "./create-ranu" },
+    { "path": "./ai-models/gemini" },
+    { "path": "./ai-models/groq" },
+    { "path": "./ai-models/claude" },
+    { "path": "./ai-models/openai" },
+    { "path": "./ai-models/custom" }
   ]
 }

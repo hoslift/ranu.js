@@ -1,13 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import type { RanuMode, RouteKind, RenderMode, RanuCommand, RanuDeploymentAdapter } from '@ranu/core';
+import type {
+  RanuMode,
+  RouteKind,
+  RenderMode,
+  RanuCommand,
+  RanuDeploymentAdapter,
+  DeploymentAdapterContext,
+} from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import dotenv from 'dotenv';
 
-/** User Config Shape */
-export interface RanuUserConfig {
-  plugins?: any[];
+// Re-export core adapter contracts for convenience
+export type { DeploymentAdapterContext, RanuDeploymentAdapter };
+
+/** User Config Shape with generic plugin and adapter support */
+export interface RanuUserConfig<TPlugin = any, TAdapterConfig = unknown, TAdapterManifest = unknown> {
+  plugins?: TPlugin[];
   build?: {
     sourceMaps?: boolean;
     minify?: boolean;
@@ -25,7 +35,7 @@ export interface RanuUserConfig {
     defaultMode?: RenderMode;
   };
   deployment?: {
-    adapter?: RanuDeploymentAdapter;
+    adapter?: RanuDeploymentAdapter<TAdapterConfig, TAdapterManifest>;
   };
   database?: {
     maxConnections?: number;
@@ -37,10 +47,10 @@ export interface RanuUserConfig {
 }
 
 /** Resolved Config Shape (Immutable) */
-export interface ResolvedRanuConfig {
+export interface ResolvedRanuConfig<TPlugin = any, TAdapterConfig = unknown, TAdapterManifest = unknown> {
   readonly root: string;
   readonly mode: RanuMode;
-  readonly plugins: readonly any[];
+  readonly plugins: readonly TPlugin[];
   readonly build: {
     readonly sourceMaps: boolean;
     readonly minify: boolean;
@@ -58,7 +68,7 @@ export interface ResolvedRanuConfig {
     readonly defaultMode: RenderMode;
   };
   readonly deployment: {
-    readonly adapter?: RanuDeploymentAdapter;
+    readonly adapter?: RanuDeploymentAdapter<TAdapterConfig, TAdapterManifest>;
   };
   readonly database?: {
     readonly maxConnections?: number;
@@ -75,7 +85,11 @@ export interface RanuConfigContext {
  * defineConfig helper.
  * Provides TypeScript type assistance and runtime schema validation for user configurations.
  */
-export function defineConfig(config: RanuUserConfig | ((ctx: RanuConfigContext) => RanuUserConfig)): any {
+export function defineConfig<TPlugin = any, TAdapterConfig = unknown, TAdapterManifest = unknown>(
+  config:
+    | RanuUserConfig<TPlugin, TAdapterConfig, TAdapterManifest>
+    | ((ctx: RanuConfigContext) => RanuUserConfig<TPlugin, TAdapterConfig, TAdapterManifest>),
+): any {
   if (typeof config === 'object' && config !== null) {
     const result = validateUserConfig(config);
     if (!result.success) {
@@ -475,12 +489,12 @@ export function validateUserConfig(config: any): { success: boolean; diagnostics
  * Resolve User Configuration into the read-only ResolvedRanuConfig structure.
  * Applies defaults and applies CLI overrides.
  */
-export function resolveConfig(
+export function resolveConfig<TPlugin = any, TAdapterConfig = unknown, TAdapterManifest = unknown>(
   userConfig: any,
   projectRoot: string,
   mode: RanuMode,
   cliOverrides?: { port?: number; host?: string }
-): { config: ResolvedRanuConfig; diagnostics: RanuDiagnostic[] } {
+): { config: ResolvedRanuConfig<TPlugin, TAdapterConfig, TAdapterManifest>; diagnostics: RanuDiagnostic[] } {
   const diagnostics: RanuDiagnostic[] = [];
 
   const validationResult = validateUserConfig(userConfig);
@@ -534,7 +548,7 @@ export function resolveConfig(
         }
       : undefined;
 
-  const resolved: ResolvedRanuConfig = {
+  const resolved: ResolvedRanuConfig<TPlugin, TAdapterConfig, TAdapterManifest> = {
     root: projectRoot,
     mode,
     plugins: userConfig?.plugins ?? [],
