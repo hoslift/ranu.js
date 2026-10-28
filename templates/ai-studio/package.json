@@ -1,0 +1,32 @@
+{
+  "name": "@ranu/template-ai-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ranu dev",
+    "build": "echo @ranu/template-ai-studio: showcase template ready",
+    "start": "ranu start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ranujs/core": "workspace:*",
+    "@ranu/ai": "workspace:*",
+    "@ranu/ai-gemini": "workspace:*",
+    "@ranu/ai-groq": "workspace:*",
+    "@ranu/ai-claude": "workspace:*",
+    "@ranu/ai-openai": "workspace:*",
+    "@ranu/ai-custom": "workspace:*",
+    "@ranu/devtools": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

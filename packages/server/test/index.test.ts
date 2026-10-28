@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import util from 'node:util';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   cookies,
@@ -109,9 +110,118 @@ describe('@ranu/server — Server Helpers', () => {
 
       store.run(ctx, () => {
         const reqHeaders = headers();
-        expect(() => reqHeaders.set('X-Added', 'fail')).toThrow(TypeError);
-        expect(() => reqHeaders.append('X-Added', 'fail')).toThrow(TypeError);
-        expect(() => reqHeaders.delete('X-Initial')).toThrow(TypeError);
+        // Method mutation traps
+        expect(() => (reqHeaders as any).set('X-Added', 'fail')).toThrow(TypeError);
+        expect(() => (reqHeaders as any).append('X-Added', 'fail')).toThrow(TypeError);
+        expect(() => (reqHeaders as any).delete('X-Initial')).toThrow(TypeError);
+
+        // Direct property assignment trap (set trap)
+        expect(() => {
+          (reqHeaders as any).foo = 'injected';
+        }).toThrow(TypeError);
+        expect(() => {
+          (reqHeaders as any).set = () => {};
+        }).toThrow(TypeError);
+
+        // Property deletion trap (deleteProperty trap)
+        expect(() => {
+          delete (reqHeaders as any).foo;
+        }).toThrow(TypeError);
+        expect(() => {
+          delete (reqHeaders as any).set;
+        }).toThrow(TypeError);
+
+        // Property definition trap (defineProperty trap)
+        expect(() => {
+          Object.defineProperty(reqHeaders, 'customProp', {
+            value: 'blocked',
+            writable: true,
+            configurable: true,
+          });
+        }).toThrow(TypeError);
+        expect(() => {
+          Object.defineProperty(reqHeaders, 'set', {
+            value: () => {},
+            writable: true,
+            configurable: true,
+          });
+        }).toThrow(TypeError);
+
+        // Prototype tampering trap (setPrototypeOf trap)
+        expect(() => {
+          Object.setPrototypeOf(reqHeaders, {});
+        }).toThrow(TypeError);
+
+        // Extensibility tampering trap (preventExtensions trap)
+        expect(() => {
+          Object.preventExtensions(reqHeaders);
+        }).toThrow(TypeError);
+        expect(() => {
+          Reflect.preventExtensions(reqHeaders);
+        }).toThrow(TypeError);
+        expect(Object.isExtensible(reqHeaders)).toBe(true);
+      });
+    });
+
+    it('supports read-only iteration and inspection methods without mutation', () => {
+      const ctx = createMockContext({
+        headers: {
+          'x-alpha': 'one',
+          'x-beta': 'two',
+        },
+      });
+
+      store.run(ctx, () => {
+        const reqHeaders = headers();
+
+        // forEach with 3-arg callback and parent immutability
+        const forEachEntries: [string, string][] = [];
+        const customScope = { id: 'test-scope' };
+        reqHeaders.forEach(function (val, key, parent) {
+          expect(this).toBe(customScope);
+          expect(parent).toBe(reqHeaders);
+          expect(() => (parent as any).set('x-attempt', 'fail')).toThrow(TypeError);
+          forEachEntries.push([key, val]);
+        }, customScope);
+        expect(forEachEntries).toContainEqual(['x-alpha', 'one']);
+        expect(forEachEntries).toContainEqual(['x-beta', 'two']);
+
+        // entries()
+        const entries = Array.from(reqHeaders.entries());
+        expect(entries).toContainEqual(['x-alpha', 'one']);
+        expect(entries).toContainEqual(['x-beta', 'two']);
+
+        // keys()
+        const keys = Array.from(reqHeaders.keys());
+        expect(keys).toContain('x-alpha');
+        expect(keys).toContain('x-beta');
+
+        // values()
+        const values = Array.from(reqHeaders.values());
+        expect(values).toContain('one');
+        expect(values).toContain('two');
+
+        // for...of Symbol.iterator
+        const iterated: [string, string][] = [];
+        for (const [k, v] of reqHeaders) {
+          iterated.push([k, v]);
+        }
+        expect(iterated).toContainEqual(['x-alpha', 'one']);
+        expect(iterated).toContainEqual(['x-beta', 'two']);
+      });
+    });
+
+    it('supports safe formatting in util.inspect and console.log without throwing', () => {
+      const ctx = createMockContext({
+        headers: { 'x-debug': 'enabled' },
+      });
+
+      store.run(ctx, () => {
+        const reqHeaders = headers();
+        const formatted = util.inspect(reqHeaders);
+        expect(formatted).toContain('ReadonlyHeaders');
+        expect(formatted).toContain('x-debug');
+        expect(formatted).toContain('enabled');
       });
     });
 

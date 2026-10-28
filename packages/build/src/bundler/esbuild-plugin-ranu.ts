@@ -94,6 +94,58 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
         };
       });
 
+      // 2. DevTools Zero-Footprint Production Stripping
+      build.onResolve({ filter: /^@?ranu\/devtools$/ }, (args) => {
+        if (platform === 'browser' && process.env.NODE_ENV === 'production') {
+          return {
+            path: args.path,
+            namespace: 'ranu-virtual-devtools-stub',
+          };
+        }
+        return undefined;
+      });
+
+      build.onLoad({ filter: /.*/, namespace: 'ranu-virtual-devtools-stub' }, () => {
+        const stubs = [
+          'export const RanuDevTools = () => null;',
+          'export const DevToolsDock = () => null;',
+          'export const mountDevToolsDock = () => {};',
+          'export const unmountDevToolsDock = () => {};',
+          'export const AIStudio = () => null;',
+          'export const AIStudioDock = () => null;',
+          'export const toggleDevToolsDock = () => false;',
+          'export const setDevToolsDockPosition = () => {};',
+          'export const getDevToolsState = () => ({});',
+          'export const setDevToolsState = () => {};',
+          'export const resetDevToolsState = () => {};',
+          'export const subscribeDevTools = () => () => {};',
+          'export const setActiveDevToolsTab = () => {};',
+          'export const recordStreamingChunk = () => ({ timestamp: Date.now(), bytes: 0, preview: "" });',
+          'export const clearStreamingChunks = () => {};',
+          'export const recordRouteHierarchy = () => {};',
+          'export const recordHydrationStatus = () => {};',
+          'export const recordDevDiagnostics = () => {};',
+          'export const setSelectedPartner = () => {};',
+          'export const setCurrentPrompt = () => {};',
+          'export const setPendingDiff = () => {};',
+          'export const setStreamingResponse = () => {};',
+          'export const setAIStudioError = () => {};',
+          'export const setAIStudioState = () => {};',
+          'export const acceptAIChanges = async () => ({ success: true });',
+          'export const revertAIChanges = () => {};',
+          'export const createInitialState = () => ({});',
+          'export const computeLineDiff = () => [];',
+          'export const computePatchSummary = () => "";',
+          'export const submitAIPrompt = async () => {};',
+          'export const abortAIGeneration = () => {};',
+          'export default RanuDevTools;',
+        ].join(' ');
+        return {
+          contents: stubs,
+          loader: 'js',
+        };
+      });
+
       // Hashed public asset URLs in emitted CSS are runtime URLs, not build-time imports.
       build.onResolve({ filter: /^\/_ranu\/assets\// }, (args) => ({
         path: args.path,

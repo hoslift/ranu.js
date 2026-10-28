@@ -7,6 +7,13 @@ import { runBuildCommand } from './commands/build.js';
 import { runStartCommand } from './commands/start.js';
 import { runDeployCommand } from './commands/deploy.js';
 import { runCreateCommand } from './commands/create.js';
+import { runDescribeCommand } from './commands/describe.js';
+import { runCheckCommand } from './commands/check.js';
+import { runFixCommand } from './commands/fix.js';
+import { runGenerateCommand } from './commands/generate.js';
+import { runAddCommand } from './commands/add.js';
+import { runAiCommand } from './commands/ai.js';
+import { runPromptCommand } from './commands/prompt.js';
 
 /**
  * Dispatches CLI arguments to the corresponding command and reports command errors.
@@ -51,6 +58,27 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
       case 'deploy':
         return await runDeployCommand(args, logger);
 
+      case 'describe':
+        return await runDescribeCommand(args, logger);
+
+      case 'check':
+        return await runCheckCommand(args, logger);
+
+      case 'fix':
+        return await runFixCommand(args, logger);
+
+      case 'generate':
+        return await runGenerateCommand(args, logger);
+
+      case 'add':
+        return await runAddCommand(args, logger);
+
+      case 'ai':
+        return await runAiCommand(args, logger);
+
+      case 'prompt':
+        return await runPromptCommand(args, logger);
+
       case 'create':
         return runCreateCommand(args, logger);
 
@@ -70,7 +98,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
     } else {
       console.error(`\x1b[31m✖\x1b[0m ${message}`);
       if (isDebug && err instanceof Error && err.stack) {
-        console.debug(`\x1b[90m${err.stack}\x1b[0m`);
+        console.error(`\x1b[90m${err.stack}\x1b[0m`);
       }
     }
     return 1;
