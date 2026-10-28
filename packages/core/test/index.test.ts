@@ -26,4 +26,50 @@ describe('@ranu/core', () => {
     expect(renderMode).toBe('static');
     expect(capabilities.streaming).toBe(true);
   });
+
+  it('supports decoupled generic typing in DeploymentAdapterContext and RanuDeploymentAdapter', async () => {
+    interface CustomConfig {
+      appName: string;
+      port: number;
+    }
+
+    interface CustomManifest {
+      routes: string[];
+      buildHash: string;
+    }
+
+    const context: import('../src/index.js').DeploymentAdapterContext<CustomConfig, CustomManifest> = {
+      projectRoot: '/test/app',
+      config: {
+        appName: 'TestApp',
+        port: 8080,
+      },
+      manifest: {
+        routes: ['/'],
+        buildHash: 'abc1234',
+      },
+    };
+
+    const adapter: import('../src/index.js').RanuDeploymentAdapter<CustomConfig, CustomManifest> = {
+      name: 'test-adapter',
+      apiVersion: 1,
+      capabilities: {
+        runtime: 'node',
+        streaming: true,
+        staticFiles: true,
+      },
+      adapt: async (ctx) => {
+        return {
+          success: true,
+          target: ctx.config?.appName ?? 'unknown',
+          outputDirectory: ctx.projectRoot + '/dist',
+        };
+      },
+    };
+
+    const result = await adapter.adapt(context);
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('TestApp');
+    expect(result.outputDirectory).toBe('/test/app/dist');
+  });
 });

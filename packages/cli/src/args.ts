@@ -1,4 +1,4 @@
-import type { CliCommand, ParsedCliArgs } from './types.js';
+import type { CliCommand, ParsedCliArgs, OutputFormat } from './types.js';
 
 const KNOWN_COMMANDS: readonly CliCommand[] = [
   'dev',
@@ -6,6 +6,13 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'start',
   'create',
   'deploy',
+  'describe',
+  'check',
+  'fix',
+  'generate',
+  'add',
+  'ai',
+  'prompt',
   'help',
   'version',
 ];
@@ -72,7 +79,7 @@ export function findClosestCommand(input: string): string | undefined {
  * @returns Parsed commands, positional arguments, options, and enabled flags
  */
 export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
-  let command: CliCommand | undefined;
+  let command: CliCommand | 'check' | undefined;
   const positionalArgs: string[] = [];
 
   let root: string | undefined;
@@ -84,7 +91,20 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let debug = false;
   let quiet = false;
   let json = false;
+  let format: OutputFormat | undefined;
   let adapter: string | undefined;
+  let client = false;
+  let dryRun = false;
+  let yes = false;
+  let force = false;
+  let name: string | undefined;
+  let endpoint: string | undefined;
+  let model: string | undefined;
+  let provider: string | undefined;
+  const files: string[] = [];
+  let target: string | undefined;
+  let copy = false;
+  let stdout = false;
   let help = false;
   let version = false;
 
@@ -162,6 +182,39 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--json') {
       json = true;
+      format = 'json';
+      continue;
+    }
+
+    if (arg === '--format' || arg.startsWith('--format=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--format=')) {
+        val = arg.slice('--format='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      const normalized = val.trim().toLowerCase();
+      if (normalized !== 'json' && normalized !== 'text' && normalized !== 'compact') {
+        throw new Error('Flag "--format" requires "json" or "text".');
+      }
+      format = normalized as OutputFormat;
+      if (format === 'json') {
+        json = true;
+      }
+      continue;
+    }
+
+    if (arg === '--dry-run') {
+      dryRun = true;
+      continue;
+    }
+
+    if (arg === '--yes' || arg === '-y') {
+      yes = true;
       continue;
     }
 
@@ -175,14 +228,124 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--client') {
+      client = true;
+      continue;
+    }
+
+    if (arg === '--force' || arg === '-f') {
+      force = true;
+      continue;
+    }
+
+    if (arg === '--name' || arg.startsWith('--name=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--name=')) {
+        val = arg.slice('--name='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--name" requires a valid name string.');
+      }
+      name = val.trim();
+      continue;
+    }
+
+    if (arg === '--endpoint' || arg.startsWith('--endpoint=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--endpoint=')) {
+        val = arg.slice('--endpoint='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--endpoint" requires a valid endpoint URL.');
+      }
+      endpoint = val.trim();
+      continue;
+    }
+
+    if (arg === '--model' || arg.startsWith('--model=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--model=')) {
+        val = arg.slice('--model='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--model" requires a valid model identifier.');
+      }
+      model = val.trim();
+      continue;
+    }
+
+    if (arg === '--provider' || arg.startsWith('--provider=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--provider=')) {
+        val = arg.slice('--provider='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--provider" requires a valid provider name.');
+      }
+      provider = val.trim();
+      continue;
+    }
+
+    if (arg === '--file' || arg.startsWith('--file=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--file=')) {
+        val = arg.slice('--file='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--file" requires a valid file path.');
+      }
+      files.push(val.trim());
+      continue;
+    }
+
+    if (arg === '--target' || arg.startsWith('--target=')) {
+      let val: string | undefined;
+      if (arg.startsWith('--target=')) {
+        val = arg.slice('--target='.length);
+      } else {
+        i++;
+        val = argv[i];
+      }
+      if (val === undefined || val.startsWith('-') || !val.trim()) {
+        throw new Error('Flag "--target" requires a valid target name.');
+      }
+      target = val.trim();
+      continue;
+    }
+
+    if (arg === '--copy') {
+      copy = true;
+      continue;
+    }
+
+    if (arg === '--stdout') {
+      stdout = true;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown flag "${arg}". Run "ranu --help" to see available options.`);
     }
 
     // Positional argument
     if (!command) {
-      if (KNOWN_COMMANDS.includes(arg as CliCommand)) {
-        command = arg as CliCommand;
+      if ((KNOWN_COMMANDS as readonly string[]).includes(arg)) {
+        command = arg as CliCommand | 'check';
       } else {
         const suggestion = findClosestCommand(arg);
         const didYouMean = suggestion ? ` Did you mean "${suggestion}"?` : '';
@@ -194,7 +357,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   }
 
   return {
-    command,
+    command: command as CliCommand | undefined,
     args: positionalArgs,
     root,
     port,
@@ -205,7 +368,20 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     debug: debug ? true : undefined,
     quiet: quiet ? true : undefined,
     json: json ? true : undefined,
+    format,
     adapter,
+    client: client ? true : undefined,
+    dryRun: dryRun ? true : undefined,
+    yes: yes ? true : undefined,
+    force: force ? true : undefined,
+    name,
+    endpoint,
+    model,
+    provider,
+    files: files.length > 0 ? files : undefined,
+    target,
+    copy: copy ? true : undefined,
+    stdout: stdout ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

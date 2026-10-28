@@ -2,7 +2,11 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, afterAll } from 'vitest';
-import { validateGraphBoundaries, type ModuleGraph } from '@ranu/build';
+import {
+  validateGraphBoundaries,
+  validateSourceNonSerializableProps,
+  type ModuleGraph,
+} from '@ranu/build';
 import { createTemporaryFixture } from '../helpers/fixture.js';
 import { runCommand, cleanupAllProcesses } from '../helpers/process.js';
 
@@ -185,6 +189,40 @@ describe('Suite 1: Client/Server Boundary Enforcement (client-server-boundary)',
       expect(boundaryError).toBeDefined();
     } finally {
       await cleanup();
+    }
+  });
+
+  it('Dual-Tier Boundary Security: prevents passing functions, symbols, and private class instances across JSX server/client boundaries', () => {
+    const maliciousCode = `
+      import { ClientButton } from './ClientButton.js';
+      class SecretStore {
+        private key = 'SUPER_SECRET';
+      }
+      export default function ServerPage() {
+        const store = new SecretStore();
+        return (
+          <ClientButton
+            leakFn={() => console.log('leaked')}
+            leakClass={store}
+            leakSymbol={Symbol('SECRET_SYMBOL')}
+            nestedLeak={{ fn: () => {} }}
+          />
+        );
+      }
+    `;
+
+    const diagnostics = validateSourceNonSerializableProps(
+      '/project/app/page.tsx',
+      maliciousCode,
+      new Set(['ClientButton'])
+    );
+
+    expect(diagnostics.length).toBeGreaterThanOrEqual(4);
+    for (const diag of diagnostics) {
+      expect(diag.code).toBe('RANU_BUILD_NON_SERIALIZABLE_PROP');
+      expect(diag.severity).toBe('error');
+      expect(diag.message).toContain('Client Component <ClientButton>');
+      expect(diag.hint).toContain('Move event handlers and stateful logic inside the Client Component');
     }
   });
 });
