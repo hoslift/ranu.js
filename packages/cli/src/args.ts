@@ -1,14 +1,14 @@
-import type { CliCommand, ParsedCliArgs } from './types.js';
+import type { CliCommand, ParsedCliArgs, OutputFormat } from './types.js';
 
-export type OutputFormat = 'text' | 'json';
-
-const KNOWN_COMMANDS: readonly (CliCommand | 'check')[] = [
+const KNOWN_COMMANDS: readonly CliCommand[] = [
   'dev',
   'build',
   'start',
   'create',
   'deploy',
+  'describe',
   'check',
+  'generate',
   'help',
   'version',
 ];
@@ -89,6 +89,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let json = false;
   let format: OutputFormat | undefined;
   let adapter: string | undefined;
+  let client = false;
   let help = false;
   let version = false;
 
@@ -202,6 +203,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
       continue;
     }
 
+    if (arg === '--client') {
+      client = true;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       throw new Error(`Unknown flag "${arg}". Run "ranu --help" to see available options.`);
     }
@@ -234,6 +240,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     json: json ? true : undefined,
     format,
     adapter,
+    client: client ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

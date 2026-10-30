@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { discoverConfig, validateUserConfig, loadConfig } from '@ranu/config';
+import { discoverRoutes, type CompiledRouteRecord } from '@ranu/router';
 import {
   analyzeRouteMethods,
   buildModuleGraph,
   validateGraphBoundaries,
   validateGraphEnvAccess,
+  validateNonSerializableProps,
 } from '@ranu/build';
-import * as buildModule from '@ranu/build';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import { formatDiagnosticsReport, type DiagnosticReport } from '@ranu/diagnostics';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
@@ -128,19 +129,11 @@ export async function runCheckCommand(args: ParsedCliArgs, logger: CliLogger): P
   }
 
   // 2. Route Discovery & Routing Invariants
-  let records: unknown[] = [];
+  let records: CompiledRouteRecord[] = [];
   if (fs.existsSync(appDir)) {
-    try {
-      const routerPkg = '@ranu/router';
-      const routerModule: any = await import(routerPkg);
-      if (typeof routerModule?.discoverRoutes === 'function') {
-        const routeRes = routerModule.discoverRoutes(appDir, { analyzeRouteMethods });
-        records = routeRes.records;
-        diagnostics.push(...routeRes.diagnostics);
-      }
-    } catch {
-      // Ignore if router is not present
-    }
+    const routeRes = discoverRoutes(appDir, { analyzeRouteMethods });
+    records = routeRes.records;
+    diagnostics.push(...routeRes.diagnostics);
   }
 
   // 3. Module Graph & Static Boundary Invariants
@@ -175,14 +168,9 @@ export async function runCheckCommand(args: ParsedCliArgs, logger: CliLogger): P
     const envRes = validateGraphEnvAccess(moduleGraph);
     diagnostics.push(...envRes.diagnostics);
 
-    // 3c. Non-Serializable Props Validation (if available)
-    const validateProps = (buildModule as {
-      validateNonSerializableProps?: (graph: unknown) => { diagnostics: RanuDiagnostic[] };
-    }).validateNonSerializableProps;
-    if (typeof validateProps === 'function') {
-      const propsRes = validateProps(moduleGraph);
-      diagnostics.push(...propsRes.diagnostics);
-    }
+    // 3c. Non-Serializable Props Validation
+    const propsRes = validateNonSerializableProps(moduleGraph);
+    diagnostics.push(...propsRes.diagnostics);
   }
 
   const durationMs = Date.now() - startTime;
