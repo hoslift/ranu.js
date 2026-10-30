@@ -20,6 +20,10 @@ export {
   isServerOnlyModule,
 } from './compiler/server-only-detector.js';
 export {
+  validateNonSerializableProps,
+  validateSourceNonSerializableProps,
+} from './compiler/props-validator.js';
+export {
   buildModuleGraph,
   extractModuleImports,
   resolveImportPath,

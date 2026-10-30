@@ -21,6 +21,7 @@ export {
   type MiddlewareContext,
   type MiddlewareNextOptions,
   type RouteHandlerContext,
+  type ReadonlyHeaders,
 } from '@ranu/server';
 
 export {

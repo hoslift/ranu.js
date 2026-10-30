@@ -113,8 +113,6 @@ export function deserializeDiagnostic(serialized: string): RanuDiagnostic {
   };
 }
 
-export * from './overlay.js';
-
 /**
  * Structured diagnostic batch report envelope for AI agents and tooling.
  */
@@ -146,3 +144,6 @@ export function formatDiagnosticsReport(
   };
   return JSON.stringify(report, null, options?.pretty !== false ? 2 : undefined);
 }
+
+export * from './overlay.js';
+

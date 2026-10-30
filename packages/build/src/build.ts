@@ -27,6 +27,7 @@ import { runValidationStage } from './pipeline/stage-validate.js';
 import { buildModuleGraph } from './graph/module-classifier.js';
 import { validateGraphBoundaries } from './graph/boundary-validator.js';
 import { validateGraphEnvAccess } from './env/env-validator.js';
+import { validateNonSerializableProps } from './compiler/props-validator.js';
 import { copyPublicDirectory } from './assets/public-dir.js';
 
 /**
@@ -336,6 +337,20 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
     // Stage 8b: Validate Environment Security (reject private env access in client-reachable code)
     const envCheck = validateGraphEnvAccess(moduleGraph);
     diagnostics.push(...envCheck.diagnostics);
+    if (diagnostics.some((d) => d.severity === 'error')) {
+      cleanupTempArtifacts(tempOutDir);
+      return {
+        success: false,
+        buildId,
+        outDir,
+        diagnostics,
+        duration: Date.now() - startTime,
+      };
+    }
+
+    // Stage 8c: Validate Non-Serializable Props across Server/Client boundary
+    const propsCheck = validateNonSerializableProps(moduleGraph);
+    diagnostics.push(...propsCheck.diagnostics);
     if (diagnostics.some((d) => d.severity === 'error')) {
       cleanupTempArtifacts(tempOutDir);
       return {
