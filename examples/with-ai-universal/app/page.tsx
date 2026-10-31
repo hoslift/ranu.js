@@ -1,11 +1,15 @@
-import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
+'use client';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { conversationToJson, conversationToMarkdown } from './conversation-export';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  timestamp?: string;
 }
 
 type ProviderType = 'openai' | 'gemini' | 'anthropic' | 'local' | 'mock';
+type ExportFormat = 'markdown' | 'json';
 
 export default function UniversalAiChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -19,6 +23,7 @@ export default function UniversalAiChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [provider, setProvider] = useState<ProviderType>('openai');
   const [error, setError] = useState<string | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
@@ -43,11 +48,25 @@ export default function UniversalAiChatPage() {
     setError(null);
     setInput('');
 
-    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: prompt }];
+    const newMessages: ChatMessage[] = [
+      ...messages,
+      {
+        role: 'user',
+        content: prompt,
+        timestamp: new Date().toISOString(),
+      },
+    ];
     setMessages(newMessages);
 
     // Prepare assistant placeholder message
-    setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+      },
+    ]);
     setIsStreaming(true);
 
     const controller = new AbortController();
@@ -58,7 +77,10 @@ export default function UniversalAiChatPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages,
+          messages: newMessages.map(({ role, content }) => ({
+            role,
+            content,
+          })),
           provider,
         }),
         signal: controller.signal,
@@ -126,6 +148,35 @@ export default function UniversalAiChatPage() {
     }
   };
 
+  const handleExport = (format: ExportFormat) => {
+    if (isStreaming) return;
+
+    const exportMessages = messages.filter((message) => message.content.trim().length > 0);
+
+    const content =
+      format === 'markdown'
+        ? conversationToMarkdown(exportMessages)
+        : conversationToJson(exportMessages);
+
+    const extension = format === 'markdown' ? 'md' : 'json';
+
+    const mimeType =
+      format === 'markdown' ? 'text/markdown;charset=utf-8' : 'application/json;charset=utf-8';
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ranu-conversation.${extension}`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
     <div
       style={{
@@ -185,6 +236,63 @@ export default function UniversalAiChatPage() {
             <option value="local">Local (Ollama 127.0.0.1)</option>
             <option value="mock">Demo Simulation (No Key)</option>
           </select>
+        </div>
+
+        {/* Conversation export actions */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setIsExportMenuOpen((open) => !open)}
+            disabled={isStreaming}
+            aria-expanded={isExportMenuOpen}
+            aria-controls="conversation-export-options"
+          >
+            Export Conversation ▾
+          </button>
+
+          {isExportMenuOpen && (
+            <div
+              id="conversation-export-options"
+              role="group"
+              aria-label="Export conversation format"
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: '0.4rem',
+                padding: '0.5rem',
+                backgroundColor: '#1e293b',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                zIndex: 10,
+              }}
+            >
+              <button
+                type="button"
+                disabled={isStreaming}
+                onClick={() => {
+                  handleExport('markdown');
+                  setIsExportMenuOpen(false);
+                }}
+              >
+                Markdown (.md)
+              </button>
+
+              <button
+                type="button"
+                disabled={isStreaming}
+                onClick={() => {
+                  handleExport('json');
+                  setIsExportMenuOpen(false);
+                }}
+              >
+                JSON (.json)
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
