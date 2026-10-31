@@ -183,7 +183,16 @@ export async function runDescribeCommand(args: ParsedCliArgs, logger: CliLogger)
     diagnostics,
   };
 
-  if (args.format === 'json' || args.json) {
+  if (args.format === 'compact') {
+    const compactRoutes = routes.map((r) => [
+      r.methods.join(','),
+      r.pathname,
+      r.kind,
+      r.renderMode,
+      r.sourceFile,
+    ]);
+    logger.json(compactRoutes);
+  } else if (args.format === 'json' || args.json) {
     logger.json(output);
   } else {
     logger.log(`\nRanu.js Application Route Graph (${routes.length} route${routes.length === 1 ? '' : 's'}):\n`);

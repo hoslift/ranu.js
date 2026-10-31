@@ -8,6 +8,7 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'deploy',
   'describe',
   'check',
+  'fix',
   'generate',
   'help',
   'version',
@@ -90,6 +91,8 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let format: OutputFormat | undefined;
   let adapter: string | undefined;
   let client = false;
+  let dryRun = false;
+  let yes = false;
   let help = false;
   let version = false;
 
@@ -183,13 +186,23 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
         throw new Error('Flag "--format" requires "json" or "text".');
       }
       const normalized = val.trim().toLowerCase();
-      if (normalized !== 'json' && normalized !== 'text') {
+      if (normalized !== 'json' && normalized !== 'text' && normalized !== 'compact') {
         throw new Error('Flag "--format" requires "json" or "text".');
       }
       format = normalized as OutputFormat;
       if (format === 'json') {
         json = true;
       }
+      continue;
+    }
+
+    if (arg === '--dry-run') {
+      dryRun = true;
+      continue;
+    }
+
+    if (arg === '--yes' || arg === '-y') {
+      yes = true;
       continue;
     }
 
@@ -241,6 +254,8 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     format,
     adapter,
     client: client ? true : undefined,
+    dryRun: dryRun ? true : undefined,
+    yes: yes ? true : undefined,
     help: help ? true : undefined,
     version: version ? true : undefined,
   };

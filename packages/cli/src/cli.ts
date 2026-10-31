@@ -9,6 +9,7 @@ import { runDeployCommand } from './commands/deploy.js';
 import { runCreateCommand } from './commands/create.js';
 import { runDescribeCommand } from './commands/describe.js';
 import { runCheckCommand } from './commands/check.js';
+import { runFixCommand } from './commands/fix.js';
 import { runGenerateCommand } from './commands/generate.js';
 
 /**
@@ -59,6 +60,9 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
 
       case 'check':
         return await runCheckCommand(args, logger);
+
+      case 'fix':
+        return await runFixCommand(args, logger);
 
       case 'generate':
         return await runGenerateCommand(args, logger);
