@@ -11,6 +11,7 @@ import {
   runClientGraphStage,
   runManifestStage,
   copyPublicDirectory,
+  syncAgentContextGuide,
   type RouteEntryInfo,
   type BuildContext,
 } from '@ranu/build';
@@ -133,6 +134,8 @@ export class RebuildCoordinator {
       diagnostics.push(...routeResult.diagnostics);
       discoveredRoutes = routeResult.routes;
       discoveredRecords = routeResult.records;
+
+      syncAgentContextGuide(this.projectRoot, routeResult.routes);
 
       if (!diagnostics.some((d) => d.severity === 'error')) {
         // 4. Stage 2: Module graph classification & boundary validation
