@@ -48,6 +48,10 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./devtools": {
+      "types": "./dist/devtools.d.ts",
+      "import": "./dist/devtools.js"
+    },
     "./server-only": {
       "types": "./dist/server-only.d.ts",
       "import": "./dist/server-only.js"
@@ -76,6 +80,7 @@
     "@ranu/config": "workspace:*",
     "@ranu/core": "workspace:*",
     "@ranu/dev": "workspace:*",
+    "@ranu/devtools": "workspace:*",
     "@ranu/diagnostics": "workspace:*",
     "@ranu/manifests": "workspace:*",
     "@ranu/plugin": "workspace:*",
