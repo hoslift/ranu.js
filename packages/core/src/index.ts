@@ -15,7 +15,7 @@ export const DEFAULT_OUT_DIR = '.ranu';
 export type RanuMode = 'development' | 'production';
 
 /** ranu CLI commands */
-export type RanuCommand = 'dev' | 'build' | 'start' | 'create' | 'deploy' | 'describe' | 'check' | 'help' | 'version';
+export type RanuCommand = 'dev' | 'build' | 'start' | 'create' | 'deploy' | 'describe' | 'check' | 'fix' | 'generate' | 'add' | 'help' | 'version';
 
 /** Route kinds supported by the framework */
 export type RouteKind = 'page' | 'api';

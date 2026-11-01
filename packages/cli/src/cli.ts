@@ -11,6 +11,7 @@ import { runDescribeCommand } from './commands/describe.js';
 import { runCheckCommand } from './commands/check.js';
 import { runFixCommand } from './commands/fix.js';
 import { runGenerateCommand } from './commands/generate.js';
+import { runAddCommand } from './commands/add.js';
 
 /**
  * Dispatches CLI arguments to the corresponding command and reports command errors.
@@ -66,6 +67,9 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
 
       case 'generate':
         return await runGenerateCommand(args, logger);
+
+      case 'add':
+        return await runAddCommand(args, logger);
 
       case 'create':
         return runCreateCommand(args, logger);

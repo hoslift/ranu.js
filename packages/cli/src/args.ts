@@ -10,6 +10,7 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'check',
   'fix',
   'generate',
+  'add',
   'help',
   'version',
 ];
