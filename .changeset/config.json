@@ -3,9 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["@ranujs/core", "create-ranujs"]
-  ],
-  "linked": [
+    ["@ranujs/core", "create-ranujs"],
     [
       "@ranujs/adapter-vercel",
       "@ranujs/adapter-cloudflare",
@@ -15,8 +13,13 @@
       "@ranujs/adapter-deno"
     ]
   ],
+  "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["example-*"]
+  "ignore": ["example-*"],
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  }
 }
