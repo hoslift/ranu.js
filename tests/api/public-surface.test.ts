@@ -90,6 +90,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         './react',
         './server',
         './server-only',
+        './devtools',
         './testing',
       ];
 

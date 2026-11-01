@@ -17,6 +17,7 @@
     { "path": "./packages/cli" },
     { "path": "./packages/plugin" },
     { "path": "./packages/testing" },
+    { "path": "./packages/devtools" },
     { "path": "./adapters/vercel" },
     { "path": "./adapters/cloudflare" },
     { "path": "./adapters/node" },
