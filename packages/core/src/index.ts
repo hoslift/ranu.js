@@ -239,3 +239,5 @@ export type GenerateStaticParamsResult = readonly StaticParamRecord[];
 /** Public function signature for generateStaticParams */
 export type GenerateStaticParams = () =>
   GenerateStaticParamsResult | Promise<GenerateStaticParamsResult>;
+
+export * from './actions.js';
