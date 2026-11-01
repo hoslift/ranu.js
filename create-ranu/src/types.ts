@@ -6,7 +6,7 @@ export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 /**
  * Project template names supported for scaffolding.
  */
-export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes';
+export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes' | 'saas';
 
 /**
  * Official deployment adapters supported for scaffolding.
@@ -28,7 +28,7 @@ export interface ScaffoldOptions {
   projectName?: string | undefined;
 
   /**
-   * Project template to scaffold ('default', 'minimal', 'cloudflare', 'node-docker', 'api-routes').
+   * Project template to scaffold ('default', 'minimal', 'cloudflare', 'node-docker', 'api-routes', 'saas').
    * Defaults to 'default'.
    */
   template?: TemplateName | undefined;

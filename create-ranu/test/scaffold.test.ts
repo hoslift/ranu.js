@@ -206,4 +206,31 @@ describe('scaffoldProject', () => {
     expect(result2.success).toBe(true);
     expect(result2.installStatus).toBe('failed');
   });
+
+  it('scaffolds turnkey saas project preset to disk', () => {
+    const dest = path.join(tempDir, 'saas-prod-app');
+    const result = scaffoldProject({
+      projectPath: dest,
+      template: 'saas',
+      packageManager: 'pnpm',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.projectName).toBe('saas-prod-app');
+    expect(result.filesCreated).toContain('drizzle.config.ts');
+    expect(result.filesCreated).toContain('app/db/schema.ts');
+    expect(result.filesCreated).toContain('app/db/index.ts');
+    expect(result.filesCreated).toContain('app/api/auth/session/route.ts');
+    expect(result.filesCreated).toContain('app/dashboard/page.tsx');
+    expect(result.filesCreated).toContain('app/globals.css');
+
+    expect(fs.existsSync(path.join(dest, 'drizzle.config.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dest, 'app', 'dashboard', 'page.tsx'))).toBe(true);
+    expect(fs.existsSync(path.join(dest, 'app', 'api', 'auth', 'session', 'route.ts'))).toBe(true);
+
+    const pkg = JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'));
+    expect(pkg.dependencies['tailwindcss']).toBe('^4.0.0');
+    expect(pkg.dependencies['drizzle-orm']).toBe('^0.39.0');
+    expect(pkg.scripts['db:push']).toBe('drizzle-kit push');
+  });
 });

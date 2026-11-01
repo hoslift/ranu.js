@@ -50,7 +50,12 @@ export function generateTemplateFiles(
         isolatedModules: true,
         resolveJsonModule: true,
       },
-      include: ['app/**/*', 'ranu.config.ts', ...(includeTests ? ['test/**/*'] : [])],
+      include: [
+        'app/**/*',
+        'ranu.config.ts',
+        ...(template === 'saas' ? ['drizzle.config.ts'] : []),
+        ...(includeTests ? ['test/**/*'] : []),
+      ],
     },
     null,
     2
@@ -399,6 +404,230 @@ curl http://localhost:3000/app/api/hello?name=Developer
     files['tsconfig.json'] = `${tsconfig}\n`;
     files['.gitignore'] = gitignore;
     files['README.md'] = apiReadme;
+    files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
+
+  } else if (template === 'saas') {
+    // SAAS TURNKEY PRESET
+    dependencies['tailwindcss'] = '^4.0.0';
+    dependencies['@tailwindcss/vite'] = '^4.0.0';
+    dependencies['drizzle-orm'] = '^0.39.0';
+    dependencies['better-sqlite3'] = '^11.0.0';
+
+    devDependencies['@types/better-sqlite3'] = '^7.6.0';
+    devDependencies['drizzle-kit'] = '^0.30.0';
+
+    scripts['db:push'] = 'drizzle-kit push';
+    scripts['db:studio'] = 'drizzle-kit studio';
+
+    const saasConfig = `import { defineConfig } from '@ranujs/core/config';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  vite: {
+    plugins: [tailwindcss()],
+  },
+});
+`;
+
+    const drizzleConfig = `import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  schema: './app/db/schema.ts',
+  out: './drizzle',
+  dialect: 'sqlite',
+  dbCredentials: {
+    url: 'sqlite.db',
+  },
+});
+`;
+
+    const dbSchema = `import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  name: text('name').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+});
+`;
+
+    const dbClient = `import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
+import * as schema from './schema.js';
+
+const sqlite = new Database(process.env['DATABASE_URL'] || 'sqlite.db');
+export const db = drizzle(sqlite, { schema });
+`;
+
+    const authRoute = `export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return Response.json({ authenticated: false, user: null }, { status: 401 });
+  }
+  return Response.json({
+    authenticated: true,
+    user: {
+      id: 'usr_demo',
+      email: 'founder@hoslift.com',
+      name: 'Founder',
+      role: 'admin',
+    },
+  });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { email } = body as { email?: string };
+    if (!email) {
+      return Response.json({ error: 'Email is required' }, { status: 400 });
+    }
+    return Response.json({
+      success: true,
+      token: 'session_token_demo',
+      user: { email, name: email.split('@')[0] },
+    });
+  } catch {
+    return Response.json({ error: 'Invalid session payload' }, { status: 400 });
+  }
+}
+`;
+
+    const globalsCss = `@import "tailwindcss";
+`;
+
+    const saasLayout = `import type { ReactNode } from 'react';
+import './globals.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>${projectName} — SaaS</title>
+      </head>
+      <body className="bg-slate-50 text-slate-900 min-h-screen antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}
+`;
+
+    const saasPage = `export default function LandingPage() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
+      <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-slate-900">
+        Welcome to ${projectName}
+      </h1>
+      <p className="mt-4 text-lg text-slate-600 max-w-xl">
+        Turnkey full-stack SaaS baseline powered by Ranu.js, React 19 streaming SSR, Tailwind v4, and Drizzle ORM.
+      </p>
+      <div className="mt-8 flex gap-4">
+        <a
+          href="/dashboard"
+          className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors"
+        >
+          Go to Dashboard
+        </a>
+        <a
+          href="/app/api/auth/session"
+          className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+        >
+          Inspect Auth API
+        </a>
+      </div>
+    </main>
+  );
+}
+`;
+
+    const dashboardPage = `export default function DashboardPage() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <h1 className="text-xl font-bold text-slate-900">${projectName} Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500">founder@hoslift.com</span>
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+              Active
+            </span>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Monthly Recurring Revenue</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">$12,450</p>
+            <p className="mt-1 text-xs text-emerald-600">+14% from last month</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Active Subscriptions</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">428</p>
+            <p className="mt-1 text-xs text-emerald-600">+8 new this week</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">SSR Latency (p99)</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">12ms</p>
+            <p className="mt-1 text-xs text-slate-500">Streaming React 19</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+`;
+
+    const saasReadme = `# ${projectName}
+
+Turnkey production-ready SaaS application built with [Ranu.js](https://github.com/hoslift/ranu.js).
+
+## Stack
+
+- **Framework:** Ranu.js (React 19 Streaming SSR)
+- **Styling:** Tailwind CSS v4
+- **Database:** Drizzle ORM (SQLite / libSQL ready)
+- **Authentication:** Session Auth API endpoints (\`/app/api/auth/session\`)
+- **Dashboard:** Production metrics and admin panel (\`/dashboard\`)
+
+## Getting Started
+
+\`\`\`bash
+${devCmd}
+\`\`\`
+
+## Database Migrations
+
+\`\`\`bash
+${getRunCommand(packageManager, 'db:push')}
+\`\`\`
+`;
+
+    files['package.json'] = `${JSON.stringify({ name: projectName, version: '0.1.0', private: true, type: 'module', scripts, dependencies, devDependencies }, null, 2)}\n`;
+    files['ranu.config.ts'] = saasConfig;
+    files['drizzle.config.ts'] = drizzleConfig;
+    files['app/db/schema.ts'] = dbSchema;
+    files['app/db/index.ts'] = dbClient;
+    files['app/api/auth/session/route.ts'] = authRoute;
+    files['app/globals.css'] = globalsCss;
+    files['app/layout.tsx'] = saasLayout;
+    files['app/page.tsx'] = saasPage;
+    files['app/dashboard/page.tsx'] = dashboardPage;
+    files['tsconfig.json'] = `${tsconfig}\n`;
+    files['.gitignore'] = `${gitignore}\nsqlite.db\nsqlite.db-journal\n`;
+    files['README.md'] = saasReadme;
     files['public/robots.txt'] = `User-agent: *\nAllow: /\n`;
 
   } else if (adapter === 'bun' || (template as string) === 'bun') {
