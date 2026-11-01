@@ -103,7 +103,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   // Determine dependencies and scripts based on template and options
   const dependencies: Record<string, string> = {
-    '@ranujs/core': '^0.2.0',
+    '@ranujs/core': '^0.3.0',
     react: '^19.0.0',
     'react-dom': '^19.0.0',
   };
