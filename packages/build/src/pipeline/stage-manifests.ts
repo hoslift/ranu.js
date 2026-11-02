@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { RANU_VERSION } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 import {
   MANIFEST_SCHEMA_VERSION,
@@ -113,7 +114,7 @@ export function runManifestStage(
   const buildDescriptor: BuildDescriptor = {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
     buildId,
-    frameworkVersion: '0.0.0',
+    frameworkVersion: RANU_VERSION,
     runtime: 'node',
     manifests: {
       routes: './manifest/routes.json',

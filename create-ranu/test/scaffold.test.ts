@@ -223,13 +223,17 @@ describe('scaffoldProject', () => {
     expect(result.filesCreated).toContain('app/api/auth/session/route.ts');
     expect(result.filesCreated).toContain('app/dashboard/page.tsx');
     expect(result.filesCreated).toContain('app/globals.css');
+    expect(result.filesCreated).toContain('postcss.config.mjs');
 
     expect(fs.existsSync(path.join(dest, 'drizzle.config.ts'))).toBe(true);
+    expect(fs.existsSync(path.join(dest, 'postcss.config.mjs'))).toBe(true);
     expect(fs.existsSync(path.join(dest, 'app', 'dashboard', 'page.tsx'))).toBe(true);
     expect(fs.existsSync(path.join(dest, 'app', 'api', 'auth', 'session', 'route.ts'))).toBe(true);
 
     const pkg = JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'));
-    expect(pkg.dependencies['tailwindcss']).toBe('^4.0.0');
+    expect(pkg.devDependencies['tailwindcss']).toBe('^4.0.0');
+    expect(pkg.devDependencies['@tailwindcss/postcss']).toBe('^4.0.0');
+    expect(pkg.devDependencies['postcss']).toBe('^8.4.0');
     expect(pkg.dependencies['drizzle-orm']).toBe('^0.39.0');
     expect(pkg.scripts['db:push']).toBe('drizzle-kit push');
   });

@@ -1,6 +1,31 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { RANU_VERSION } from '@ranu/core';
 import type { ParsedCliArgs, CliLogger } from '../types.js';
 
-export const CLI_VERSION = '0.0.0';
+function resolveCliVersion(): string {
+  try {
+    let currentDir = path.dirname(fileURLToPath(import.meta.url));
+    for (let i = 0; i < 5; i++) {
+      const candidate = path.join(currentDir, 'package.json');
+      if (fs.existsSync(candidate)) {
+        const pkg = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+        if (pkg.name === '@ranujs/core' && pkg.version) {
+          return pkg.version;
+        }
+      }
+      const parent = path.dirname(currentDir);
+      if (parent === currentDir) break;
+      currentDir = parent;
+    }
+  } catch {
+    // fallback to framework version
+  }
+  return RANU_VERSION;
+}
+
+export const CLI_VERSION = resolveCliVersion();
 
 /**
  * Displays the CLI version and runtime environment information.

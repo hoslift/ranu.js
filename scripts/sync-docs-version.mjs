@@ -55,6 +55,16 @@ const targets = [
     ],
   },
   {
+    file: 'packages/core/src/index.ts',
+    rules: [
+      {
+        pattern: /export const RANU_VERSION = '[^']+';/,
+        replacement: `export const RANU_VERSION = '${version}';`,
+        description: 'RANU_VERSION foundational constant',
+      },
+    ],
+  },
+  {
     file: 'create-ranu/src/index.ts',
     rules: [
       {

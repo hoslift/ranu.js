@@ -91,7 +91,10 @@ describe('create-ranu multi-template scaffolding', () => {
   it('scaffolds turnkey saas template with tailwind v4, drizzle orm, auth routes, and dashboard', () => {
     const files = generateTemplateFiles('saas-app', 'pnpm', { template: 'saas' });
 
-    expect(files['ranu.config.ts']).toContain('@tailwindcss/vite');
+    expect(files['ranu.config.ts']).not.toContain('@tailwindcss/vite');
+    expect(files['ranu.config.ts']).not.toContain('vite:');
+    expect(files['postcss.config.mjs']).toBeDefined();
+    expect(files['postcss.config.mjs']).toContain('@tailwindcss/postcss');
     expect(files['drizzle.config.ts']).toBeDefined();
     expect(files['app/db/schema.ts']).toContain('sqliteTable');
     expect(files['app/db/index.ts']).toContain('better-sqlite3');
@@ -104,12 +107,39 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(files['.gitignore']).toContain('sqlite.db');
 
     const pkg = JSON.parse(files['package.json']!);
-    expect(pkg.dependencies['tailwindcss']).toBeDefined();
-    expect(pkg.dependencies['@tailwindcss/vite']).toBeDefined();
+    expect(pkg.dependencies['tailwindcss']).toBeUndefined();
+    expect(pkg.dependencies['@tailwindcss/vite']).toBeUndefined();
     expect(pkg.dependencies['drizzle-orm']).toBeDefined();
     expect(pkg.dependencies['better-sqlite3']).toBeDefined();
+    expect(pkg.devDependencies['@tailwindcss/postcss']).toBe('^4.0.0');
+    expect(pkg.devDependencies['postcss']).toBe('^8.4.0');
+    expect(pkg.devDependencies['tailwindcss']).toBe('^4.0.0');
     expect(pkg.devDependencies['drizzle-kit']).toBeDefined();
     expect(pkg.scripts['db:push']).toBe('drizzle-kit push');
+  });
+
+  it('scaffolds turnkey saas template validating cleanly under @ranu/config without RANU_CONFIG_UNKNOWN_FIELD', async () => {
+    const files = generateTemplateFiles('saas-app', 'pnpm', { template: 'saas' });
+
+    expect(files['ranu.config.ts']).not.toContain('@tailwindcss/vite');
+    expect(files['ranu.config.ts']).not.toContain('vite:');
+    expect(files['postcss.config.mjs']).toBeDefined();
+    expect(files['postcss.config.mjs']).toContain('@tailwindcss/postcss');
+
+    const pkg = JSON.parse(files['package.json']!);
+    expect(pkg.dependencies?.['@tailwindcss/vite']).toBeUndefined();
+    expect(pkg.devDependencies?.['@tailwindcss/postcss']).toBeDefined();
+    expect(pkg.devDependencies?.['postcss']).toBeDefined();
+    expect(pkg.devDependencies?.['tailwindcss']).toBeDefined();
+
+    // Direct validation of saas configuration against @ranu/config schema
+    const { validateUserConfig } = await import('../../packages/config/src/index.js');
+    const result = validateUserConfig({ server: { port: 3000 } });
+    expect(result.success).toBe(true);
+    const unknownFieldDiagnostics = result.diagnostics.filter(
+      (d: any) => d.code === 'RANU_CONFIG_UNKNOWN_FIELD'
+    );
+    expect(unknownFieldDiagnostics).toHaveLength(0);
   });
 
   it('configures automated test suite when tests option is enabled', () => {

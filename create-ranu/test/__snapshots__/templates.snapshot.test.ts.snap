@@ -80,6 +80,7 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
   "app/page.tsx",
   "drizzle.config.ts",
   "package.json",
+  "postcss.config.mjs",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",

@@ -96,16 +96,8 @@ export class DevServer {
   }
 
   private importCompiledModule<T>(fullPath: string, generation: number): Promise<T> {
-    const parsed = path.parse(fullPath);
-    const versionedPath = path.join(
-      parsed.dir,
-      `${parsed.name}.ranu-dev-${process.pid}-${generation}${parsed.ext}`,
-    );
-    if (!fs.existsSync(versionedPath)) {
-      fs.copyFileSync(fullPath, versionedPath);
-      this.versionedModuleCopies.add(versionedPath);
-    }
-    return import(/* @vite-ignore */ pathToFileURL(versionedPath).href) as Promise<T>;
+    const fileUrl = `${pathToFileURL(fullPath).href}?t=${generation}`;
+    return import(/* @vite-ignore */ fileUrl) as Promise<T>;
   }
 
   private handleBuildComplete(state: DevBuildState): void {

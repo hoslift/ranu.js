@@ -142,7 +142,7 @@ Usage:
 
 Description:
   Scaffolds a new Ranu.js application.
-  (Equivalent to "npm create ranu@latest <project-name>")
+  (Equivalent to "npm create ranujs@latest <project-name>")
 `);
       break;
 

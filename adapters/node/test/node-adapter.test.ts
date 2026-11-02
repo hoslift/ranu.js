@@ -246,7 +246,7 @@ describe('@ranujs/adapter-node', () => {
         runtime: 'node',
         ssr: true,
         apiRoutes: true,
-        middleware: false,
+        middleware: true,
         streaming: true,
         staticFiles: true,
         runtimeEnvironment: true,

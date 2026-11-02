@@ -141,7 +141,7 @@ export async function runDeployCommand(
       'To deploy to a cloud provider, configure an adapter (e.g. @ranujs/adapter-vercel) in your ranu.config.ts:',
     );
     logger.log(`
-import { defineConfig } from 'ranu/config';
+import { defineConfig } from '@ranujs/core/config';
 import vercelAdapter from '@ranujs/adapter-vercel';
 
 export default defineConfig({

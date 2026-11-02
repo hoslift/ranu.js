@@ -294,7 +294,7 @@ describe('@ranu/core - Capabilities and Deployment Contracts', () => {
       // Dynamic import using package specifiers (verifies package.json exports mapping)
       const core = await import('@ranu/core');
       expect(core).toBeDefined();
-      expect(core.RANU_VERSION).toBe('0.0.0');
+      expect(core.RANU_VERSION).toBe('0.3.0');
 
       const coreCaps = await import('@ranu/core/capabilities');
       expect(coreCaps).toBeDefined();
