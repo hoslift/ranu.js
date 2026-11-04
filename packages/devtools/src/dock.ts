@@ -235,13 +235,34 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
           row.className = 'waterfall-row';
           const maxDelta = Math.max(...state.streamingChunks.map((ch) => ch.deltaMs), 1);
           const barWidth = Math.max(10, Math.min(300, Math.round((c.deltaMs / maxDelta) * 250)));
-          row.innerHTML = `
-            <span style="width:70px;color:#94a3b8;">Chunk #${c.id}</span>
-            <span style="width:80px;color:#38bdf8;">+${c.deltaMs}ms</span>
-            <span style="width:70px;color:#e2e8f0;">${c.bytes} B</span>
-            <div class="waterfall-bar" style="width:${barWidth}px;"></div>
-            <span style="margin-left:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${c.preview}</span>
-          `;
+
+          const chunkLabel = activeDoc.createElement('span');
+          chunkLabel.style.cssText = 'width:70px;color:#94a3b8;';
+          chunkLabel.textContent = `Chunk #${c.id}`;
+
+          const deltaLabel = activeDoc.createElement('span');
+          deltaLabel.style.cssText = 'width:80px;color:#38bdf8;';
+          deltaLabel.textContent = `+${c.deltaMs}ms`;
+
+          const bytesLabel = activeDoc.createElement('span');
+          bytesLabel.style.cssText = 'width:70px;color:#e2e8f0;';
+          bytesLabel.textContent = `${c.bytes} B`;
+
+          const bar = activeDoc.createElement('div');
+          bar.className = 'waterfall-bar';
+          bar.style.width = `${barWidth}px`;
+
+          const previewLabel = activeDoc.createElement('span');
+          previewLabel.style.cssText =
+            'margin-left:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;';
+          previewLabel.textContent = c.preview;
+
+          row.appendChild(chunkLabel);
+          row.appendChild(deltaLabel);
+          row.appendChild(bytesLabel);
+          row.appendChild(bar);
+          row.appendChild(previewLabel);
+
           list.appendChild(row);
         });
         content.appendChild(list);
