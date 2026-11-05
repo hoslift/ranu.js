@@ -200,6 +200,7 @@ export default [
       include: ['tests/performance/**/*.test.ts'],
       testTimeout: 120000,
       hookTimeout: 60000,
+      fileParallelism: false,
     },
     resolve: {
       alias: sharedAliases,

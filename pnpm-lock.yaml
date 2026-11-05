@@ -367,7 +367,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   ai/codex:
     dependencies:
@@ -389,7 +389,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   ai/custom:
     dependencies:
@@ -411,7 +411,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   ai/gemini:
     dependencies:
@@ -433,7 +433,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   ai/groq:
     dependencies:
@@ -455,7 +455,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   create-ranu:
     dependencies:
@@ -862,7 +862,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   packages/build:
     dependencies:
@@ -1525,7 +1525,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
   test-app:
     dependencies:
@@ -1534,7 +1534,7 @@ importers:
         version: link:../packages/ai
       '@ranu/ai-gemini':
         specifier: workspace:*
-        version: link:../ai-models/gemini
+        version: link:../ai/gemini
       '@ranu/devtools':
         specifier: workspace:*
         version: link:../packages/devtools

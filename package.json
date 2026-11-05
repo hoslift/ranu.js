@@ -53,7 +53,7 @@
     "test:cli": "vitest run tests/cli",
     "test:deployment": "vitest run tests/deployment",
     "test:security": "vitest run tests/security",
-    "test:perf": "vitest run tests/performance",
+    "test:perf": "vitest run --project performance --no-file-parallelism",
     "test:examples": "vitest run tests/examples",
     "bench:baseline": "node scripts/generate-baseline.mjs",
     "test:smoke": "vitest run tests/smoke",
