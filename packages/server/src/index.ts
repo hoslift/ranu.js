@@ -13,3 +13,4 @@ export * from './navigation.js';
 export * from './actions/types.js';
 export * from './actions/form-action.js';
 export * from './stream.js';
+export * from './vip.js';
