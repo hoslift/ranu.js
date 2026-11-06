@@ -13,7 +13,7 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
       name: 'ranu',
       command: subcommand ?? 'root',
       usage: subcommand ? `ranu ${subcommand} [options]` : 'ranu <command> [options]',
-      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'help', 'version'],
+      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'add', 'ai', 'prompt', 'help', 'version'],
       options: [
         { flag: '-r, --root <path>', description: 'Project root directory' },
         { flag: '-p, --port <number>', description: 'Port number to listen on' },
@@ -27,6 +27,12 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
         { flag: '--format <json|compact|text>', description: 'Output format (json, compact, or text)' },
         { flag: '--dry-run', description: 'Show proposed changes without writing to disk' },
         { flag: '-y, --yes', description: 'Automatically accept changes without prompting' },
+        { flag: '--model <id>', description: 'AI model identifier' },
+        { flag: '--provider <name>', description: 'AI provider (gemini, groq, claude, openai, custom)' },
+        { flag: '--file <path>', description: 'Include file content as AI context' },
+        { flag: '--target <claude|chatgpt|gemini|all>', description: 'Target prompt format' },
+        { flag: '--copy', description: 'Copy architecture prompt to clipboard' },
+        { flag: '--stdout', description: 'Print prompt to stdout alongside clipboard copy' },
         { flag: '--help', description: 'Show help for command' },
         { flag: '-v, --version', description: 'Show CLI version' },
       ],
@@ -34,6 +40,7 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
     return 0;
   }
 
+  // eslint-disable-next-line no-console
   const log = (msg: string) => (logger ? logger.log(msg) : console.log(msg));
 
   if (!subcommand) {
@@ -54,6 +61,8 @@ Commands:
   fix       Automatically apply self-healing patches for diagnostic errors
   generate  Generate boilerplate routes, APIs, components, or AI context
   add       Configure official add-ons (tailwind, drizzle, auth)
+  ai        Generate code using codebase-aware LLM with unified diffs
+  prompt    Generate and copy target-tailored architecture prompt
   help      Show help information for commands
   version   Show Ranu.js framework and CLI version
 
@@ -202,6 +211,45 @@ Options:
   -y, --yes                 Automatically apply patches without prompt
   --format <json|text>      Output format (default: text)
   --json                    Alias for --format json
+`);
+      break;
+
+    case 'ai':
+      log(`
+Usage:
+  $ ranu ai <prompt> [options]
+
+Description:
+  Generates, modifies, or deletes code using an AI model with project awareness
+  and unified diff inspection.
+
+Options:
+  --model <id>              Model identifier (default: auto-detected)
+  --provider <name>         AI provider (gemini, groq, claude, openai, custom)
+  --file <path>             Include specific file contents as context (can be repeated)
+  --dry-run                 Show proposed changes without writing to disk
+  -y, --yes                 Apply changes immediately without prompt
+  --format <json|text>      Output format (default: text)
+  --json                    Alias for --format json
+  -q, --quiet               Suppress informational logs
+`);
+      break;
+
+    case 'prompt':
+      log(`
+Usage:
+  $ ranu prompt [options]
+
+Description:
+  Generates an authoritative, target-tailored framework architecture prompt
+  for Claude, ChatGPT, or Gemini, with optional clipboard copy.
+
+Options:
+  --target <claude|chatgpt|gemini|all>  Target AI format (default: all)
+  --copy                                Copy prompt directly to system clipboard
+  --stdout                              Print prompt to stdout even if copied
+  --format <json|text>                  Output format (default: text)
+  --json                                Alias for --format json
 `);
       break;
 

@@ -233,4 +233,60 @@ describe('scaffoldProject', () => {
     expect(pkg.dependencies['drizzle-orm']).toBe('^0.39.0');
     expect(pkg.scripts['db:push']).toBe('drizzle-kit push');
   });
+
+  describe('AI engine scaffolding matrix', () => {
+    it('scaffolds default Zero-AI project when ai is omitted or none', () => {
+      const dest = path.join(tempDir, 'zero-ai-default');
+      const result = scaffoldProject({ projectPath: dest, packageManager: 'pnpm' });
+
+      expect(result.success).toBe(true);
+      expect(result.ai).toBe('none');
+      expect(result.filesCreated).not.toContain('app/routes/api.ai.ts');
+      expect(fs.existsSync(path.join(dest, 'app/routes/api.ai.ts'))).toBe(false);
+
+      const pkg = JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'));
+      expect(pkg.dependencies['@ranu/ai']).toBeUndefined();
+      expect(pkg.dependencies['@ranu/ai-gemini']).toBeUndefined();
+
+      // Verify all 4 agent context files exist
+      expect(fs.existsSync(path.join(dest, '.cursorrules'))).toBe(true);
+      expect(fs.existsSync(path.join(dest, 'AGENTS.md'))).toBe(true);
+      expect(fs.existsSync(path.join(dest, 'CLAUDE.md'))).toBe(true);
+      expect(fs.existsSync(path.join(dest, '.ranu', 'AGENT_GUIDE.md'))).toBe(true);
+    });
+
+    it.each([
+      { engine: 'gemini', dep: '@ranu/ai-gemini', envKey: 'GEMINI_API_KEY' },
+      { engine: 'groq', dep: '@ranu/ai-groq', envKey: 'GROQ_API_KEY' },
+      { engine: 'claude', dep: '@ranu/ai-claude', envKey: 'ANTHROPIC_API_KEY' },
+      { engine: 'openai', dep: '@ranu/ai-openai', envKey: 'OPENAI_API_KEY' },
+      { engine: 'custom', dep: '@ranu/ai-custom', envKey: 'CUSTOM_AI_KEY' },
+    ] as const)('scaffolds project with --ai $engine correctly', ({ engine, dep, envKey }) => {
+      const dest = path.join(tempDir, `app-${engine}`);
+      const result = scaffoldProject({
+        projectPath: dest,
+        packageManager: 'pnpm',
+        ai: engine,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.ai).toBe(engine);
+      expect(result.filesCreated).toContain('app/routes/api.ai.ts');
+      expect(fs.existsSync(path.join(dest, 'app/routes/api.ai.ts'))).toBe(true);
+
+      const routeContent = fs.readFileSync(path.join(dest, 'app/routes/api.ai.ts'), 'utf-8');
+      expect(routeContent).toContain("from '@ranu/ai'");
+      expect(routeContent).toContain(`from '${dep}'`);
+      expect(routeContent).toContain('export async function POST(request: Request)');
+      expect(routeContent).toContain('export async function GET()');
+
+      const pkg = JSON.parse(fs.readFileSync(path.join(dest, 'package.json'), 'utf-8'));
+      expect(pkg.dependencies['@ranu/ai']).toBeDefined();
+      expect(pkg.dependencies[dep]).toBeDefined();
+
+      expect(fs.existsSync(path.join(dest, '.env.example'))).toBe(true);
+      const envContent = fs.readFileSync(path.join(dest, '.env.example'), 'utf-8');
+      expect(envContent).toContain(envKey);
+    });
+  });
 });

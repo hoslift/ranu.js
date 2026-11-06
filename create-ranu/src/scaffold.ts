@@ -25,6 +25,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
       projectName: options.projectName ?? path.basename(dirValidation.resolvedPath),
       packageManager: options.packageManager ?? 'npm',
       filesCreated: [],
+      ai: options.ai ?? 'none',
       error: dirValidation.error ?? 'Invalid target directory',
     };
   }
@@ -41,6 +42,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
       projectName,
       packageManager: options.packageManager ?? 'npm',
       filesCreated: [],
+      ai: options.ai ?? 'none',
       error: `Invalid project name: ${nameValidation.errors.join(' ')}`,
     };
   }
@@ -50,6 +52,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
     template: options.template,
     adapter: options.adapter,
     tests: options.tests,
+    ai: options.ai,
   });
   const filesCreated: string[] = [];
 
@@ -72,6 +75,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
       template: options.template ?? 'default',
       packageManager: pm,
       filesCreated,
+      ai: options.ai ?? 'none',
       error: `Failed to write template files: ${msg}`,
     };
   }
@@ -105,5 +109,6 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
     filesCreated,
     gitStatus,
     installStatus,
+    ai: options.ai ?? 'none',
   };
 }

@@ -2,12 +2,17 @@
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: api-routes 1`] = `
 [
+  ".cursorrules",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "README.md",
   "app/api/hello/route.ts",
   "app/layout.tsx",
   "app/page.tsx",
   "package.json",
+  "public/llms.txt",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",
@@ -16,11 +21,16 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: cloudflare 1`] = `
 [
+  ".cursorrules",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "README.md",
   "app/layout.tsx",
   "app/page.tsx",
   "package.json",
+  "public/llms.txt",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",
@@ -30,11 +40,16 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: default 1`] = `
 [
+  ".cursorrules",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "README.md",
   "app/layout.tsx",
   "app/page.tsx",
   "package.json",
+  "public/llms.txt",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",
@@ -43,10 +58,15 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: minimal 1`] = `
 [
+  ".cursorrules",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "README.md",
   "app/page.tsx",
   "package.json",
+  "public/llms.txt",
   "ranu.config.ts",
   "tsconfig.json",
 ]
@@ -54,13 +74,18 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: node-docker 1`] = `
 [
+  ".cursorrules",
   ".dockerignore",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "Dockerfile",
   "README.md",
   "app/layout.tsx",
   "app/page.tsx",
   "package.json",
+  "public/llms.txt",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",
@@ -69,7 +94,11 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
 
 exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree for template: saas 1`] = `
 [
+  ".cursorrules",
   ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
   "README.md",
   "app/api/auth/session/route.ts",
   "app/dashboard/page.tsx",
@@ -80,6 +109,107 @@ exports[`create-ranu multi-template scaffolding > generates valid deterministic 
   "app/page.tsx",
   "drizzle.config.ts",
   "package.json",
+  "public/llms.txt",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree with --ai claude 1`] = `
+[
+  ".cursorrules",
+  ".env.example",
+  ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "app/routes/api.ai.ts",
+  "package.json",
+  "public/llms.txt",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree with --ai custom 1`] = `
+[
+  ".cursorrules",
+  ".env.example",
+  ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "app/routes/api.ai.ts",
+  "package.json",
+  "public/llms.txt",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree with --ai gemini 1`] = `
+[
+  ".cursorrules",
+  ".env.example",
+  ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "app/routes/api.ai.ts",
+  "package.json",
+  "public/llms.txt",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree with --ai groq 1`] = `
+[
+  ".cursorrules",
+  ".env.example",
+  ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "app/routes/api.ai.ts",
+  "package.json",
+  "public/llms.txt",
+  "public/robots.txt",
+  "ranu.config.ts",
+  "tsconfig.json",
+]
+`;
+
+exports[`create-ranu multi-template scaffolding > generates valid deterministic file tree with --ai openai 1`] = `
+[
+  ".cursorrules",
+  ".env.example",
+  ".gitignore",
+  ".ranu/AGENT_GUIDE.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  "app/layout.tsx",
+  "app/page.tsx",
+  "app/routes/api.ai.ts",
+  "package.json",
+  "public/llms.txt",
   "public/robots.txt",
   "ranu.config.ts",
   "tsconfig.json",
