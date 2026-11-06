@@ -20,11 +20,11 @@ const sharedAliases = {
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
   '@ranu/ai': path.resolve(__dirname, 'packages/ai/src/index.ts'),
-  '@ranu/ai-gemini': path.resolve(__dirname, 'ai-models/gemini/src/index.ts'),
-  '@ranu/ai-groq': path.resolve(__dirname, 'ai-models/groq/src/index.ts'),
-  '@ranu/ai-claude': path.resolve(__dirname, 'ai-models/claude/src/index.ts'),
-  '@ranu/ai-openai': path.resolve(__dirname, 'ai-models/openai/src/index.ts'),
-  '@ranu/ai-custom': path.resolve(__dirname, 'ai-models/custom/src/index.ts'),
+  '@ranu/ai-gemini': path.resolve(__dirname, 'ai/gemini/src/index.ts'),
+  '@ranu/ai-groq': path.resolve(__dirname, 'ai/groq/src/index.ts'),
+  '@ranu/ai-claude': path.resolve(__dirname, 'ai/claude/src/index.ts'),
+  '@ranu/ai-openai': path.resolve(__dirname, 'ai/openai/src/index.ts'),
+  '@ranu/ai-custom': path.resolve(__dirname, 'ai/custom/src/index.ts'),
   '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@ranujs/adapter-cloudflare': path.resolve(__dirname, 'adapters/cloudflare/src/index.ts'),
   '@ranujs/adapter-node': path.resolve(__dirname, 'adapters/node/src/index.ts'),
@@ -65,8 +65,8 @@ export default [
   {
     test: {
       ...sharedTestConfig,
-      name: 'ai-models',
-      include: ['ai-models/*/test/**/*.{test,spec}.{ts,tsx}'],
+      name: 'ai',
+      include: ['ai/*/test/**/*.{test,spec}.{ts,tsx}'],
     },
     resolve: {
       alias: sharedAliases,

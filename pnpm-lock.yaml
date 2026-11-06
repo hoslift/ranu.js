@@ -319,7 +319,7 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
-  ai-models/claude:
+  ai/claude:
     dependencies:
       '@ranu/ai':
         specifier: workspace:*
@@ -341,7 +341,7 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
-  ai-models/custom:
+  ai/custom:
     dependencies:
       '@ranu/ai':
         specifier: workspace:*
@@ -363,7 +363,7 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
-  ai-models/gemini:
+  ai/gemini:
     dependencies:
       '@ranu/ai':
         specifier: workspace:*
@@ -385,7 +385,7 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
-  ai-models/groq:
+  ai/groq:
     dependencies:
       '@ranu/ai':
         specifier: workspace:*
@@ -407,7 +407,7 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@26.6.5)(yaml@2.9.1))
 
-  ai-models/openai:
+  ai/openai:
     dependencies:
       '@ranu/ai':
         specifier: workspace:*
@@ -863,19 +863,19 @@ importers:
         version: link:../ai
       '@ranu/ai-claude':
         specifier: workspace:*
-        version: link:../../ai-models/claude
+        version: link:../../ai/claude
       '@ranu/ai-custom':
         specifier: workspace:*
-        version: link:../../ai-models/custom
+        version: link:../../ai/custom
       '@ranu/ai-gemini':
         specifier: workspace:*
-        version: link:../../ai-models/gemini
+        version: link:../../ai/gemini
       '@ranu/ai-groq':
         specifier: workspace:*
-        version: link:../../ai-models/groq
+        version: link:../../ai/groq
       '@ranu/ai-openai':
         specifier: workspace:*
-        version: link:../../ai-models/openai
+        version: link:../../ai/openai
       '@ranu/build':
         specifier: workspace:*
         version: link:../build
@@ -1143,19 +1143,19 @@ importers:
         version: link:../ai
       '@ranu/ai-claude':
         specifier: workspace:*
-        version: link:../../ai-models/claude
+        version: link:../../ai/claude
       '@ranu/ai-custom':
         specifier: workspace:*
-        version: link:../../ai-models/custom
+        version: link:../../ai/custom
       '@ranu/ai-gemini':
         specifier: workspace:*
-        version: link:../../ai-models/gemini
+        version: link:../../ai/gemini
       '@ranu/ai-groq':
         specifier: workspace:*
-        version: link:../../ai-models/groq
+        version: link:../../ai/groq
       '@ranu/ai-openai':
         specifier: workspace:*
-        version: link:../../ai-models/openai
+        version: link:../../ai/openai
       '@ranu/build':
         specifier: workspace:*
         version: link:../build
