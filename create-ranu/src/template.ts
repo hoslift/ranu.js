@@ -1001,6 +1001,34 @@ export async function GET(): Promise<Response> {
   });
 }
 `;
+    case 'codex':
+      return `import { streamAI } from '@ranu/ai';
+import { codex } from '@ranu/ai-codex';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Codex!';
+
+  return streamAI({
+    model: codex('gpt-4o'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'codex',
+    model: 'gpt-4o',
+  });
+}
+`;
     case 'openai':
       return `import { streamAI } from '@ranu/ai';
 import { openai } from '@ranu/ai-openai';
@@ -1081,6 +1109,8 @@ function getEnvExample(ai: AIEngineName): string {
       return `PORT=3000\nGROQ_API_KEY=your_groq_api_key_here\n`;
     case 'claude':
       return `PORT=3000\nANTHROPIC_API_KEY=your_anthropic_api_key_here\n`;
+    case 'codex':
+      return `PORT=3000\nCODEX_API_KEY=your_codex_api_key_here\n`;
     case 'openai':
       return `PORT=3000\nOPENAI_API_KEY=your_openai_api_key_here\n`;
     case 'custom':

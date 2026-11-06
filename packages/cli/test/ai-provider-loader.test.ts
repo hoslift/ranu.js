@@ -77,6 +77,11 @@ describe('@ranu/cli AI provider loader', () => {
       expect(detectProviderFromEnv()).toBe('claude');
     });
 
+    it('detects codex when CODEX_API_KEY is set', () => {
+      process.env.CODEX_API_KEY = 'codex-secret-key';
+      expect(detectProviderFromEnv()).toBe('codex');
+    });
+
     it('detects openai when OPENAI_API_KEY is set', () => {
       process.env.OPENAI_API_KEY = 'sk-test123';
       expect(detectProviderFromEnv()).toBe('openai');
@@ -101,6 +106,7 @@ describe('@ranu/cli AI provider loader', () => {
       expect(DEFAULT_MODELS.gemini).toBe('gemini-1.5-pro');
       expect(DEFAULT_MODELS.groq).toBe('llama-3.3-70b-versatile');
       expect(DEFAULT_MODELS.claude).toBe('claude-3-5-sonnet-20241022');
+      expect(DEFAULT_MODELS.codex).toBe('gpt-4o');
       expect(DEFAULT_MODELS.openai).toBe('gpt-4o');
       expect(DEFAULT_MODELS.custom).toBe('default');
     });
@@ -188,7 +194,7 @@ describe('@ranu/cli AI provider loader', () => {
         importer: mockImporter,
       });
 
-      expect(mockImporter).toHaveBeenCalledWith('@ranu/ai-openai');
+      expect(mockImporter).toHaveBeenCalledWith('@ranu/ai-codex');
       expect(result.provider).toBe('openai');
       expect(result.modelId).toBe('gpt-4o');
     });

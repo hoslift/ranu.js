@@ -40,7 +40,7 @@ describe('AI Studio state machine & client stream', () => {
   });
 
   it('supports partner switching across all supported providers', () => {
-    const partners: AIStudioPartner[] = ['gemini', 'groq', 'claude', 'openai', 'custom'];
+    const partners: AIStudioPartner[] = ['gemini', 'groq', 'claude', 'codex', 'openai', 'custom'];
 
     for (const partner of partners) {
       setSelectedPartner(partner);

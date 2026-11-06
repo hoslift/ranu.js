@@ -86,6 +86,7 @@ describe('create-ranu bin CLI', () => {
         ['gemini', 'gemini'],
         ['groq', 'groq'],
         ['claude', 'claude'],
+        ['codex', 'codex'],
         ['openai', 'openai'],
         ['custom', 'custom'],
       ])('parses --ai %s flag correctly', (input, expected) => {
@@ -111,6 +112,8 @@ describe('create-ranu bin CLI', () => {
         ['ai-groq', 'groq'],
         ['anthropic', 'claude'],
         ['ai-claude', 'claude'],
+        ['codex', 'codex'],
+        ['ai-codex', 'codex'],
         ['gpt', 'openai'],
         ['ai-openai', 'openai'],
         ['ollama', 'custom'],
@@ -140,10 +143,10 @@ describe('create-ranu bin CLI', () => {
 
       it('throws descriptive error on invalid AI engine value', () => {
         expect(() => parseArgs(['my-app', '--ai', 'invalid_engine'])).toThrow(
-          'Invalid AI engine "invalid_engine". Supported: none, gemini, groq, claude, openai, custom.'
+          'Invalid AI engine "invalid_engine". Supported: none, gemini, groq, claude, codex, openai, custom.'
         );
         expect(() => parseArgs(['my-app', '--ai-engine', 'mistral'])).toThrow(
-          'Invalid AI engine "mistral". Supported: none, gemini, groq, claude, openai, custom.'
+          'Invalid AI engine "mistral". Supported: none, gemini, groq, claude, codex, openai, custom.'
         );
       });
     });

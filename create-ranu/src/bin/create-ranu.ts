@@ -50,6 +50,7 @@ export function normalizeAIEngine(val: string): AIEngineName {
   if (['gemini', 'google', 'ai-gemini'].includes(normalized)) return 'gemini';
   if (['groq', 'ai-groq'].includes(normalized)) return 'groq';
   if (['claude', 'anthropic', 'ai-claude'].includes(normalized)) return 'claude';
+  if (['codex', 'ai-codex'].includes(normalized)) return 'codex';
   if (['openai', 'gpt', 'ai-openai'].includes(normalized)) return 'openai';
   if (['custom', 'ollama', 'ai-custom'].includes(normalized)) return 'custom';
 
@@ -217,7 +218,7 @@ Usage:
 Options:
   -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes, saas)
   -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
-  --ai, --ai-engine <name>      AI engine to configure (none, gemini, groq, claude, openai, custom) [default: none]
+  --ai, --ai-engine <name>      AI engine to configure (none, gemini, groq, claude, codex, openai, custom) [default: none]
   --tests                       Configure unit and component test suites (vitest)
   --no-tests                    Skip test configuration (default)
   -p, --package-manager <name>  Package manager to configure (npm, pnpm, yarn, bun)

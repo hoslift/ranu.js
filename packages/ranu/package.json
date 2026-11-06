@@ -72,6 +72,10 @@
       "types": "./dist/ai/claude.d.ts",
       "import": "./dist/ai/claude.js"
     },
+    "./ai/codex": {
+      "types": "./dist/ai/codex.d.ts",
+      "import": "./dist/ai/codex.js"
+    },
     "./ai/openai": {
       "types": "./dist/ai/openai.d.ts",
       "import": "./dist/ai/openai.js"
@@ -104,7 +108,7 @@
     "@ranu/ai-custom": "workspace:*",
     "@ranu/ai-gemini": "workspace:*",
     "@ranu/ai-groq": "workspace:*",
-    "@ranu/ai-openai": "workspace:*",
+    "@ranu/ai-codex": "workspace:*",
     "@ranu/build": "workspace:*",
     "@ranu/cli": "workspace:*",
     "@ranu/config": "workspace:*",

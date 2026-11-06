@@ -14,6 +14,7 @@ export default defineConfig({
     'ai/gemini': 'src/ai/gemini.ts',
     'ai/groq': 'src/ai/groq.ts',
     'ai/claude': 'src/ai/claude.ts',
+    'ai/codex': 'src/ai/codex.ts',
     'ai/openai': 'src/ai/openai.ts',
     'ai/custom': 'src/ai/custom.ts',
     'bin/ranu': 'src/bin/ranu.ts',

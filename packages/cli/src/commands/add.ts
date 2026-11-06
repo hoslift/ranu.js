@@ -14,11 +14,13 @@ const SUPPORTED_ADDONS = [
   'ai-gemini',
   'ai-groq',
   'ai-claude',
+  'ai-codex',
   'ai-custom',
   'ai-openai',
   'gemini',
   'groq',
   'claude',
+  'codex',
   'custom',
   'openai',
 ] as const;
@@ -163,6 +165,36 @@ export async function GET(): Promise<Response> {
 `;
 }
 
+function getCodexRouteTemplate(model: string): string {
+  return `import { streamAI } from '@ranu/ai';
+import { codex } from '@ranu/ai-codex';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Codex!';
+
+  return streamAI({
+    model: codex('${model}'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'codex',
+    model: '${model}',
+  });
+}
+`;
+}
+
 function getOpenAIRouteTemplate(model: string): string {
   return `import { streamAI } from '@ranu/ai';
 import { openai } from '@ranu/ai-openai';
@@ -239,7 +271,7 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
 
   if (!rawAddonName) {
     const errorMsg =
-      'Missing add-on name. Available add-ons: tailwind, drizzle, auth, ai-gemini, ai-groq, ai-claude, ai-custom, ai-openai';
+      'Missing add-on name. Available add-ons: tailwind, drizzle, auth, ai-gemini, ai-groq, ai-claude, ai-codex, ai-custom, ai-openai';
     if (isJson) {
       logger.json({ success: false, error: errorMsg });
     } else {
@@ -250,7 +282,7 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
   }
 
   if (!(SUPPORTED_ADDONS as readonly string[]).includes(rawAddonName)) {
-    const errorMsg = `Unsupported add-on "${rawAddonName}". Available add-ons: tailwind, drizzle, auth, ai-gemini, ai-groq, ai-claude, ai-custom, ai-openai`;
+    const errorMsg = `Unsupported add-on "${rawAddonName}". Available add-ons: tailwind, drizzle, auth, ai-gemini, ai-groq, ai-claude, ai-codex, ai-custom, ai-openai`;
     if (isJson) {
       logger.json({ success: false, error: errorMsg });
     } else {
@@ -264,6 +296,7 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
   if (rawAddonName === 'gemini') canonicalAddon = 'ai-gemini';
   else if (rawAddonName === 'groq') canonicalAddon = 'ai-groq';
   else if (rawAddonName === 'claude') canonicalAddon = 'ai-claude';
+  else if (rawAddonName === 'codex') canonicalAddon = 'ai-codex';
   else if (rawAddonName === 'custom') canonicalAddon = 'ai-custom';
   else if (rawAddonName === 'openai') canonicalAddon = 'ai-openai';
   else if (rawAddonName === 'tailwindcss') canonicalAddon = 'tailwind';
@@ -441,6 +474,21 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
       nextSteps.push('Add your ANTHROPIC_API_KEY to your local .env file');
       nextSteps.push('Run pnpm install (or npm install) to install newly added dependencies');
       nextSteps.push('Test your Claude tool-calling endpoint with curl or ranu ai');
+    } else if (canonicalAddon === 'ai-codex') {
+      const model = args.model?.trim() || 'gpt-4o';
+      dependencies.push('@ranu/ai', '@ranu/ai-codex');
+      envVars.push('CODEX_API_KEY');
+      updateEnvExample(
+        projectRoot,
+        { CODEX_API_KEY: 'your_codex_api_key_here' },
+        'Codex API Key',
+        isDryRun,
+        filesCreated,
+      );
+      safeWriteFile('app/routes/api.ai.ts', getCodexRouteTemplate(model));
+      nextSteps.push('Add your CODEX_API_KEY to your local .env file');
+      nextSteps.push('Run pnpm install (or npm install) to install newly added dependencies');
+      nextSteps.push('Test your Codex streaming endpoint with curl or ranu ai');
     } else if (canonicalAddon === 'ai-openai') {
       const model = args.model?.trim() || 'gpt-4o';
       dependencies.push('@ranu/ai', '@ranu/ai-openai');

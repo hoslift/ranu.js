@@ -171,6 +171,27 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
       expect(envContent).toContain('CUSTOM_AI_ENDPOINT=http://localhost:11434');
     });
 
+    it('configures ai-codex: route, package dependencies, and .env.example', async () => {
+      const code = await runCli(['add', 'ai-codex', '--root', tmpDir]);
+      expect(code).toBe(0);
+
+      const routePath = path.join(tmpDir, 'app', 'routes', 'api.ai.ts');
+      expect(fs.existsSync(routePath)).toBe(true);
+      const routeContent = fs.readFileSync(routePath, 'utf8');
+      expect(routeContent).toContain("from '@ranu/ai'");
+      expect(routeContent).toContain("from '@ranu/ai-codex'");
+      expect(routeContent).toContain("codex('gpt-4o')");
+      assertValidTypeScript(routeContent);
+
+      const pkg = JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf8')) as {
+        dependencies?: Record<string, string>;
+      };
+      expect(pkg.dependencies?.['@ranu/ai-codex']).toBeDefined();
+
+      const envContent = fs.readFileSync(path.join(tmpDir, '.env.example'), 'utf8');
+      expect(envContent).toContain('CODEX_API_KEY=');
+    });
+
     it('configures ai-openai: route, package dependencies, and .env.example', async () => {
       const code = await runCli(['add', 'ai-openai', '--root', tmpDir]);
       expect(code).toBe(0);
@@ -484,7 +505,7 @@ describe('@ranu/cli add AI recipes (PR #253)', () => {
    * ======================================================================== */
   describe('Monorepo Governance & Linguistic Hygiene', () => {
     it('guarantees 0 Sinhala Unicode characters in all scaffolded AI routes and .env.example', async () => {
-      const recipes = ['ai-gemini', 'ai-groq', 'ai-claude', 'ai-openai'];
+      const recipes = ['ai-gemini', 'ai-groq', 'ai-claude', 'ai-codex', 'ai-openai'];
       for (const recipe of recipes) {
         const subTmp = fs.mkdtempSync(path.join(os.tmpdir(), `ranu-ai-${recipe}-`));
         fs.mkdirSync(path.join(subTmp, 'app', 'routes'), { recursive: true });

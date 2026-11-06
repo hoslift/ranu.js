@@ -11,7 +11,7 @@ import type { AIEngineName } from '../src/types.js';
 
 describe('agent-context file generation & invariants', () => {
   const sinhalaRegex = /[\u0D80-\u0DFF]/;
-  const aiEngines: AIEngineName[] = ['none', 'gemini', 'groq', 'claude', 'openai', 'custom'];
+  const aiEngines: AIEngineName[] = ['none', 'gemini', 'groq', 'claude', 'codex', 'openai', 'custom'];
 
   it('generates zero-ai agent context files by default', () => {
     const files = generateAgentContextFiles({
@@ -88,6 +88,22 @@ describe('agent-context file generation & invariants', () => {
     expect(files['CLAUDE.md']).toContain('ANTHROPIC_API_KEY');
     expect(files['CLAUDE.md']).toContain('yarn dev');
     expect(files['.ranu/AGENT_GUIDE.md']).toContain('AI Engine Manifest: CLAUDE');
+  });
+
+  it('generates tailored context files for Codex', () => {
+    const files = generateAgentContextFiles({
+      projectName: 'codex-app',
+      packageManager: 'pnpm',
+      aiEngine: 'codex',
+    });
+
+    expect(files['.cursorrules']).toContain('@ranu/ai-codex');
+    expect(files['.cursorrules']).toContain('CODEX_API_KEY');
+    expect(files['.cursorrules']).toContain('gpt-4o');
+    expect(files['AGENTS.md']).toContain('@ranu/ai-codex');
+    expect(files['CLAUDE.md']).toContain('CODEX_API_KEY');
+    expect(files['CLAUDE.md']).toContain('pnpm dev');
+    expect(files['.ranu/AGENT_GUIDE.md']).toContain('AI Engine Manifest: CODEX');
   });
 
   it('generates tailored context files for OpenAI', () => {
