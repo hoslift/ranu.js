@@ -13,6 +13,84 @@ interface EnvOrigin {
   sourceText: string;
   aliasName?: string;
 }
+export const KNOWN_AI_SECRET_KEYS: ReadonlySet<string> = new Set([
+  'GEMINI_API_KEY',
+  'GROQ_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'CUSTOM_AI_KEY',
+  'MISTRAL_API_KEY',
+  'CEREBRAS_API_KEY',
+  'COHERE_API_KEY',
+  'PINECONE_API_KEY',
+  'TOGETHER_API_KEY',
+  'CLOUDFLARE_AI_KEY',
+  'AI_API_KEY',
+  'LLM_API_KEY',
+]);
+
+export function isKnownAiSecretKey(varName: string): boolean {
+  if (KNOWN_AI_SECRET_KEYS.has(varName)) return true;
+  const upper = varName.toUpperCase();
+  return (
+    upper.includes('GEMINI_API_KEY') ||
+    upper.includes('GROQ_API_KEY') ||
+    upper.includes('ANTHROPIC_API_KEY') ||
+    upper.includes('OPENAI_API_KEY') ||
+    upper.includes('CUSTOM_AI_KEY') ||
+    upper.includes('MISTRAL_API_KEY') ||
+    upper.includes('CEREBRAS_API_KEY') ||
+    upper.includes('AI_API_KEY') ||
+    upper.includes('LLM_API_KEY') ||
+    upper.startsWith('AI_KEY') ||
+    upper.endsWith('_AI_KEY')
+  );
+}
+
+export function createPrivateEnvDiagnostic(
+  varName: string,
+  envOrigin: EnvOrigin,
+  line: number,
+  character: number,
+  filePath: string
+): RanuDiagnostic {
+  if (isKnownAiSecretKey(varName)) {
+    return {
+      code: 'RANU_BUILD_AI_SECRET_CLIENT_LEAK',
+      severity: 'error',
+      message: `Security Breach Prevention: AI Provider API key "${varName}" detected in client bundle "${filePath}". Exposing AI credentials to the browser allows unauthorized inference billing and account compromise.`,
+      location: {
+        file: filePath,
+        line: line + 1,
+        column: character + 1,
+      },
+      hint: 'Move AI model calls to server route handlers (e.g. app/api/chat/route.ts) or server actions using @ranu/ai. Never expose AI API keys to client components.',
+    };
+  }
+
+  const message =
+    envOrigin.kind === 'alias'
+      ? `Private server environment variable "${varName}" accessed via alias "${envOrigin.aliasName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`
+      : `Private server environment variable "${envOrigin.sourceText}.${varName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`;
+
+  const hint =
+    envOrigin.kind === 'alias'
+      ? 'Do not alias the environment object in client code. Access public environment variables directly via process.env.RANU_PUBLIC_VAR or import.meta.env.RANU_PUBLIC_VAR.'
+      : `Prefix environment variable with "RANU_PUBLIC_" (e.g. RANU_PUBLIC_${varName}) to expose it to the browser, or access it only in server routes.`;
+
+  return {
+    code: 'RANU_BUILD_PRIVATE_ENV_CLIENT',
+    severity: 'error',
+    message,
+    location: {
+      file: filePath,
+      line: line + 1,
+      column: character + 1,
+    },
+    hint,
+  };
+}
+
 
 /**
  * Checks a client source file for private environment variable access (e.g. `process.env.DATABASE_URL` or `import.meta.env.SECRET`).
@@ -415,17 +493,7 @@ export function validateClientSourceEnv(filePath: string, fileContent: string): 
             sourceFile,
             elem.getStart(sourceFile)
           );
-          diagnostics.push({
-            code: 'RANU_BUILD_PRIVATE_ENV_CLIENT',
-            severity: 'error',
-            message: `Private server environment variable "${envOrigin.sourceText}.${varName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`,
-            location: {
-              file: filePath,
-              line: line + 1,
-              column: character + 1,
-            },
-            hint: `Prefix environment variable with "RANU_PUBLIC_" (e.g. RANU_PUBLIC_${varName}) to expose it to the browser, or access it only in server routes.`,
-          });
+          diagnostics.push(createPrivateEnvDiagnostic(varName, envOrigin, line, character, filePath));
         }
       } else if (ts.isObjectBindingPattern(elem.name)) {
         checkObjectBindingPattern(elem.name, envOrigin);
@@ -493,17 +561,7 @@ export function validateClientSourceEnv(filePath: string, fileContent: string): 
             sourceFile,
             prop.getStart(sourceFile)
           );
-          diagnostics.push({
-            code: 'RANU_BUILD_PRIVATE_ENV_CLIENT',
-            severity: 'error',
-            message: `Private server environment variable "${envOrigin.sourceText}.${varName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`,
-            location: {
-              file: filePath,
-              line: line + 1,
-              column: character + 1,
-            },
-            hint: `Prefix environment variable with "RANU_PUBLIC_" (e.g. RANU_PUBLIC_${varName}) to expose it to the browser, or access it only in server routes.`,
-          });
+          diagnostics.push(createPrivateEnvDiagnostic(varName, envOrigin, line, character, filePath));
         }
       } else if (ts.isPropertyAssignment(prop) && ts.isObjectLiteralExpression(prop.initializer)) {
         checkObjectLiteralDestructuring(prop.initializer, envOrigin);
@@ -680,27 +738,7 @@ export function validateClientSourceEnv(filePath: string, fileContent: string): 
             sourceFile,
             node.getStart(sourceFile)
           );
-          const message =
-            envOrigin.kind === 'alias'
-              ? `Private server environment variable "${varName}" accessed via alias "${envOrigin.aliasName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`
-              : `Private server environment variable "${envOrigin.sourceText}.${varName}" cannot be accessed in browser/client-reachable code. Only variables prefixed with "RANU_PUBLIC_" are exposed to client code.`;
-
-          const hint =
-            envOrigin.kind === 'alias'
-              ? 'Do not alias the environment object in client code. Access public environment variables directly via process.env.RANU_PUBLIC_VAR or import.meta.env.RANU_PUBLIC_VAR.'
-              : `Prefix environment variable with "RANU_PUBLIC_" (e.g. RANU_PUBLIC_${varName}) to expose it to the browser, or access it only in server routes.`;
-
-          diagnostics.push({
-            code: 'RANU_BUILD_PRIVATE_ENV_CLIENT',
-            severity: 'error',
-            message,
-            location: {
-              file: filePath,
-              line: line + 1,
-              column: character + 1,
-            },
-            hint,
-          });
+          diagnostics.push(createPrivateEnvDiagnostic(varName, envOrigin, line, character, filePath));
         }
       }
     }
@@ -730,17 +768,7 @@ export function validateClientSourceEnv(filePath: string, fileContent: string): 
           });
         } else if (!isWhitelistedEnvVar(varName)) {
           // Static private element access
-          diagnostics.push({
-            code: 'RANU_BUILD_PRIVATE_ENV_CLIENT',
-            severity: 'error',
-            message: `Private environment variable access "${envOrigin.sourceText}['${varName}']" is prohibited in client-reachable code.`,
-            location: {
-              file: filePath,
-              line: line + 1,
-              column: character + 1,
-            },
-            hint: `Prefix environment variable with "RANU_PUBLIC_" (e.g. RANU_PUBLIC_${varName}) to expose it to the browser, or access it only in server routes.`,
-          });
+          diagnostics.push(createPrivateEnvDiagnostic(varName, envOrigin, line, character, filePath));
         }
       } else if (isProcessObject(node.expression, processAliases) || isImportMeta(node.expression, metaAliases)) {
         const propName = getLiteralText(node.argumentExpression);
