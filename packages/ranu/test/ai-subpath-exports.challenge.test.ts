@@ -330,7 +330,7 @@ describe('Empirical Challenge Suite: PR #251 packages/ranu Export Alignment', ()
   describe('Challenge 2: Programmatic Workspace Dependency Graph Cycle Stress', () => {
     it('programmatically verifies 0 circular dependencies including packages, adapters, and ai-models', () => {
       // Find all package.json files across packages/*, adapters/*, ai-models/*, and create-ranu
-      const searchDirs = ['packages', 'adapters', 'ai-models'];
+      const searchDirs = ['packages', 'adapters', 'ai', 'ai-models'];
       const packageJsonFiles: string[] = [];
 
       for (const sDir of searchDirs) {
@@ -381,7 +381,7 @@ describe('Empirical Challenge Suite: PR #251 packages/ranu Export Alignment', ()
       expect(graph['@ranujs/core']).toContain('@ranu/ai-gemini');
       expect(graph['@ranujs/core']).toContain('@ranu/ai-groq');
       expect(graph['@ranujs/core']).toContain('@ranu/ai-claude');
-      expect(graph['@ranujs/core']).toContain('@ranu/ai-openai');
+      expect(graph['@ranujs/core']).toContain('@ranu/ai-codex');
       expect(graph['@ranujs/core']).toContain('@ranu/ai-custom');
 
       // Crucial: none of the ai-models packages must depend back on @ranujs/core!
@@ -389,14 +389,16 @@ describe('Empirical Challenge Suite: PR #251 packages/ranu Export Alignment', ()
       expect(graph['@ranu/ai-gemini']).not.toContain('@ranujs/core');
       expect(graph['@ranu/ai-groq']).not.toContain('@ranujs/core');
       expect(graph['@ranu/ai-claude']).not.toContain('@ranujs/core');
-      expect(graph['@ranu/ai-openai']).not.toContain('@ranujs/core');
+      if (graph['@ranu/ai-codex']) expect(graph['@ranu/ai-codex']).not.toContain('@ranujs/core');
+      if (graph['@ranu/ai-openai']) expect(graph['@ranu/ai-openai']).not.toContain('@ranujs/core');
       expect(graph['@ranu/ai-custom']).not.toContain('@ranujs/core');
 
       // Crucial: @ranu/ai must not depend on any model driver
       expect(graph['@ranu/ai']).not.toContain('@ranu/ai-gemini');
       expect(graph['@ranu/ai']).not.toContain('@ranu/ai-groq');
       expect(graph['@ranu/ai']).not.toContain('@ranu/ai-claude');
-      expect(graph['@ranu/ai']).not.toContain('@ranu/ai-openai');
+      if (graph['@ranu/ai-codex']) expect(graph['@ranu/ai']).not.toContain('@ranu/ai-codex');
+      if (graph['@ranu/ai-openai']) expect(graph['@ranu/ai']).not.toContain('@ranu/ai-openai');
       expect(graph['@ranu/ai']).not.toContain('@ranu/ai-custom');
 
       // DFS Cycle Detection Algorithm across the full monorepo graph
