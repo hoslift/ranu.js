@@ -445,9 +445,9 @@ describe('Empirical Challenge Suite: PR #251 packages/ranu Export Alignment', ()
         const content = fs.readFileSync(path.join(ranuSrcAiDir, f), 'utf8');
 
         // Verify only outward exports from @ranu/ai or @ranu/ai-*
-        const importExportMatches = content.match(/from\s+['"]([^'"]+)['"]/g) || [];
+        const importExportMatches = content.matchAll(/from\s+['"]([^'"]+)['"]/g);
         for (const match of importExportMatches) {
-          const specifier = match.replace(/from\s+['"]/, '').replace(/['"]/, '');
+          const specifier = match[1];
           expect(specifier).toMatch(/^@ranu\/ai(-[a-z]+)?$/);
           // Never import from ranu or @ranujs/core itself
           expect(specifier).not.toContain('@ranujs/core');
