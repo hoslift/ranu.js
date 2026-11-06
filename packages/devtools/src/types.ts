@@ -32,15 +32,44 @@ export interface HydrationMetricInfo {
   readonly mismatches: readonly HydrationMismatchItem[];
 }
 
-export type DevToolsTab = 'waterfall' | 'routes' | 'hydration' | 'diagnostics';
+export type DevToolsTab = 'waterfall' | 'routes' | 'hydration' | 'diagnostics' | 'ai-studio';
+export type DevToolsDockPosition = 'bottom' | 'top' | 'left' | 'right';
+export type AIStudioPartner = 'gemini' | 'groq' | 'claude' | 'openai' | 'custom';
+
+export interface PendingDiff {
+  filePath: string;
+  originalContent: string;
+  proposedContent: string;
+  patchSummary: string;
+}
+
+export interface DiffLine {
+  type: 'added' | 'removed' | 'unchanged';
+  content: string;
+  originalLineNumber?: number;
+  modifiedLineNumber?: number;
+}
+
+export interface AIStudioState {
+  isGenerating: boolean;
+  selectedPartner: AIStudioPartner;
+  currentPrompt: string;
+  pendingDiff?: PendingDiff | undefined;
+  streamingResponse?: string | undefined;
+  error?: string | undefined;
+  diffViewMode?: 'unified' | 'split' | undefined;
+}
 
 export interface DevToolsDockState {
   isOpen: boolean;
   activeTab: DevToolsTab;
+  dockPosition?: DevToolsDockPosition;
   streamingChunks: StreamingChunkMetric[];
   currentRoute?: RouteHierarchyInfo | undefined;
   hydration: HydrationMetricInfo;
   diagnostics: RanuDiagnostic[];
+  aiStudio: AIStudioState;
 }
 
 export type DevToolsListener = (state: DevToolsDockState) => void;
+
