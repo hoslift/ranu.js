@@ -222,7 +222,7 @@ describe('Adversarial Stress Testing: create-ranu AI engine selector (Milestone 
   describe('Dimension 2: Invalid Flag Fuzzing and Error Handling', () => {
     it('rejects invalid AI engine flag --ai invalid_xyz', () => {
       expect(() => parseArgs(['my-app', '--ai', 'invalid_xyz'])).toThrow(
-        'Invalid AI engine "invalid_xyz". Supported: none, gemini, groq, claude, openai, custom.'
+        'Invalid AI engine "invalid_xyz". Supported: none, gemini, groq, claude, codex, openai, custom.'
       );
     });
 
@@ -240,7 +240,7 @@ describe('Adversarial Stress Testing: create-ranu AI engine selector (Milestone 
 
     it('rejects unknown engine on --ai-engine unknown', () => {
       expect(() => parseArgs(['my-app', '--ai-engine', 'unknown'])).toThrow(
-        'Invalid AI engine "unknown". Supported: none, gemini, groq, claude, openai, custom.'
+        'Invalid AI engine "unknown". Supported: none, gemini, groq, claude, codex, openai, custom.'
       );
     });
 
