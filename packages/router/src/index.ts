@@ -150,9 +150,30 @@ export function safeDecodeSegment(segment: string): string | null {
   }
 }
 
+/** File metadata required while discovering routes */
+export interface RouteFileSystemEntry {
+  isSymbolicLink(): boolean;
+  isDirectory(): boolean;
+  isFile(): boolean;
+}
+
+/** Directory metadata required for route collision checks */
+export interface RouteFileSystemDirectoryEntry {
+  isDirectory(): boolean;
+}
+
+/** File system operations required while discovering routes */
+export interface RouteFileSystem {
+  existsSync(path: string): boolean;
+  lstatSync(path: string): RouteFileSystemEntry;
+  readdirSync(path: string): string[];
+  statSync(path: string): RouteFileSystemDirectoryEntry;
+  readFileSync(path: string, encoding: BufferEncoding): string;
+}
+
 /** Discover all route modules in the configured app directory */
 export interface DiscoverRoutesOptions {
-  fsModule?: any;
+  fsModule?: RouteFileSystem;
   analyzeRouteMethods?: (filePath: string, fileContent: string) => { methods: HttpMethod[]; diagnostics: RanuDiagnostic[] };
 }
 
@@ -182,7 +203,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
       return; // Stop traversal
     }
 
-    let stats: fs.Stats;
+    let stats: RouteFileSystemEntry;
     try {
       stats = fsModule.lstatSync(dirPath);
     } catch {
@@ -232,13 +253,14 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     let parsedSegment: RouteSegment;
     try {
       parsedSegment = parentId ? parseSegment(segmentName) : { raw: '', type: 'static' };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid route segment syntax';
       diagnostics.push({
-        code: err.message.includes('INVALID_PARAM') ? 'RANU_ROUTE_INVALID_PARAM' : 'RANU_ROUTE_INVALID_SEGMENT',
+        code: message.includes('INVALID_PARAM') ? 'RANU_ROUTE_INVALID_PARAM' : 'RANU_ROUTE_INVALID_SEGMENT',
         severity: 'error',
-        message: err.message || 'Invalid route segment syntax',
+        message,
         location: { file: relativeDirPath || '.' },
-        hint: err.message.includes('INVALID_PARAM')
+        hint: message.includes('INVALID_PARAM')
           ? 'Use valid identifier syntax for route parameters (e.g. [id] or [...slug]).'
           : 'Ensure route folder names follow framework conventions and do not claim reserved prefixes like _ranu.',
       });
@@ -260,7 +282,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     const filesByRole: Record<string, string[]> = {};
     for (const item of items) {
       const full = path.join(dirPath, item);
-      let itemStats: fs.Stats;
+      let itemStats: RouteFileSystemEntry;
       try {
         itemStats = fsModule.lstatSync(full);
       } catch {
@@ -347,7 +369,7 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
     // Recurse into directories
     for (const item of items) {
       const full = path.join(dirPath, item);
-      let itemStats: fs.Stats;
+      let itemStats: RouteFileSystemEntry;
       try {
         itemStats = fsModule.lstatSync(full);
       } catch {
@@ -488,11 +510,12 @@ export function discoverRoutes(appDir: string, options: DiscoverRoutesOptions = 
             const analysis = analyzeRouteMethods(fileTarget, fileContent);
             discoveredMethods = analysis.methods;
             diagnostics.push(...analysis.diagnostics);
-          } catch (err: any) {
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
             diagnostics.push({
               code: 'RANU_ROUTE_FILE_READ_ERROR',
               severity: 'error',
-              message: `Failed to read API route file: ${err.message}`,
+              message: `Failed to read API route file: ${message}`,
               location: { file: fileTarget },
               hint: 'Verify file permissions and ensure the file exists on disk.',
             });
