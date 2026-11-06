@@ -1,12 +1,12 @@
 {
   "name": "create-ranujs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Create a new Ranu.js project",
   "license": "MIT",
   "funding": [
     {
       "type": "github",
-      "url": "https://github.com/sponsors/draj256"
+      "url": "https://github.com/sponsors/hoslift"
     },
     {
       "type": "paypal",
