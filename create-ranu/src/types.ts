@@ -16,7 +16,7 @@ export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno
 /**
  * Supported AI engines for project scaffolding.
  */
-export type AIEngineName = 'none' | 'gemini' | 'groq' | 'claude' | 'openai' | 'custom';
+export type AIEngineName = 'none' | 'gemini' | 'groq' | 'claude' | 'codex' | 'openai' | 'custom';
 
 /**
  * Type aliases for AIEngineName.
@@ -32,6 +32,7 @@ export const SUPPORTED_AI_ENGINES: readonly AIEngineName[] = [
   'gemini',
   'groq',
   'claude',
+  'codex',
   'openai',
   'custom',
 ] as const;

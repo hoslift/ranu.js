@@ -35,7 +35,7 @@
     "@ranu/ai-gemini": "workspace:*",
     "@ranu/ai-groq": "workspace:*",
     "@ranu/ai-claude": "workspace:*",
-    "@ranu/ai-openai": "workspace:*",
+    "@ranu/ai-codex": "workspace:*",
     "@ranu/ai-custom": "workspace:*",
     "@ranujs/adapter-vercel": "workspace:*",
     "@ranujs/adapter-cloudflare": "workspace:*",

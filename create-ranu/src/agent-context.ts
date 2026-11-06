@@ -88,6 +88,27 @@ export async function POST(request: Request): Promise<Response> {
   });
 }
 \`\`\``;
+  } else if (ai === 'codex') {
+    aiSection = `## 5. AI Engine: Codex (@ranu/ai-codex)
+- **Universal Streaming Kernel:** Import streaming functions from \`@ranu/ai\` and the Codex driver from \`@ranu/ai-codex\`.
+- **Environment Variable:** \`CODEX_API_KEY\` (stored in \`.env\`, server-side only).
+- **Default Model:** \`gpt-4o\` (or \`gpt-4o-mini\`).
+- **Structured Outputs:** Pair with Standard-Schema (Zod/Valibot) for typed JSON output.
+- **API Route Pattern (\`app/routes/api.ai.ts\`):**
+\`\`\`typescript
+import { streamAI } from '@ranu/ai';
+import { codex } from '@ranu/ai-codex';
+
+export async function POST(request: Request): Promise<Response> {
+  const { prompt, messages } = await request.json();
+  return streamAI({
+    model: codex('gpt-4o'),
+    prompt,
+    messages,
+    signal: request.signal,
+  });
+}
+\`\`\``;
   } else if (ai === 'openai') {
     aiSection = `## 5. AI Engine: OpenAI (@ranu/ai-openai)
 - **Universal Streaming Kernel:** Import streaming functions from \`@ranu/ai\` and the OpenAI driver from \`@ranu/ai-openai\`.
@@ -212,6 +233,13 @@ This application is configured as a **Zero-AI Traditional Web Application**.
 - **Streaming Endpoint:** \`app/routes/api.ai.ts\`
 - **Kernel Function:** \`streamAI({ model: claude('claude-3-5-sonnet-20241022'), prompt, messages, signal })\`
 - **Characteristics:** Tool-use and structured reasoning capabilities.`;
+  } else if (ai === 'codex') {
+    aiSection = `## 5. AI Engine: Codex (@ranu/ai-codex)
+- **Dependencies:** \`@ranu/ai\`, \`@ranu/ai-codex\`
+- **Environment:** \`CODEX_API_KEY\` (defined in \`.env\`, accessed server-side only).
+- **Streaming Endpoint:** \`app/routes/api.ai.ts\`
+- **Kernel Function:** \`streamAI({ model: codex('gpt-4o'), prompt, messages, signal })\`
+- **Characteristics:** Structured schemas and general inference.`;
   } else if (ai === 'openai') {
     aiSection = `## 5. AI Engine: OpenAI (@ranu/ai-openai)
 - **Dependencies:** \`@ranu/ai\`, \`@ranu/ai-openai\`
@@ -312,6 +340,13 @@ export function generateClaudeMarkdown(options: AgentContextOptions): string {
 - **Streaming Route:** \`app/routes/api.ai.ts\`
 - **Import:** \`import { streamAI } from '@ranu/ai'; import { claude } from '@ranu/ai-claude';\`
 - **Default Model:** \`claude-3-5-sonnet-20241022\``;
+  } else if (ai === 'codex') {
+    aiSection = `## AI Engine: Codex
+- **Dependencies:** \`@ranu/ai\`, \`@ranu/ai-codex\`
+- **API Key:** Set \`CODEX_API_KEY\` in \`.env\`
+- **Streaming Route:** \`app/routes/api.ai.ts\`
+- **Import:** \`import { streamAI } from '@ranu/ai'; import { codex } from '@ranu/ai-codex';\`
+- **Default Model:** \`gpt-4o\``;
   } else if (ai === 'openai') {
     aiSection = `## AI Engine: OpenAI
 - **Dependencies:** \`@ranu/ai\`, \`@ranu/ai-openai\`

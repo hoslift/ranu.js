@@ -16,6 +16,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   gemini: 'gemini-1.5-pro',
   groq: 'llama-3.3-70b-versatile',
   claude: 'claude-3-5-sonnet-20241022',
+  codex: 'gpt-4o',
   openai: 'gpt-4o',
   custom: 'default',
 };
@@ -40,6 +41,7 @@ export function detectProviderFromEnv(): string | undefined {
   if (process.env.GROQ_API_KEY) return 'groq';
   if (process.env.GEMINI_API_KEY) return 'gemini';
   if (process.env.ANTHROPIC_API_KEY) return 'claude';
+  if (process.env.CODEX_API_KEY) return 'codex';
   if (process.env.OPENAI_API_KEY) return 'openai';
   if (process.env.CUSTOM_AI_KEY || process.env.CUSTOM_AI_ENDPOINT) return 'custom';
   return undefined;
@@ -98,12 +100,22 @@ export async function loadAIModel(options: ResolveAIModelOptions = {}): Promise<
       instance = mod.claude(modelId);
       break;
     }
-    case 'openai': {
-      const mod = (await importer('@ranu/ai-openai')) as { openai: (id: string) => AIModelInstance };
-      if (typeof mod?.openai !== 'function') {
-        throw new Error('Failed to resolve openai model factory from @ranu/ai-openai.');
+    case 'codex': {
+      const mod = (await importer('@ranu/ai-codex')) as { codex?: (id: string) => AIModelInstance; openai?: (id: string) => AIModelInstance };
+      const factory = mod?.codex ?? mod?.openai;
+      if (typeof factory !== 'function') {
+        throw new Error('Failed to resolve codex model factory from @ranu/ai-codex.');
       }
-      instance = mod.openai(modelId);
+      instance = factory(modelId);
+      break;
+    }
+    case 'openai': {
+      const mod = (await importer('@ranu/ai-codex')) as { openai?: (id: string) => AIModelInstance; codex?: (id: string) => AIModelInstance };
+      const factory = mod?.openai ?? mod?.codex;
+      if (typeof factory !== 'function') {
+        throw new Error('Failed to resolve openai model factory from @ranu/ai-codex.');
+      }
+      instance = factory(modelId);
       break;
     }
     case 'custom': {
@@ -120,7 +132,7 @@ export async function loadAIModel(options: ResolveAIModelOptions = {}): Promise<
       break;
     }
     default:
-      throw new Error(`Unsupported AI provider "${provider}". Supported providers: gemini, groq, claude, openai, custom.`);
+      throw new Error(`Unsupported AI provider "${provider}". Supported providers: gemini, groq, claude, codex, openai, custom.`);
   }
 
   return { provider, modelId, instance };

@@ -29,7 +29,7 @@
     { "path": "./ai/gemini" },
     { "path": "./ai/groq" },
     { "path": "./ai/claude" },
-    { "path": "./ai/openai" },
+    { "path": "./ai/codex" },
     { "path": "./ai/custom" }
   ]
 }

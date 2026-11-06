@@ -1,5 +1,5 @@
 /**
- * OpenAI Model Driver for Ranu.js.
+ * Codex / OpenAI Model Driver for Ranu.js.
  *
  * Implements GPT-4o, GPT-4o mini, o1, o1-mini, o3-mini reasoning models,
  * structured outputs (json_schema mode), tool-calling deltas,
@@ -14,6 +14,11 @@ import type {
   StreamExecutionOptions,
 } from '@ranu/ai';
 import type {
+  CodexConfig,
+  CodexModelId,
+  CodexModelInstance,
+  CodexProvider,
+  CodexSettings,
   OpenAIConfig,
   OpenAIModelId,
   OpenAIModelInstance,
@@ -27,18 +32,23 @@ export function isReasoningModel(modelId: string): boolean {
   return /^o[1-9](-.*)?$/i.test(modelId);
 }
 
-async function resolveApiKey(config?: OpenAIConfig): Promise<string> {
+async function resolveApiKey(config?: CodexConfig): Promise<string> {
   if (typeof config?.apiKey === 'function') {
     return await config.apiKey();
   }
   if (typeof config?.apiKey === 'string' && config.apiKey.length > 0) {
     return config.apiKey;
   }
-  if (typeof process !== 'undefined' && process.env && process.env['OPENAI_API_KEY']) {
-    return process.env['OPENAI_API_KEY'];
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env['CODEX_API_KEY']) {
+      return process.env['CODEX_API_KEY'];
+    }
+    if (process.env['OPENAI_API_KEY']) {
+      return process.env['OPENAI_API_KEY'];
+    }
   }
   throw new Error(
-    'OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass apiKey in OpenAIConfig.',
+    'Codex / OpenAI API key is required. Set CODEX_API_KEY or OPENAI_API_KEY environment variable or pass apiKey in CodexConfig.',
   );
 }
 
@@ -270,7 +280,7 @@ function transformOpenAIByteStream(byteStream: ReadableStream<Uint8Array>): Read
 
 function resolveStructuredJsonSchema(
   options: StreamExecutionOptions,
-  settings?: OpenAISettings,
+  settings?: CodexSettings,
 ): Record<string, unknown> | undefined {
   if (settings?.responseFormat?.type === 'json_schema') {
     const rf = settings.responseFormat as unknown as Record<string, unknown>;
@@ -317,10 +327,10 @@ function resolveStructuredJsonSchema(
 }
 
 /**
- * Creates an OpenAI AI provider with the specified configuration.
+ * Creates a Codex AI provider with the specified configuration.
  */
-export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
-  const provider = (modelId: OpenAIModelId, settings?: OpenAISettings): OpenAIModelInstance => {
+export function createCodex(config?: CodexConfig, defaultProviderName: 'codex' | 'openai' = 'codex'): CodexProvider {
+  const provider = (modelId: CodexModelId, settings?: CodexSettings): CodexModelInstance => {
     if (!modelId || typeof modelId !== 'string') {
       throw new Error('Model ID must be a non-empty string');
     }
@@ -328,7 +338,7 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
     const isReasoning = isReasoningModel(modelId);
 
     return {
-      provider: 'openai',
+      provider: defaultProviderName,
       modelId,
       config: config ?? {},
       settings,
@@ -350,7 +360,10 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
         const org =
           config?.organization ??
           (typeof process !== 'undefined'
-            ? process.env?.['OPENAI_ORG_ID'] ?? process.env?.['OPENAI_ORGANIZATION']
+            ? process.env?.['CODEX_ORG_ID'] ??
+              process.env?.['CODEX_ORGANIZATION'] ??
+              process.env?.['OPENAI_ORG_ID'] ??
+              process.env?.['OPENAI_ORGANIZATION']
             : undefined);
         if (org) {
           headers['OpenAI-Organization'] = org;
@@ -358,7 +371,9 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
 
         const project =
           config?.project ??
-          (typeof process !== 'undefined' ? process.env?.['OPENAI_PROJECT_ID'] : undefined);
+          (typeof process !== 'undefined'
+            ? process.env?.['CODEX_PROJECT_ID'] ?? process.env?.['OPENAI_PROJECT_ID']
+            : undefined);
         if (project) {
           headers['OpenAI-Project'] = project;
         }
@@ -453,7 +468,7 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
 
         const fetchImpl = config?.fetch ?? globalThis.fetch;
         if (!fetchImpl) {
-          throw new Error('No fetch implementation available. Provide a custom fetch in OpenAIConfig.');
+          throw new Error('No fetch implementation available. Provide a custom fetch in CodexConfig.');
         }
 
         const requestInit: RequestInit = {
@@ -469,13 +484,15 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => '');
+          const displayName = defaultProviderName === 'openai' ? 'OpenAI' : 'Codex';
           throw new Error(
-            `OpenAI request failed with status ${response.status} ${response.statusText}: ${errorText}`,
+            `${displayName} request failed with status ${response.status} ${response.statusText}: ${errorText}`,
           );
         }
 
         if (!response.body) {
-          throw new Error('OpenAI returned an empty response body');
+          const displayName = defaultProviderName === 'openai' ? 'OpenAI' : 'Codex';
+          throw new Error(`${displayName} returned an empty response body`);
         }
 
         return transformOpenAIByteStream(response.body);
@@ -484,7 +501,7 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
   };
 
   Object.defineProperty(provider, 'name', {
-    value: 'openai',
+    value: defaultProviderName,
     writable: false,
     configurable: true,
   });
@@ -494,16 +511,29 @@ export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
     configurable: true,
   });
   Object.defineProperty(provider, 'model', {
-    value: (modelId: OpenAIModelId, settings?: OpenAISettings) => provider(modelId, settings),
+    value: (modelId: CodexModelId, settings?: CodexSettings) => provider(modelId, settings),
     writable: false,
     configurable: true,
   });
 
-  return provider as OpenAIProvider;
+  return provider as CodexProvider;
 }
 
 /**
- * Default OpenAI model factory targeting OpenAI models.
+ * Creates an OpenAI AI provider with the specified configuration (backward compatibility).
+ */
+export function createOpenAI(config?: OpenAIConfig): OpenAIProvider {
+  return createCodex(config, 'openai');
+}
+
+/**
+ * Default Codex model factory targeting Codex / OpenAI models.
+ */
+export const codex = (modelId: CodexModelId, settings?: CodexSettings): CodexModelInstance =>
+  createCodex()(modelId, settings);
+
+/**
+ * Default OpenAI model factory targeting OpenAI models (backward compatibility).
  */
 export const openai = (modelId: OpenAIModelId, settings?: OpenAISettings): OpenAIModelInstance =>
   createOpenAI()(modelId, settings);

@@ -22,6 +22,7 @@ export default defineConfig({
     '@ranu/ai-gemini',
     '@ranu/ai-groq',
     '@ranu/ai-claude',
+    '@ranu/ai-codex',
     '@ranu/ai-openai',
     '@ranu/ai-custom',
     '@ranujs/adapter-vercel',

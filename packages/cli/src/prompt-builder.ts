@@ -123,7 +123,7 @@ export async function buildArchitecturePrompt(options: PromptBuilderOptions = {}
     4. Client Directive: Any component utilizing client-side hooks (useState, useEffect, useRef) or browser DOM APIs MUST begin with 'use client'; on line 1.
     5. Security Boundaries: Never access server secrets (process.env.SECRET) in client components. Only environment variables prefixed with RANU_PUBLIC_ are exposed to the client.
     6. Prop Serialization: Only JSON-serializable props (strings, numbers, booleans, plain objects, arrays) may be passed across server-to-client JSX boundaries. Never pass functions, Promises, or class instances.
-    7. Universal AI Ecosystem: Import AI streaming and structured generation from 'ranu/ai' and model drivers from 'ranu/ai/gemini', 'ranu/ai/groq', 'ranu/ai/claude', 'ranu/ai/openai', 'ranu/ai/custom'.
+    7. Universal AI Ecosystem: Import AI streaming and structured generation from 'ranu/ai' and model drivers from 'ranu/ai/gemini', 'ranu/ai/groq', 'ranu/ai/claude', 'ranu/ai/codex', 'ranu/ai/openai', 'ranu/ai/custom'.
     8. Fast Invariant Validation: Verify routing, syntax, and boundary rules instantly via 'ranu check --format json'.
   </framework_invariants>
 

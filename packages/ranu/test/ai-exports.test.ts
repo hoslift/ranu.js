@@ -15,6 +15,7 @@ import {
 import { createGemini, gemini } from '../src/ai/gemini.js';
 import { createGroq, groq } from '../src/ai/groq.js';
 import { createClaude, claude } from '../src/ai/claude.js';
+import { createCodex, codex } from '../src/ai/codex.js';
 import { createOpenAI, openai, isReasoningModel } from '../src/ai/openai.js';
 import {
   createCustomAI,
@@ -141,6 +142,19 @@ describe('Ranu.js AI Subpath Exports', () => {
     });
   });
 
+  describe('Codex Model Driver Entry ("ranu/ai/codex")', () => {
+    it('exports factory functions and instantiates valid provider', () => {
+      expect(createCodex).toBeTypeOf('function');
+      expect(codex).toBeTypeOf('function');
+
+      const provider = createCodex({ apiKey: 'test-codex-key' });
+      expect(provider.name).toBe('codex');
+
+      const gpt4o = provider('gpt-4o');
+      expect(gpt4o.provider).toBe('codex');
+      expect(gpt4o.modelId).toBe('gpt-4o');
+    });
+  });
   describe('OpenAI Model Driver Entry ("ranu/ai/openai")', () => {
     it('exports factory functions, reasoning model detector, and instantiates valid provider', () => {
       expect(createOpenAI).toBeTypeOf('function');

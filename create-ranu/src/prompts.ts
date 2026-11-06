@@ -31,6 +31,11 @@ export const AI_ENGINE_CHOICES: ReadonlyArray<Choice<AIEngineName>> = [
     hint: 'Advanced tool-use & coding with Claude 3.5 Sonnet',
   },
   {
+    label: 'Codex (@ranu/ai-codex)',
+    value: 'codex',
+    hint: 'Codex & OpenAI GPT-4o reasoning models',
+  },
+  {
     label: 'OpenAI (@ranu/ai-openai)',
     value: 'openai',
     hint: 'GPT-4o & o1 reasoning models',

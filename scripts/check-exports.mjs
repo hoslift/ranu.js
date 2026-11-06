@@ -5,7 +5,7 @@ const publishedPackages = [
   { 
     dir: 'packages/ranu', 
     name: '@ranujs/core', 
-    canonicalExports: ['.', './config', './react', './server', './plugin', './ai', './ai/gemini', './ai/groq', './ai/claude', './ai/openai', './ai/custom'], 
+    canonicalExports: ['.', './config', './react', './server', './plugin', './ai', './ai/gemini', './ai/groq', './ai/claude', './ai/codex', './ai/openai', './ai/custom'], 
     technicalExports: ['./server-only'] 
   },
   { 

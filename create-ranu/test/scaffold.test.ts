@@ -259,6 +259,7 @@ describe('scaffoldProject', () => {
       { engine: 'gemini', dep: '@ranu/ai-gemini', envKey: 'GEMINI_API_KEY' },
       { engine: 'groq', dep: '@ranu/ai-groq', envKey: 'GROQ_API_KEY' },
       { engine: 'claude', dep: '@ranu/ai-claude', envKey: 'ANTHROPIC_API_KEY' },
+      { engine: 'codex', dep: '@ranu/ai-codex', envKey: 'CODEX_API_KEY' },
       { engine: 'openai', dep: '@ranu/ai-openai', envKey: 'OPENAI_API_KEY' },
       { engine: 'custom', dep: '@ranu/ai-custom', envKey: 'CUSTOM_AI_KEY' },
     ] as const)('scaffolds project with --ai $engine correctly', ({ engine, dep, envKey }) => {

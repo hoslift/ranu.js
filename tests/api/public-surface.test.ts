@@ -98,6 +98,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         './ai/custom',
         './ai/gemini',
         './ai/groq',
+        './ai/codex',
         './ai/openai',
       ];
 

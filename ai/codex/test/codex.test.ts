@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { streamAI, generateObject } from '@ranu/ai';
-import { createOpenAI, openai, isReasoningModel } from '../src/index.js';
+import { createCodex, codex, createOpenAI, openai, isReasoningModel } from '../src/index.js';
 
-describe('@ranu/ai-openai Model Driver', () => {
+describe('@ranu/ai-codex Model Driver', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = { ...originalEnv };
+    delete process.env['CODEX_API_KEY'];
     delete process.env['OPENAI_API_KEY'];
     delete process.env['OPENAI_ORG_ID'];
     delete process.env['OPENAI_ORGANIZATION'];
@@ -19,6 +20,26 @@ describe('@ranu/ai-openai Model Driver', () => {
   });
 
   describe('Model Creation & Helpers', () => {
+    it('creates a codex provider and model instances', () => {
+      const provider = createCodex({ apiKey: 'sk-proj-test' });
+      expect(provider.name).toBe('codex');
+      expect(provider.config.apiKey).toBe('sk-proj-test');
+
+      const gpt4o = provider('gpt-4o');
+      expect(gpt4o.provider).toBe('codex');
+      expect(gpt4o.modelId).toBe('gpt-4o');
+
+      const gpt4oMini = provider.model('gpt-4o-mini');
+      expect(gpt4oMini.modelId).toBe('gpt-4o-mini');
+    });
+
+    it('creates default codex model factory with CODEX_API_KEY', () => {
+      process.env['CODEX_API_KEY'] = 'sk-proj-codex-env';
+      const model = codex('gpt-4o', { temperature: 0.7 });
+      expect(model.provider).toBe('codex');
+      expect(model.modelId).toBe('gpt-4o');
+      expect(model.settings?.temperature).toBe(0.7);
+    });
     it('creates an openai provider and model instances', () => {
       const provider = createOpenAI({ apiKey: 'sk-proj-test' });
       expect(provider.name).toBe('openai');

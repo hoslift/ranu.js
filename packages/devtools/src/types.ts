@@ -34,7 +34,7 @@ export interface HydrationMetricInfo {
 
 export type DevToolsTab = 'waterfall' | 'routes' | 'hydration' | 'diagnostics' | 'ai-studio';
 export type DevToolsDockPosition = 'bottom' | 'top' | 'left' | 'right';
-export type AIStudioPartner = 'gemini' | 'groq' | 'claude' | 'openai' | 'custom';
+export type AIStudioPartner = 'gemini' | 'groq' | 'claude' | 'codex' | 'openai' | 'custom';
 
 export interface PendingDiff {
   filePath: string;
