@@ -53,6 +53,8 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
     adapter: options.adapter,
     tests: options.tests,
     ai: options.ai,
+    apiKey: options.apiKey,
+    endpoint: options.endpoint,
   });
   const filesCreated: string[] = [];
 
@@ -110,5 +112,6 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult {
     gitStatus,
     installStatus,
     ai: options.ai ?? 'none',
+    hasCredentials: Boolean(templateFiles['.env']),
   };
 }

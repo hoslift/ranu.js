@@ -1,0 +1,27 @@
+# Ranu.js Project Architecture & AI Agent Guide
+
+## Overview
+This application is built on **Ranu.js**, an AI-native, TypeScript-first web framework pairing streaming React 19 SSR with deterministic standard Web APIs.
+
+## Application Route Graph (2 routes)
+- **PAGE** `/` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\deployment-vercel\app\page.tsx`
+- **API** `/api/status` -> `C:\HosliftWork\GitProjects\ranu.js\examples\deployment-vercel\app\api\status\route.ts`
+
+## Core Architectural Invariants for AI Coding Agents & Human Developers
+
+1. **W3C Standard Web Primitives:**
+   - Handlers receive standard WHATWG `Request` and must return standard `Response` or `ReadableStream`.
+   - Never import proprietary framework wrappers or assume monkey-patched `fetch`.
+
+2. **Component Boundaries:**
+   - Server Components are the default. Client components must begin with `'use client';` on the very first line.
+   - Never pass functions, closures, or non-plain class instances across JSX server-to-client boundaries.
+
+3. **Environment Security:**
+   - Client components can only access `process.env.RANU_PUBLIC_*` or `import.meta.env.RANU_PUBLIC_*`.
+   - Private secrets (e.g. database credentials, API keys) must be accessed only in server components or `route.ts` handlers.
+
+4. **Introspection & Validation:**
+   - Run `ranu check --format json` for sub-second AST and boundary verification.
+   - Run `ranu describe --format compact` to retrieve minified route metadata (<200 tokens).
+   - Run `ranu fix` to automatically patch common diagnostic errors.

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RanuDevTools } from '@ranu/devtools';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             Ranu.js Open Source Web Framework — Multi-Provider AI Architecture Showcase
           </footer>
         </div>
+        <RanuDevTools />
       </body>
     </html>
   );

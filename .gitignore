@@ -154,3 +154,7 @@ test-results/
 playwright-report/
 
 
+
+# Local scaffold test outputs
+test-app/
+my-ai-app/

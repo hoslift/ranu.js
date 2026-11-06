@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+'use client';
+
+import React, { useEffect, useSyncExternalStore } from 'react';
 import {
   getDevToolsState,
   subscribeDevTools,
@@ -21,18 +23,50 @@ const PARTNERS: Array<{ id: AIStudioPartner; label: string }> = [
   { id: 'custom', label: '⚙ Custom' },
 ];
 
+const getServerSnapshot = (): DevToolsDockState => getDevToolsState();
+
+/**
+ * Checks whether a React dispatcher is available to prevent null dispatcher crashes
+ * when evaluated in Server Components or environments without an active dispatcher.
+ */
+function isDispatcherAvailable(): boolean {
+  try {
+    const internals =
+      (React as any).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE ||
+      (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+    if (internals) {
+      const dispatcher =
+        internals.H !== undefined ? internals.H : internals.ReactCurrentDispatcher?.current;
+      if (dispatcher === null) {
+        return false;
+      }
+    }
+  } catch {
+    // Proceed if internals inspection fails
+  }
+  return true;
+}
+
 /**
  * React 19 component providing in-browser visual inspection for streaming, routes, hydration,
  * and the native AI Studio developer dock panel with Visual Diff review.
  */
 export function RanuDevTools(): React.ReactElement | null {
-  const [state, setState] = useState<DevToolsDockState>(getDevToolsState);
+  // Safe in production: no-op if not in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
 
-  useEffect(() => {
-    return subscribeDevTools((nextState) => {
-      setState(nextState);
-    });
-  }, []);
+  // Safe in Server Component passes where React dispatcher is null
+  if (!isDispatcherAvailable()) {
+    return null;
+  }
+
+  const state = useSyncExternalStore(
+    subscribeDevTools,
+    getDevToolsState,
+    getServerSnapshot
+  );
 
   // Keyboard shortcut listener for Alt+D and Ctrl+Shift+D / Cmd+Shift+D
   useEffect(() => {
@@ -55,11 +89,6 @@ export function RanuDevTools(): React.ReactElement | null {
     }
     return undefined;
   }, []);
-
-  // Safe in production: no-op if not in development mode
-  if (process.env.NODE_ENV === 'production') {
-    return null;
-  }
 
   if (!state.isOpen) {
     const isTop = state.dockPosition === 'top';
