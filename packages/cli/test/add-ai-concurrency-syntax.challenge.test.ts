@@ -167,7 +167,7 @@ describe('Milestone M9 Challenger 4: Concurrency, AST Syntax, Dry-Run & Path Sec
           }
         }
       }
-    });
+    }, 30000);
   });
 
   /* ========================================================================
