@@ -1,5 +1,12 @@
 # create-ranujs
 
+## 0.3.0
+
+### Minor Changes
+
+- 3f9084f: Introduce AI-agent DX tooling: `ranu describe` route introspection, `ranu check` sub-second dry-run validation, and machine-readable JSON diagnostics.
+- b504087: Introduce turnkey full-stack SaaS starter preset (`--template saas`) with React 19 streaming SSR, Tailwind CSS v4, Drizzle ORM, session auth API endpoints, and a production dashboard.
+
 ## 0.2.0
 
 ### Minor Changes

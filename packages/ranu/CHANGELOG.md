@@ -1,5 +1,15 @@
 # @ranujs/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 3f9084f: Introduce AI-agent DX tooling: `ranu describe` route introspection, `ranu check` sub-second dry-run validation, and machine-readable JSON diagnostics.
+- 8d438e1: Introduce `@ranu/testing` headless in-memory test harness (`createTestContext`) and assertions (`expectStatus`, `expectHeader`, `expectJson`, `expectText`, `expectRedirect`) for sub-50ms request/response verification without network socket overhead, exposed under `@ranu/testing` and `ranu/testing`.
+- 17df3c9: Introduce `@ranu/devtools` in-browser visual dock with streaming waterfall chunk inspector, route hierarchy viewer, hydration status verification, and compiler diagnostics display, exported under `@ranu/devtools` and `ranu/devtools`.
+- da2ef84: Implement type-safe Standard Schema v1 form actions (`createFormAction`) and reactive React 19 hook (`useFormAction`) supporting Zod, Valibot, and ArkType schemas with automated validation and pending state management.
+- 7c4e0c3: Introduce streaming backpressure management and memory bounding utilities (`createBoundedStream`, `pipeWithBackpressure`, `createStreamingDrainTracker`) with high-water mark throttling, abort signal propagation, and maximum byte protection.
+
 ## 0.2.0
 
 ### Minor Changes

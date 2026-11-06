@@ -398,7 +398,8 @@ describe('@ranu/router', () => {
           return {
             isDirectory: () => p.endsWith('about') || p.endsWith('About')
           } as any;
-        }
+        },
+        readFileSync: () => ''
       };
 
       const { diagnostics } = discoverRoutes(tempAppDir, { fsModule: mockFs });
@@ -758,7 +759,8 @@ describe('@ranu/router', () => {
           return {
             isDirectory: () => p.endsWith('dashboard') || p.endsWith('settings')
           } as any;
-        }
+        },
+        readFileSync: () => ''
       };
 
       const { records } = discoverRoutes(tempAppDir, { fsModule: mockFs });
