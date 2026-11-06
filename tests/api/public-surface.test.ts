@@ -15,7 +15,8 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
       const ranu = await import('@ranujs/core');
       const ranuConfig = await import('@ranujs/core/config');
 
-      expect(ranu.RANU_VERSION).toBe('0.2.0');
+      const ranuPkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'packages', 'ranu', 'package.json'), 'utf8'));
+      expect(ranu.RANU_VERSION).toBe(ranuPkg.version);
       expect(ranu.defineConfig).toBeTypeOf('function');
       expect(ranu.defineConfig).toBe(ranuConfig.defineConfig);
 
