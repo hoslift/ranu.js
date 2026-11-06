@@ -228,7 +228,7 @@ describe('create-ranu interactive prompter', () => {
       }
     });
 
-    it('handles piped input stream for custom AI: 6 (custom), Enter (default endpoint), Enter (skip key)', async () => {
+    it('handles piped input stream for custom AI: 7 (custom), Enter (default endpoint), Enter (skip key)', async () => {
       const inStream = new PassThrough();
       const outStream = new PassThrough();
       const rl = readline.createInterface({ input: inStream, output: outStream });
@@ -240,8 +240,8 @@ describe('create-ranu interactive prompter', () => {
           rl,
         });
 
-        // Pipe 6 (custom), Enter (default endpoint), Enter (skip key)
-        inStream.write('6\n\n\n');
+        // Pipe 7 (custom), Enter (default endpoint), Enter (skip key)
+        inStream.write('7\n\n\n');
 
         const choice = await choicePromise;
         expect(choice).toBe('custom');
