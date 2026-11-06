@@ -1417,6 +1417,9 @@ importers:
       '@ranu/ai-claude':
         specifier: workspace:*
         version: link:../../ai/claude
+      '@ranu/ai-codex':
+        specifier: workspace:*
+        version: link:../../ai/codex
       '@ranu/ai-custom':
         specifier: workspace:*
         version: link:../../ai/custom
@@ -1426,9 +1429,6 @@ importers:
       '@ranu/ai-groq':
         specifier: workspace:*
         version: link:../../ai/groq
-      '@ranu/ai-openai':
-        specifier: workspace:*
-        version: link:../../ai/openai
       '@ranu/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools

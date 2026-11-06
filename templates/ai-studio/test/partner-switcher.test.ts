@@ -28,7 +28,7 @@ describe('AI Studio Partner Switcher & Metadata', () => {
   });
 
   it('resolves all official partner profiles accurately', () => {
-    const expectedKeys = ['google', 'groq', 'anthropic', 'openai', 'mistral', 'cerebras', 'ollama'];
+    const expectedKeys = ['google', 'groq', 'anthropic', 'codex', 'openai', 'mistral', 'cerebras', 'ollama'];
     for (const key of expectedKeys) {
       const partner = getPartnerConfig(key);
       expect(partner.id).toBe(key);
@@ -46,6 +46,7 @@ describe('AI Studio Partner Switcher & Metadata', () => {
   it('normalizes uppercase and whitespace in partner query strings', () => {
     expect(getPartnerConfig('  GROQ  ').id).toBe('groq');
     expect(getPartnerConfig('ANTHROPIC').id).toBe('anthropic');
+    expect(getPartnerConfig('Codex').id).toBe('codex');
     expect(getPartnerConfig('OpenAI').id).toBe('openai');
     expect(getPartnerConfig(' CeReBrAs ').id).toBe('cerebras');
   });
@@ -54,7 +55,7 @@ describe('AI Studio Partner Switcher & Metadata', () => {
     const all = getAllPartners();
     expect(all.length).toBeGreaterThanOrEqual(7);
     const keys = getPartnerKeys();
-    expect(keys).toEqual(expect.arrayContaining(['google', 'groq', 'anthropic', 'openai', 'mistral', 'cerebras', 'ollama']));
+    expect(keys).toEqual(expect.arrayContaining(['google', 'groq', 'anthropic', 'codex', 'openai', 'mistral', 'cerebras', 'ollama']));
   });
 
   it('verifies Groq LPU sub-10ms latency benchmark claim', () => {
