@@ -1,6 +1,6 @@
 {
   "name": "@ranu/manifests",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Ranu.js manifest schemas (internal)",
   "license": "MIT",
   "type": "module",

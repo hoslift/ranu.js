@@ -1,12 +1,12 @@
 {
   "name": "@ranujs/adapter-vercel",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Ranu.js Vercel deployment adapter",
   "license": "MIT",
   "funding": [
     {
       "type": "github",
-      "url": "https://github.com/sponsors/draj256"
+      "url": "https://github.com/sponsors/hoslift"
     },
     {
       "type": "paypal",
