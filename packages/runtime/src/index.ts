@@ -15,4 +15,5 @@ export * from './matcher.js';
 export * from './cache/types.js';
 export * from './cache/memory-store.js';
 export * from './cache/route-cache.js';
+export * from './telemetry/index.js';
 

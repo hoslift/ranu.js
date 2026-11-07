@@ -13,6 +13,9 @@ import { registerRequestContextStore, setActiveCacheStore } from './context.js';
 import { RouteCacheManager } from './cache/route-cache.js';
 import type { CacheStore } from './cache/types.js';
 import type { RouteKind } from '@ranu/core';
+import { trace, context as otelContext, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { extractTraceContext, getTracer } from './telemetry/tracer.js';
+import { getMetrics } from './telemetry/metrics.js';
 
 let globalRequestSequence = 0;
 const MAX_REWRITE_DEPTH = 5;
@@ -39,7 +42,12 @@ function finalizeResponse(
   context: RanuRequestContext,
   middlewareHeaders?: MiddlewareHeadersInit,
 ): Response {
-  if (!middlewareHeaders && context.responseCookies.length === 0) {
+  const needsProcessing =
+    middlewareHeaders ||
+    context.responseCookies.length > 0 ||
+    (context.requestId && !response.headers.has('x-request-id'));
+
+  if (!needsProcessing) {
     return response;
   }
   const finalizedResponse = new Response(response.body, {
@@ -64,6 +72,11 @@ function finalizeResponse(
       finalizedResponse.headers.append('Set-Cookie', cookieHeader);
     }
   }
+
+  if (context.requestId && !finalizedResponse.headers.has('x-request-id')) {
+    finalizedResponse.headers.set('x-request-id', context.requestId);
+  }
+
   return finalizedResponse;
 }
 
@@ -148,11 +161,73 @@ export class RanuServerRuntime {
       }
     }
     if (!requestId) {
+      const headerId = request.headers.get('x-request-id');
+      if (
+        headerId &&
+        headerId.length > 0 &&
+        headerId.length <= 64 &&
+        /^[A-Za-z0-9-_]+$/.test(headerId)
+      ) {
+        requestId = headerId;
+      }
+    }
+    if (!requestId) {
       requestId =
         typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
           ? crypto.randomUUID()
           : Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
+
+    // Direct /metrics endpoint check
+    const metricsConfig = this.options.metrics;
+    const metricsEndpoint = metricsConfig?.endpoint ?? '/metrics';
+    if (
+      method === 'GET' &&
+      pathname === metricsEndpoint &&
+      metricsConfig?.enabled !== false
+    ) {
+      const metricsProvider = metricsConfig?.provider ?? getMetrics();
+      const metricsText = await metricsProvider.getMetricsText();
+      return new Response(metricsText, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'x-request-id': requestId,
+        },
+      });
+    }
+
+    const extractedCtx = extractTraceContext(request.headers);
+    const tracer = getTracer();
+    const metricsProvider = this.options.metrics?.provider ?? getMetrics();
+    metricsProvider.increment('ranu_http_requests_active', 1);
+    const requestStartTime = performance.now();
+
+    const rootSpan = tracer.startSpan(
+      `HTTP ${method} ${pathname}`,
+      {
+        kind: SpanKind.SERVER,
+        attributes: {
+          'http.method': method,
+          'http.url': request.url,
+          'http.target': pathname,
+          'http.request_id': requestId,
+          'http.user_agent': request.headers.get('user-agent') ?? undefined,
+        },
+      },
+      extractedCtx,
+    );
+
+    const spanCtx = rootSpan.spanContext();
+    const traceId =
+      spanCtx?.traceId && spanCtx.traceId !== '00000000000000000000000000000000'
+        ? spanCtx.traceId
+        : undefined;
+    const spanId =
+      spanCtx?.spanId && spanCtx.spanId !== '0000000000000000'
+        ? spanCtx.spanId
+        : undefined;
 
     // 3. Request Context creation before matching
     const locals = new Map<string, unknown>();
@@ -177,6 +252,8 @@ export class RanuServerRuntime {
 
     const context: RanuRequestContext = {
       requestId,
+      traceId,
+      spanId,
       request,
       url,
       params,
@@ -191,8 +268,12 @@ export class RanuServerRuntime {
     let matchedRouteId: string | undefined;
     let matchedRouteKind: RouteKind | undefined;
     let middlewareHeaders: MiddlewareHeadersInit | undefined;
+    let finalResponse: Response | undefined;
 
-    return this.options.contextStore.run(context, async () => {
+    const activeWithRoot = trace.setSpan(extractedCtx, rootSpan);
+    return otelContext.with(activeWithRoot, async () => {
+      try {
+        finalResponse = await this.options.contextStore.run(context, async () => {
       try {
         let currentUrl = url;
         let currentRequest = request;
@@ -204,7 +285,28 @@ export class RanuServerRuntime {
 
           // Framework internal assets bypass middleware
           if (!currentPathname.startsWith('/_ranu/') && this.options.middleware) {
-            const continuation = await this.options.middleware.run(currentRequest, context);
+            const mwSpan = tracer.startSpan('ranu.middleware', {
+              kind: SpanKind.INTERNAL,
+              attributes: {
+                'ranu.middleware.pathname': currentPathname,
+                'ranu.middleware.rewrite_depth': rewriteDepth,
+              },
+            });
+            let continuation;
+            try {
+              continuation = await otelContext.with(
+                trace.setSpan(otelContext.active(), mwSpan),
+                () => this.options.middleware!.run(currentRequest, context),
+              );
+              mwSpan.setAttribute('ranu.middleware.outcome', continuation.type);
+              mwSpan.setStatus({ code: SpanStatusCode.OK });
+            } catch (mwErr: unknown) {
+              mwSpan.recordException(mwErr instanceof Error ? mwErr : new Error(String(mwErr)));
+              mwSpan.setStatus({ code: SpanStatusCode.ERROR });
+              throw mwErr;
+            } finally {
+              mwSpan.end();
+            }
             if (continuation.type === 'response') {
               return finalizeResponse(continuation.response, context, middlewareHeaders);
             }
@@ -367,6 +469,42 @@ export class RanuServerRuntime {
             ...(routeRecord.notFound !== undefined ? { notFound: routeRecord.notFound } : {}),
           };
 
+          const renderWithSsrSpan = async (): Promise<Response> => {
+            const ssrSpan = tracer.startSpan('ranu.ssr', {
+              kind: SpanKind.INTERNAL,
+              attributes: {
+                'ranu.route_id': pageTarget.routeId,
+              },
+            });
+            const ssrStart = performance.now();
+            try {
+              const renderRes = await otelContext.with(
+                trace.setSpan(otelContext.active(), ssrSpan),
+                () => this.options.renderer.render(currentRequest, context, pageTarget),
+              );
+              ssrSpan.setStatus({ code: SpanStatusCode.OK });
+              metricsProvider.increment('ranu_ssr_renders_total', 1, {
+                route: pageTarget.routeId,
+                status: String(renderRes.status),
+              });
+              return renderRes;
+            } catch (err: unknown) {
+              ssrSpan.recordException(err instanceof Error ? err : new Error(String(err)));
+              ssrSpan.setStatus({ code: SpanStatusCode.ERROR });
+              metricsProvider.increment('ranu_ssr_renders_total', 1, {
+                route: pageTarget.routeId,
+                status: '500',
+              });
+              throw err;
+            } finally {
+              const ssrDurationSec = (performance.now() - ssrStart) / 1000;
+              metricsProvider.record('ranu_ssr_render_duration_seconds', ssrDurationSec, {
+                route: pageTarget.routeId,
+              });
+              ssrSpan.end();
+            }
+          };
+
           const isrTtl =
             typeof (routeRecord as any).revalidate === 'number'
               ? (routeRecord as any).revalidate
@@ -383,11 +521,7 @@ export class RanuServerRuntime {
               isrTtl,
               tags,
               async () => {
-                const renderRes = await this.options.renderer.render(
-                  currentRequest,
-                  context,
-                  pageTarget,
-                );
+                const renderRes = await renderWithSsrSpan();
                 const bodyText = await renderRes.text();
                 const headersList: [string, string][] = [];
                 renderRes.headers.forEach((v, k) => headersList.push([k, v]));
@@ -410,7 +544,7 @@ export class RanuServerRuntime {
             return finalizeResponse(res, context, middlewareHeaders);
           }
 
-          const res = await this.options.renderer.render(currentRequest, context, pageTarget);
+          const res = await renderWithSsrSpan();
           return finalizeResponse(res, context, middlewareHeaders);
         } else {
           // API Endpoint
@@ -428,11 +562,27 @@ export class RanuServerRuntime {
               params: context.params,
               methods: routeRecord.methods,
             };
-            const res = await this.options.apiDispatcher.dispatch(
-              currentRequest,
-              context,
-              apiTarget,
-            );
+            const apiSpan = tracer.startSpan('ranu.api', {
+              kind: SpanKind.INTERNAL,
+              attributes: {
+                'ranu.route_id': apiTarget.routeId,
+                'http.method': method,
+              },
+            });
+            let res: Response;
+            try {
+              res = await otelContext.with(
+                trace.setSpan(otelContext.active(), apiSpan),
+                () => this.options.apiDispatcher.dispatch(currentRequest, context, apiTarget),
+              );
+              apiSpan.setStatus({ code: SpanStatusCode.OK });
+            } catch (err: unknown) {
+              apiSpan.recordException(err instanceof Error ? err : new Error(String(err)));
+              apiSpan.setStatus({ code: SpanStatusCode.ERROR });
+              throw err;
+            } finally {
+              apiSpan.end();
+            }
             return finalizeResponse(res, context, middlewareHeaders);
           } else {
             // Compute effective allowed methods
@@ -487,5 +637,27 @@ export class RanuServerRuntime {
         return finalizeResponse(errRes, context, middlewareHeaders);
       }
     });
+    return finalResponse!;
+  } finally {
+    metricsProvider.increment('ranu_http_requests_active', -1);
+    const durationMs = performance.now() - requestStartTime;
+    const durationSec = durationMs / 1000;
+    const finalStatus = finalResponse ? finalResponse.status : 500;
+    metricsProvider.increment('ranu_http_requests_total', 1, {
+      method,
+      status: String(finalStatus),
+      route: matchedRouteId ?? pathname,
+    });
+    metricsProvider.record('ranu_http_request_duration_seconds', durationSec, {
+      method,
+      route: matchedRouteId ?? pathname,
+    });
+    rootSpan.setAttribute('http.status_code', finalStatus);
+    rootSpan.setStatus({
+      code: finalStatus >= 500 ? SpanStatusCode.ERROR : SpanStatusCode.OK,
+    });
+    rootSpan.end();
+  }
+});
   }
 }

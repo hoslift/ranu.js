@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { RanuServerRuntime } from '@ranu/runtime';
+import { logger } from '@ranu/runtime';
 import { toWebRequest, type ToWebRequestOptions } from './request.js';
 import { writeWebResponse } from './response.js';
 import { PayloadTooLargeError } from './body-limit.js';
@@ -22,6 +23,7 @@ export function createNodeRequestHandler(
 
     const abortController = new AbortController();
     let completed = false;
+    const requestStartTime = performance.now();
 
     // Connect Node HTTP transport events to Web AbortSignal
     const onReqClose = () => {
@@ -94,6 +96,16 @@ export function createNodeRequestHandler(
         signal: abortController.signal,
         suppressBody,
       });
+
+      const durationMs = performance.now() - requestStartTime;
+      const respReqId = webResponse.headers.get('x-request-id');
+      logger.logRequest({
+        method: webRequest.method,
+        pathname: new URL(webRequest.url).pathname,
+        status: webResponse.status,
+        durationMs,
+        ...(respReqId ? { requestId: respReqId } : {}),
+      });
     } catch (err: unknown) {
       if (err instanceof PayloadTooLargeError || (err as { status?: number })?.status === 413) {
         if (!res.headersSent) {
@@ -112,6 +124,17 @@ export function createNodeRequestHandler(
       } else if (!res.writableEnded && !res.destroyed) {
         res.destroy();
       }
+
+      const durationMs = performance.now() - requestStartTime;
+      logger.logRequest({
+        method: (req.method ?? 'GET').toUpperCase(),
+        pathname: req.url?.split('?')[0] ?? '/',
+        status: res.statusCode || 500,
+        durationMs,
+        meta: {
+          error: err instanceof Error ? err.message : String(err),
+        },
+      });
     } finally {
       cleanupListeners();
     }

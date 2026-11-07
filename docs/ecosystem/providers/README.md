@@ -14,8 +14,8 @@ This directory outlines verified infrastructure providers and partner deployment
 | :--- | :--- | :--- | :---: |
 | **Serverless Platforms** | Vercel | `@ranujs/adapter-vercel` | **Supported** |
 | **Edge Compute (V8)** | Cloudflare Workers, Fastly | `RanuDeploymentAdapter` / Worker | **Compatible (Custom Adapter)** |
-| **Container Clouds** | AWS ECS, Google Cloud Run, Railway | Multi-stage `Dockerfile` | **Officially Supported** |
-| **Virtual Servers (VMs)**| Ubuntu / Debian, DigitalOcean, Hetzner | `ranu start` + PM2 / systemd | **Officially Supported** |
+| **Container Clouds** | AWS ECS, Google Cloud Run, Railway | Multi-stage `Dockerfile` | **Supported** |
+| **Virtual Servers (VMs)**| Ubuntu / Debian, DigitalOcean, Hetzner | `ranu start` + PM2 / systemd | **Supported** |
 
 ---
 
@@ -57,7 +57,7 @@ Ranu.js applications pair natively with modern serverless and cloud-native datab
 
 ## 6. Provider Verification Criteria
 
-For hosting platforms or cloud providers seeking official verified status in the Ranu.js ecosystem:
+For hosting platforms or cloud providers seeking verified ecosystem status in the Ranu.js ecosystem:
 
 1. **W3C Web Standards Support:** Native support for `Request`, `Response`, `Headers`, and chunked `ReadableStream`.
 2. **Streaming SSR:** Must support unbuffered chunked HTTP transfers without terminating streaming responses early.

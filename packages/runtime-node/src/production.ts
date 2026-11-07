@@ -7,6 +7,8 @@ import {
   createRuntimeMiddleware,
   type RanuRequestContext,
   type StaticDispatcher,
+  type TelemetryRuntimeOptions,
+  type MetricsRuntimeOptions,
 } from '@ranu/runtime';
 import { parseSegment, type CompiledRouteRecord } from '@ranu/router';
 import { ReactRenderer, type ComponentModuleLoader } from '@ranu/react';
@@ -28,6 +30,8 @@ export interface ProductionRuntimeOptions {
   projectRoot?: string | undefined;
   buildDir?: string | undefined;
   config?: Record<string, unknown> | undefined;
+  telemetry?: TelemetryRuntimeOptions | undefined;
+  metrics?: MetricsRuntimeOptions | undefined;
 }
 
 export interface ProductionRequestHandlerOptions extends Partial<NodeServerOptions> {
@@ -403,6 +407,8 @@ export async function createProductionRuntime(
     staticManifest,
     ...(middleware ? { middleware } : {}),
     config: { mode: 'production' },
+    ...(options.telemetry ? { telemetry: options.telemetry } : {}),
+    ...(options.metrics ? { metrics: options.metrics } : {}),
   });
 }
 

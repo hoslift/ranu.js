@@ -63,6 +63,15 @@ export async function loadDenoAdapter(
 }
 
 /**
+ * Loads the Static deployment adapter.
+ */
+export async function loadStaticAdapter(
+  importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
+): Promise<unknown> {
+  return importer('@ranujs/adapter-static');
+}
+
+/**
  * Executes the configured deployment adapter for the production project.
  *
  * @param args - Command-line options controlling output format

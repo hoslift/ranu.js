@@ -425,5 +425,28 @@ describe('Dynamic Deployment Adapter Loader', () => {
         expect(result.diagnostic.hint).toContain('Check the adapter module for syntax or runtime');
       }
     });
+
+    it('returns RANU_DEPLOY_ADAPTER_INCOMPATIBLE_API_VERSION when adapter apiVersion does not match ADAPTER_API_VERSION', async () => {
+      const incompatibleAdapter = {
+        name: 'legacy-adapter',
+        apiVersion: 99,
+        capabilities: {},
+        adapt: dummyAdapt,
+      };
+      const importer = vi.fn(async () => ({ default: incompatibleAdapter }));
+
+      const result = await loadDeploymentAdapter('node', {
+        projectRoot: tempDir,
+        importer,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.diagnostic.code).toBe('RANU_DEPLOY_ADAPTER_INCOMPATIBLE_API_VERSION');
+        expect(result.diagnostic.severity).toBe('error');
+        expect(result.diagnostic.message).toContain('declares incompatible apiVersion "99"');
+        expect(result.diagnostic.hint).toContain('Update the adapter package');
+      }
+    });
   });
 });

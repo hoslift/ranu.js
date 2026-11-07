@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
 
-describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
+describe('Public API Conformance & Boundary Hardening', () => {
   describe('1. Canonical Public Entrypoints and Convenience Re-Exports', () => {
     it('resolves root "@ranujs/core" with version and convenience defineConfig re-export', async () => {
       const ranu = await import('@ranujs/core');
@@ -24,6 +24,11 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         server: { port: 8080 },
       });
       expect(resolved).toEqual({ server: { port: 8080 } });
+    });
+
+    it('exports canonical ADAPTER_API_VERSION = 1 from @ranujs/core', async () => {
+      const ranu = await import('@ranujs/core');
+      expect(ranu.ADAPTER_API_VERSION).toBe(1);
     });
 
     it('resolves canonical "@ranujs/core/config" configuration helper', async () => {
@@ -67,6 +72,21 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         setup: () => {},
       });
       expect(plugin.name).toBe('test-public-plugin');
+    });
+
+    it('resolves "@ranujs/core/testing" headless test harness API', async () => {
+      const testingApi = await import('@ranujs/core/testing');
+      expect(testingApi.createTestContext).toBeTypeOf('function');
+      expect(testingApi.expectStatus).toBeTypeOf('function');
+      expect(testingApi.expectHeader).toBeTypeOf('function');
+      expect(testingApi.expectJson).toBeTypeOf('function');
+      expect(testingApi.expectText).toBeTypeOf('function');
+      expect(testingApi.expectRedirect).toBeTypeOf('function');
+    });
+
+    it('resolves "@ranujs/core/devtools" devtools API', async () => {
+      const devtoolsApi = await import('@ranujs/core/devtools');
+      expect(devtoolsApi).toBeDefined();
     });
 
     it('resolves "@ranujs/core/server-only" technical export safely', async () => {
@@ -176,7 +196,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         [
           '--input-type=module',
           '-e',
-          'await Promise.all([import("@ranujs/core"), import("@ranujs/core/config"), import("@ranujs/core/react"), import("@ranujs/core/server"), import("@ranujs/core/plugin"), import("@ranujs/core/server-only")]); process.exit(0);',
+          'await Promise.all([import("@ranujs/core"), import("@ranujs/core/config"), import("@ranujs/core/react"), import("@ranujs/core/server"), import("@ranujs/core/plugin"), import("@ranujs/core/testing"), import("@ranujs/core/devtools"), import("@ranujs/core/server-only")]); process.exit(0);',
         ],
         { cwd: consumerDir, encoding: 'utf8' },
       );
@@ -324,6 +344,8 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         'react.d.ts',
         'server.d.ts',
         'plugin.d.ts',
+        'testing.d.ts',
+        'devtools.d.ts',
         'server-only.d.ts',
       ];
 

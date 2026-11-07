@@ -23,7 +23,7 @@ export function sanitizeErrorResponse(
   config: RuntimeConfig,
   routeKind?: RouteKind
 ): Response {
-  if (config.mode === 'development') {
+  if (config?.mode === 'development') {
     const diagnostic = classifyError(error);
     const detail = {
       code: diagnostic.code,

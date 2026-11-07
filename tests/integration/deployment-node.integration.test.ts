@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { build } from '@ranu/build';
 import { createProductionServer } from '@ranu/runtime-node';
 
-describe('Integration: Phase 24 Generic Node.js Production Path', () => {
+describe('Integration: Generic Node.js Production Path', () => {
   let tempDir: string;
 
   beforeEach(() => {

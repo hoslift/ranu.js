@@ -5,6 +5,6 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['@ranu/core', '@ranu/diagnostics', '@ranu/manifests', '@ranu/router'],
+  external: ['@ranu/core', '@ranu/diagnostics', '@ranu/manifests', '@ranu/router', '@opentelemetry/api'],
   tsconfig: 'tsconfig.build.json',
 });

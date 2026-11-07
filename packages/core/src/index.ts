@@ -198,6 +198,9 @@ export interface DeploymentResult {
   readonly diagnostics?: readonly any[] | undefined;
 }
 
+/** Canonical Ranu adapter protocol version */
+export const ADAPTER_API_VERSION = 1;
+
 /** Deployment Adapter contract */
 export interface RanuDeploymentAdapter<TConfig = unknown, TManifest = unknown> {
   readonly name: string;
