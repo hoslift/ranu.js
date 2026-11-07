@@ -397,20 +397,54 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
         true,
       );
     } else if (canonicalAddon === 'auth') {
+      envVars.push('AUTH_SECRET');
+      updateEnvExample(
+        projectRoot,
+        { AUTH_SECRET: 'ranu-auth-secret-change-in-production-min-32-chars' },
+        'Authentication Secret Key',
+        isDryRun,
+        filesCreated,
+      );
+
       safeWriteFile(
         'app/api/auth/[...auth]/route.ts',
-        `import { cookies } from '@ranu/server';\n\n` +
+        `import { cookies } from '@ranu/server';\n` +
+          `import { verifySession, signSession } from '../../../../lib/auth';\n\n` +
+          `const AUTH_SECRET = process.env.AUTH_SECRET || 'ranu-auth-secret-change-in-production-min-32-chars';\n` +
+          `const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours\n\n` +
           `export async function GET() {\n` +
-          `  return Response.json({ status: 'authenticated', session: null });\n` +
-          `}\n\n` +
-          `export async function POST() {\n` +
           `  const cookieStore = await cookies();\n` +
-          `  cookieStore.set('session', 'active', {\n` +
+          `  const sessionCookie = cookieStore.get('session');\n` +
+          `  if (!sessionCookie) {\n` +
+          `    return Response.json({ error: 'Unauthorized', message: 'No session cookie' }, { status: 401 });\n` +
+          `  }\n` +
+          `  const session = await verifySession(sessionCookie, AUTH_SECRET);\n` +
+          `  if (!session) {\n` +
+          `    return Response.json({ error: 'Unauthorized', message: 'Session expired or invalid' }, { status: 401 });\n` +
+          `  }\n` +
+          `  return Response.json({ status: 'authenticated', session });\n` +
+          `}\n\n` +
+          `export async function POST(request: Request) {\n` +
+          `  let userId = 'user_anonymous';\n` +
+          `  try {\n` +
+          `    const body = (await request.json()) as { userId?: string };\n` +
+          `    if (body && typeof body.userId === 'string') {\n` +
+          `      userId = body.userId;\n` +
+          `    }\n` +
+          `  } catch {\n` +
+          `    // optional body fallback\n` +
+          `  }\n` +
+          `  const expiresAt = Date.now() + SESSION_DURATION_MS;\n` +
+          `  const token = await signSession({ userId, expiresAt }, AUTH_SECRET);\n` +
+          `  const cookieStore = await cookies();\n` +
+          `  cookieStore.set('session', token, {\n` +
           `    httpOnly: true,\n` +
-          `    secure: true,\n` +
+          `    secure: process.env.NODE_ENV === 'production',\n` +
           `    sameSite: 'lax',\n` +
+          `    path: '/',\n` +
+          `    maxAge: 86400,\n` +
           `  });\n` +
-          `  return Response.json({ success: true });\n` +
+          `  return Response.json({ success: true, expiresAt });\n` +
           `}\n`,
         true,
       );
@@ -418,11 +452,59 @@ export function runAddCommand(args: ParsedCliArgs, logger: CliLogger): Promise<n
       safeWriteFile(
         'lib/auth.ts',
         `import { cookies } from '@ranu/server';\n\n` +
-          `export async function getSession() {\n` +
+          `export interface SessionPayload {\n` +
+          `  userId: string;\n` +
+          `  expiresAt: number;\n` +
+          `  [key: string]: unknown;\n` +
+          `}\n\n` +
+          `export async function signSession(payload: SessionPayload, secret: string): Promise<string> {\n` +
+          `  const enc = new TextEncoder();\n` +
+          `  const data = JSON.stringify(payload);\n` +
+          `  const dataB64 = Buffer.from(data).toString('base64url');\n` +
+          `  const key = await crypto.subtle.importKey(\n` +
+          `    'raw',\n` +
+          `    enc.encode(secret),\n` +
+          `    { name: 'HMAC', hash: 'SHA-256' },\n` +
+          `    false,\n` +
+          `    ['sign'],\n` +
+          `  );\n` +
+          `  const sigBuffer = await crypto.subtle.sign('HMAC', key, enc.encode(dataB64));\n` +
+          `  const sigB64 = Buffer.from(sigBuffer).toString('base64url');\n` +
+          `  return \`\${dataB64}.\${sigB64}\`;\n` +
+          `}\n\n` +
+          `export async function verifySession(token: string, secret: string): Promise<SessionPayload | null> {\n` +
+          `  try {\n` +
+          `    if (!token || typeof token !== 'string') return null;\n` +
+          `    const parts = token.split('.');\n` +
+          `    if (parts.length !== 2) return null;\n` +
+          `    const [dataB64, sigB64] = parts;\n` +
+          `    const enc = new TextEncoder();\n` +
+          `    const key = await crypto.subtle.importKey(\n` +
+          `      'raw',\n` +
+          `      enc.encode(secret),\n` +
+          `      { name: 'HMAC', hash: 'SHA-256' },\n` +
+          `      false,\n` +
+          `      ['verify'],\n` +
+          `    );\n` +
+          `    const sigBuffer = Buffer.from(sigB64, 'base64url');\n` +
+          `    const isValid = await crypto.subtle.verify('HMAC', key, sigBuffer, enc.encode(dataB64));\n` +
+          `    if (!isValid) return null;\n` +
+          `    const json = Buffer.from(dataB64, 'base64url').toString('utf8');\n` +
+          `    const payload = JSON.parse(json) as SessionPayload;\n` +
+          `    if (typeof payload.expiresAt === 'number' && Date.now() > payload.expiresAt) {\n` +
+          `      return null;\n` +
+          `    }\n` +
+          `    return payload;\n` +
+          `  } catch {\n` +
+          `    return null;\n` +
+          `  }\n` +
+          `}\n\n` +
+          `export async function getSession(): Promise<SessionPayload | null> {\n` +
           `  const cookieStore = await cookies();\n` +
           `  const sessionCookie = cookieStore.get('session');\n` +
           `  if (!sessionCookie) return null;\n` +
-          `  return { id: 'session_active', valid: true };\n` +
+          `  const secret = process.env.AUTH_SECRET || 'ranu-auth-secret-change-in-production-min-32-chars';\n` +
+          `  return verifySession(sessionCookie, secret);\n` +
           `}\n`,
         true,
       );

@@ -497,7 +497,7 @@ describe('Empirical Challenge 2: Concurrency, Thread-Safety & Zero Cross-Talk', 
           ac.abort(new Error(`Pre-aborted ${i}`));
         } else {
           // Mid-stream abort
-          setTimeout(() => ac.abort(new Error(`Mid-aborted ${i}`)), 15);
+          setTimeout(() => ac.abort(new Error(`Mid-aborted ${i}`)), 10);
         }
       }
 
@@ -508,7 +508,7 @@ describe('Empirical Challenge 2: Concurrency, Thread-Safety & Zero Cross-Talk', 
           return new ReadableStream<AIChunk>({
             async start(ctrl) {
               ctrl.enqueue({ type: 'text', text: `{"callId": ${i}, "token": "tok-${i}", ` });
-              await new Promise((r) => setTimeout(r, 25));
+              await new Promise((r) => setTimeout(r, 60));
               try {
                 ctrl.enqueue({
                   type: 'text',
