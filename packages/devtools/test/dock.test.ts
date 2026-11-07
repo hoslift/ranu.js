@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mountDevToolsDock } from '../src/dock.js';
+import { mountDevToolsDock, escapeHtml } from '../src/dock.js';
 import {
   resetDevToolsState,
   toggleDevToolsDock,
@@ -8,6 +8,9 @@ import {
   setSelectedPartner,
   setPendingDiff,
   getDevToolsState,
+  recordRouteHierarchy,
+  recordHydrationStatus,
+  recordDevDiagnostics,
 } from '../src/state.js';
 
 class MockDOMElement {
@@ -245,6 +248,73 @@ describe('@ranu/devtools mountDevToolsDock', () => {
 
     const revertBtn = container?.shadowRoot?.querySelector('.ai-btn-revert');
     expect(revertBtn).not.toBeNull();
+
+    unmount?.();
+  });
+
+  it('safely escapes special HTML characters via escapeHtml', () => {
+    expect(escapeHtml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+    expect(escapeHtml("Tom & 'Jerry'")).toBe('Tom &amp; &#39;Jerry&#39;');
+    expect(escapeHtml(null)).toBe('');
+    expect(escapeHtml(undefined)).toBe('');
+  });
+
+  it('sanitizes dynamic user inputs in tabs against DOM XSS', () => {
+    const unmount = mountDevToolsDock(mockDoc as any);
+    toggleDevToolsDock();
+
+    // Streaming chunks tab (waterfall)
+    setActiveDevToolsTab('waterfall');
+    recordStreamingChunk(100, '<img src=x onerror=alert(1)>');
+    const container = mockDoc.getElementById('ranu-devtools-dock');
+    const waterfallRows = container?.shadowRoot?.querySelectorAll('.waterfall-row');
+    expect(waterfallRows?.[0]?.innerHTML).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(waterfallRows?.[0]?.innerHTML).not.toContain('<img src=x onerror=alert(1)>');
+
+    // Route tab
+    recordRouteHierarchy({
+      routeId: '<evil-route>',
+      pathname: '/test/<script>',
+      layouts: ['root', '<layout>'],
+      loading: '<loading>',
+    });
+    setActiveDevToolsTab('routes');
+    const routeContent = container?.shadowRoot?.querySelector('.content');
+    expect(routeContent?.innerHTML).toContain('&lt;evil-route&gt;');
+    expect(routeContent?.innerHTML).toContain('/test/&lt;script&gt;');
+    expect(routeContent?.innerHTML).not.toContain('<script>');
+
+    // Hydration tab
+    recordHydrationStatus('mismatch', 15, [
+      {
+        type: 'TextMismatch<bad>',
+        path: 'div > <script>',
+        message: 'Server rendered <evil>, client got <clean>',
+      },
+    ]);
+    setActiveDevToolsTab('hydration');
+    const hydrationContent = container?.shadowRoot?.querySelector('.content');
+    expect(hydrationContent?.innerHTML).toContain('MISMATCH');
+    const mismatchItem = hydrationContent?.children?.[0]?.children?.[0];
+    expect(mismatchItem?.innerHTML).toContain('TextMismatch&lt;bad&gt;');
+    expect(mismatchItem?.innerHTML).toContain('&lt;script&gt;');
+    expect(mismatchItem?.innerHTML).not.toContain('<script>');
+
+    // Diagnostics tab
+    recordDevDiagnostics([
+      {
+        code: 'ERR<xss>',
+        message: 'Failed to compile <script>',
+        hint: 'Fix your <input>',
+      } as any,
+    ]);
+    setActiveDevToolsTab('diagnostics');
+    const diagContent = container?.shadowRoot?.querySelector('.content');
+    const diagCard = diagContent?.children?.[0]?.children?.[0];
+    expect(diagCard?.innerHTML).toContain('ERR&lt;xss&gt;');
+    expect(diagCard?.innerHTML).toContain('&lt;script&gt;');
+    expect(diagCard?.innerHTML).toContain('&lt;input&gt;');
+    expect(diagCard?.innerHTML).not.toContain('<script>');
 
     unmount?.();
   });
