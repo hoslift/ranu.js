@@ -439,12 +439,29 @@ export async function build(config: BuildConfig): Promise<BuildResult> {
       };
     }
 
+    // Collect Server Actions discovered from the module graph
+    const serverActions: Record<string, import('@ranu/manifests').ServerActionMetadata> = {};
+    for (const node of moduleGraph.nodes.values()) {
+      if (node.actions) {
+        for (const act of node.actions) {
+          serverActions[act.actionId] = {
+            actionId: act.actionId,
+            routeId: node.id,
+            exportName: act.exportName,
+            astSignatureHash: act.astSignatureHash,
+            ...(act.isMutating !== undefined ? { isMutating: act.isMutating } : {}),
+          };
+        }
+      }
+    }
+
     // Stage 15b: Manifest generation
     const manifestResult = runManifestStage(
       ctx,
       routeResult.routes,
       clientResult.assets,
       staticResult.staticRoutes,
+      serverActions,
     );
     diagnostics.push(...manifestResult.diagnostics);
     if (diagnostics.some((d) => d.severity === 'error')) {

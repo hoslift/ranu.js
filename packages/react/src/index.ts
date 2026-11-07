@@ -24,3 +24,5 @@ export * from './client/prefetch.js';
 export * from './client/transition.js';
 export * from './flight-assertions.js';
 export * from './forms/use-form-action.js';
+export * from './forms/client-stub.js';
+

@@ -112,7 +112,7 @@ export function validateGraphBoundaries(graph: ModuleGraph): {
         const resolvedNode = Array.from(graph.nodes.values()).find(
           n => n.filePath === imp.resolvedPath
         );
-        if (resolvedNode?.isServerOnly) {
+        if (resolvedNode?.isServerOnly && !resolvedNode.hasUseServer) {
           const chain = findShortestImportChain(resolvedNode.id, graph.clientEntries, graph);
           const fullChain = chain ?? [node.id, resolvedNode.id];
           const chainText = chain ? `\nImport chain: ${chain.join(' -> ')}` : '';

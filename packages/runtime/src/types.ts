@@ -50,4 +50,11 @@ export interface RanuServerRuntimeOptions {
   readonly middleware?: RuntimeMiddleware;
   readonly config: RuntimeConfig;
   readonly extractUpstreamId?: (request: Request) => string | undefined;
+  readonly cacheStore?: import('./cache/types.js').CacheStore;
+  readonly routeCache?: import('./cache/route-cache.js').RouteCacheManager;
+  readonly actionDispatcher?: (
+    actionId: string,
+    request: Request,
+    context: RanuRequestContext,
+  ) => Promise<Response>;
 }

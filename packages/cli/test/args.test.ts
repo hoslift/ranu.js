@@ -96,8 +96,33 @@ describe('@ranu/cli argument parsing', () => {
     expect(findClosestCommand('dv')).toBe('dev');
     expect(findClosestCommand('buld')).toBe('build');
     expect(findClosestCommand('strt')).toBe('start');
+    expect(findClosestCommand('previe')).toBe('preview');
     expect(findClosestCommand('describ')).toBe('describe');
     expect(findClosestCommand('chek')).toBe('check');
+  });
+
+  it('parses preview command and options', () => {
+    const previewParsed = parseCliArgs(['preview']);
+    expect(previewParsed.command).toBe('preview');
+    expect(previewParsed.args).toEqual([]);
+    expect(previewParsed.build).toBeUndefined();
+
+    const buildParsed = parseCliArgs(['preview', '--build']);
+    expect(buildParsed.command).toBe('preview');
+    expect(buildParsed.build).toBe(true);
+
+    const fullParsed = parseCliArgs([
+      'preview',
+      '--port',
+      '4173',
+      '--host',
+      '127.0.0.1',
+      '--build',
+    ]);
+    expect(fullParsed.command).toBe('preview');
+    expect(fullParsed.port).toBe(4173);
+    expect(fullParsed.host).toBe('127.0.0.1');
+    expect(fullParsed.build).toBe(true);
   });
 
   it('parses describe and check commands', () => {

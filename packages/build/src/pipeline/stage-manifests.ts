@@ -14,11 +14,14 @@ import {
   type RouteManifestEntry,
   type ServerManifestEntry,
   type ClientAssetGroup,
+  type ActionManifest,
+  type ServerActionMetadata,
   validateBuildDescriptor,
   validateRouteManifest,
   validateServerManifest,
   validateClientManifest,
   validateStaticManifest,
+  validateActionManifest,
 } from '@ranu/manifests';
 import { formatJson, normalizePath } from '../output/artifact-writer.js';
 import type { BuildContext } from '../build-config.js';
@@ -31,18 +34,20 @@ export interface ManifestStageResult {
   serverManifest: ServerManifest;
   clientManifest: ClientManifest;
   staticManifest: StaticManifest;
+  actionManifest: ActionManifest;
   diagnostics: RanuDiagnostic[];
 }
 
 /**
  * Manifest Generation Stage (Stage 15).
- * Generates and validates all 4 manifests and the root build descriptor.
+ * Generates and validates all 5 manifests and the root build descriptor.
  */
 export function runManifestStage(
   ctx: BuildContext,
   routes: RouteEntryInfo[],
   clientAssets: Record<string, ClientAssetGroup> = {},
   staticRoutes: readonly StaticManifestEntry[] = [],
+  serverActions: Record<string, ServerActionMetadata> = {},
 ): ManifestStageResult {
   const diagnostics: RanuDiagnostic[] = [];
   const buildId = ctx.buildId;
@@ -110,7 +115,14 @@ export function runManifestStage(
     routes: sortedStaticRoutes,
   };
 
-  // 5. BuildDescriptor
+  // 5. Build ActionManifest
+  const actionManifest: ActionManifest = {
+    schemaVersion: MANIFEST_SCHEMA_VERSION,
+    buildId,
+    actions: serverActions,
+  };
+
+  // 6. BuildDescriptor
   const buildDescriptor: BuildDescriptor = {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
     buildId,
@@ -121,10 +133,11 @@ export function runManifestStage(
       server: './manifest/server.json',
       client: './manifest/client.json',
       static: './manifest/static.json',
+      actions: './manifest/actions.json',
     },
   };
 
-  // 6. Validate all manifests using official @ranu/manifests validators
+  // 7. Validate all manifests using official @ranu/manifests validators
   const descVal = validateBuildDescriptor(buildDescriptor);
   if (!descVal.success) diagnostics.push(...descVal.diagnostics);
 
@@ -140,7 +153,10 @@ export function runManifestStage(
   const staticVal = validateStaticManifest(staticManifest, buildId);
   if (!staticVal.success) diagnostics.push(...staticVal.diagnostics);
 
-  // 7. Write manifests to disk in temporary directory
+  const actionVal = validateActionManifest(actionManifest, buildId);
+  if (!actionVal.success) diagnostics.push(...actionVal.diagnostics);
+
+  // 8. Write manifests to disk in temporary directory
   if (!fs.existsSync(ctx.manifestOutDir)) {
     fs.mkdirSync(ctx.manifestOutDir, { recursive: true });
   }
@@ -150,6 +166,7 @@ export function runManifestStage(
   fs.writeFileSync(path.join(ctx.manifestOutDir, 'server.json'), formatJson(serverManifest));
   fs.writeFileSync(path.join(ctx.manifestOutDir, 'client.json'), formatJson(clientManifest));
   fs.writeFileSync(path.join(ctx.manifestOutDir, 'static.json'), formatJson(staticManifest));
+  fs.writeFileSync(path.join(ctx.manifestOutDir, 'actions.json'), formatJson(actionManifest));
 
   return {
     success: diagnostics.length === 0,
@@ -158,6 +175,7 @@ export function runManifestStage(
     serverManifest,
     clientManifest,
     staticManifest,
+    actionManifest,
     diagnostics,
   };
 }
