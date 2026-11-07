@@ -37,8 +37,9 @@ const ICONS = {
   eye: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
 };
 
-export function escapeHtml(str: unknown): string {
-  return String(str ?? '')
+export function escapeHtml(str: string | number | boolean | null | undefined): string {
+  const val = typeof str === 'string' ? str : typeof str === 'number' || typeof str === 'boolean' ? String(str) : '';
+  return val
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -81,7 +82,7 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
     claude: 'account',
     openai: 'byok',
   };
-  let isAccountConnected: Record<string, boolean> = {
+  const isAccountConnected: Record<string, boolean> = {
     groq: true,
     gemini: false,
     claude: true,
