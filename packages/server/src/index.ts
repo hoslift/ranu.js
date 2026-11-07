@@ -14,3 +14,6 @@ export * from './actions/types.js';
 export * from './actions/form-action.js';
 export * from './stream.js';
 export * from './vip.js';
+export * from './caching.js';
+export * from './actions/registry.js';
+export * from './actions/rpc.js';

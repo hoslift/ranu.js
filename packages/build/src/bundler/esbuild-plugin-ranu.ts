@@ -9,6 +9,7 @@ import {
   emitStaticAsset,
   rewriteCssUrls,
 } from '../assets/asset-emitter.js';
+import { detectDirectives } from '../compiler/directive-detector.js';
 
 export interface RanuPluginOptions {
   platform: 'node' | 'browser';
@@ -117,6 +118,80 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
         path: args.path,
         external: true,
       }));
+
+      // Transform Server Action modules into client RPC stubs in browser bundles
+      if (platform === 'browser') {
+        build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, (args) => {
+          if (args.path.includes('node_modules')) {
+            return null;
+          }
+
+          let fileContent = '';
+          try {
+            fileContent = fs.readFileSync(args.path, 'utf8');
+          } catch {
+            return null;
+          }
+
+          if (!fileContent.includes('use server')) {
+            return null;
+          }
+
+          const relPath = path.relative(projectRoot, args.path).replace(/\\/g, '/');
+          const analysis = detectDirectives(relPath, fileContent);
+
+          if (analysis.hasUseServer && analysis.actions.length > 0) {
+            // Case 1: Pure Server Action module (module-level 'use server' directive prologue)
+            // Replace entire file with client action stubs
+            if (analysis.hasModuleUseServer) {
+              const lines = ['import { createClientActionStub } from "@ranu/react";'];
+
+              for (const act of analysis.actions) {
+                if (act.exportName === 'default') {
+                  lines.push(`export default createClientActionStub(${JSON.stringify(act.actionId)});`);
+                } else {
+                  lines.push(
+                    `export const ${act.exportName} = createClientActionStub(${JSON.stringify(act.actionId)});`,
+                  );
+                }
+              }
+
+              return {
+                contents: lines.join('\n'),
+                loader: 'js',
+              };
+            }
+
+            // Case 2: Mixed module (function-level 'use server' directives inside components/helpers)
+            // Replace only the server action statements in-place, preserving components and non-action exports
+            const sortedActions = [...analysis.actions]
+              .filter((a) => a.start !== undefined && a.end !== undefined)
+              .sort((a, b) => b.start! - a.start!);
+
+            let modified = fileContent;
+            for (const act of sortedActions) {
+              const stub =
+                act.exportName === 'default'
+                  ? `export default createClientActionStub(${JSON.stringify(act.actionId)});`
+                  : `export const ${act.exportName} = createClientActionStub(${JSON.stringify(act.actionId)});`;
+              modified = modified.slice(0, act.start!) + stub + modified.slice(act.end!);
+            }
+
+            modified = 'import { createClientActionStub } from "@ranu/react";\n' + modified;
+
+            const ext = path.extname(args.path).toLowerCase();
+            const loader =
+              ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : ext === '.jsx' ? 'jsx' : 'js';
+
+            return {
+              contents: modified,
+              loader,
+            };
+          }
+
+          return null;
+        });
+      }
 
       // 2. Static Asset Imports (.png, .svg, .woff2, etc.)
       build.onLoad({ filter: STATIC_ASSET_FILTER }, (args) => {

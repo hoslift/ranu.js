@@ -4,6 +4,7 @@ const KNOWN_COMMANDS: readonly CliCommand[] = [
   'dev',
   'build',
   'start',
+  'preview',
   'create',
   'deploy',
   'describe',
@@ -85,6 +86,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
   let root: string | undefined;
   let port: number | undefined;
   let host: string | undefined;
+  let build = false;
   let clean = false;
   let open = false;
   let verbose = false;
@@ -118,6 +120,11 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
 
     if (arg === '--version' || arg === '-v') {
       version = true;
+      continue;
+    }
+
+    if (arg === '--build') {
+      build = true;
       continue;
     }
 
@@ -362,6 +369,7 @@ export function parseCliArgs(argv: readonly string[]): ParsedCliArgs {
     root,
     port,
     host,
+    build: build ? true : undefined,
     clean: clean ? true : undefined,
     open: open ? true : undefined,
     verbose: verbose ? true : undefined,

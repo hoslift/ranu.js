@@ -5,6 +5,7 @@ export type CliCommand =
   | 'dev'
   | 'build'
   | 'start'
+  | 'preview'
   | 'create'
   | 'deploy'
   | 'describe'
@@ -25,6 +26,7 @@ export interface ParsedCliArgs {
   readonly root?: string | undefined;
   readonly port?: number | undefined;
   readonly host?: string | undefined;
+  readonly build?: boolean | undefined;
   readonly clean?: boolean | undefined;
   readonly open?: boolean | undefined;
   readonly verbose?: boolean | undefined;

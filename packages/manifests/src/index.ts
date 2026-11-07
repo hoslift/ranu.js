@@ -1,4 +1,12 @@
-import type { RouteKind, RenderMode, HttpMethod } from '@ranu/core';
+import type {
+  RouteKind,
+  RenderMode,
+  HttpMethod,
+  ServerActionMetadata,
+  ActionManifest,
+} from '@ranu/core';
+
+export type { ServerActionMetadata, ActionManifest } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 
 /** Schema version for manifests */
@@ -29,6 +37,7 @@ export interface BuildDescriptor {
     server: string;
     client: string;
     static: string;
+    actions?: string;
   };
 }
 
@@ -208,6 +217,23 @@ export function validateBuildDescriptor(descriptor: any): {
           code: 'RANU_BUILD_MANIFEST_INVALID',
           severity: 'error',
           message: `Build descriptor manifests path for "${key}" cannot be an absolute path: "${p}".`,
+        });
+      }
+    }
+
+    if (manifestPaths.actions !== undefined) {
+      const p = manifestPaths.actions;
+      if (typeof p !== 'string' || !p) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: 'Build descriptor has invalid path mapping for manifest: "actions".',
+        });
+      } else if (isAbsolutePath(p)) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `Build descriptor manifests path for "actions" cannot be an absolute path: "${p}".`,
         });
       }
     }
@@ -717,3 +743,108 @@ export function validateStaticManifest(
 
   return { success: diagnostics.length === 0, diagnostics };
 }
+
+/**
+ * Validator for ActionManifest
+ */
+export function validateActionManifest(
+  manifest: any,
+  expectedBuildId?: string,
+): { success: boolean; diagnostics: RanuDiagnostic[] } {
+  const diagnostics = validateBaseManifest(manifest, expectedBuildId, 'ActionManifest');
+  if (diagnostics.length > 0 && !manifest) {
+    return { success: false, diagnostics };
+  }
+
+  const actions = manifest.actions;
+  if (!actions || typeof actions !== 'object' || Array.isArray(actions)) {
+    diagnostics.push({
+      code: 'RANU_BUILD_MANIFEST_INVALID',
+      severity: 'error',
+      message: 'ActionManifest "actions" field must be an object.',
+    });
+    return { success: false, diagnostics };
+  }
+
+  const ACTION_ID_PATTERN = /^act_[a-f0-9]{16}$/;
+
+  const validateActionEntries = (
+    entries: Record<string, any>,
+    fieldLabel: string,
+  ) => {
+    for (const [key, action] of Object.entries(entries)) {
+      if (!ACTION_ID_PATTERN.test(key)) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry key "${key}" is not a valid action ID format (must match act_<16 hex chars>).`,
+        });
+      }
+
+      if (!action || typeof action !== 'object' || Array.isArray(action)) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry for "${key}" is not an object.`,
+        });
+        continue;
+      }
+
+      if (action.actionId !== key) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry "${key}" actionId mismatch: key is "${key}" but actionId is "${action.actionId}".`,
+        });
+      }
+
+      if (typeof action.routeId !== 'string' || !action.routeId) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry "${key}" is missing a valid "routeId".`,
+        });
+      }
+
+      if (typeof action.exportName !== 'string' || !action.exportName) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry "${key}" is missing a valid "exportName".`,
+        });
+      }
+
+      if (typeof action.astSignatureHash !== 'string' || !action.astSignatureHash) {
+        diagnostics.push({
+          code: 'RANU_BUILD_MANIFEST_INVALID',
+          severity: 'error',
+          message: `${fieldLabel} entry "${key}" is missing a valid "astSignatureHash".`,
+        });
+      }
+    }
+  };
+
+  validateActionEntries(actions, 'ActionManifest "actions"');
+
+  if (manifest.previousBuildGraceActions !== undefined) {
+    if (
+      !manifest.previousBuildGraceActions ||
+      typeof manifest.previousBuildGraceActions !== 'object' ||
+      Array.isArray(manifest.previousBuildGraceActions)
+    ) {
+      diagnostics.push({
+        code: 'RANU_BUILD_MANIFEST_INVALID',
+        severity: 'error',
+        message: 'ActionManifest "previousBuildGraceActions" field must be an object.',
+      });
+    } else {
+      validateActionEntries(
+        manifest.previousBuildGraceActions,
+        'ActionManifest "previousBuildGraceActions"',
+      );
+    }
+  }
+
+  return { success: diagnostics.length === 0, diagnostics };
+}
+

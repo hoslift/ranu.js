@@ -13,7 +13,7 @@ export function runHelpCommand(subcommand?: string, logger?: CliLogger, isJson?:
       name: 'ranu',
       command: subcommand ?? 'root',
       usage: subcommand ? `ranu ${subcommand} [options]` : 'ranu <command> [options]',
-      commands: ['dev', 'build', 'start', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'add', 'ai', 'prompt', 'help', 'version'],
+      commands: ['dev', 'build', 'start', 'preview', 'create', 'deploy', 'describe', 'check', 'fix', 'generate', 'add', 'ai', 'prompt', 'help', 'version'],
       options: [
         { flag: '-r, --root <path>', description: 'Project root directory' },
         { flag: '-p, --port <number>', description: 'Port number to listen on' },
@@ -54,6 +54,7 @@ Commands:
   dev       Start the Ranu.js development server with HMR and Fast Refresh
   build     Create an optimized production build
   start     Start the production HTTP server
+  preview   Start the local preview server for production build
   create    Scaffold a new Ranu.js application
   deploy    Prepare deployment artifacts for hosting adapter
   describe  Introspect application route graph and contracts
@@ -141,6 +142,26 @@ Options:
   -p, --port <number>   Port to listen on (default: 3000)
   -h, --host <string>   Host address to bind (default: 0.0.0.0)
   --debug               Enable debug logs
+`);
+      break;
+
+    case 'preview':
+      log(`
+Usage:
+  $ ranu preview [options]
+
+Description:
+  Starts a local production preview simulation server using artifacts from .ranu/build/.
+
+Options:
+  -r, --root <path>     Project root directory
+  -p, --port <number>   Port to listen on (default: 4173)
+  -h, --host <string>   Host address to bind (default: 127.0.0.1)
+  --build               Trigger production build first if .ranu/build is missing
+  --open                Open browser after server start
+  --debug               Enable debug diagnostics
+  -q, --quiet           Suppress non-essential console output
+  --json                Output status in JSON format
 `);
       break;
 

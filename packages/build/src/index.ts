@@ -13,7 +13,13 @@ export { createRanuEsbuildPlugin } from './bundler/esbuild-plugin-ranu.js';
 export {
   detectDirectives,
   isClientDirective,
+  type DiscoveredServerAction,
+  type DirectiveAnalysis,
 } from './compiler/directive-detector.js';
+export {
+  computeActionId,
+  normalizeAstSignature,
+} from './compiler/action-hasher.js';
 export {
   hasServerOnlyImport,
   isServerDirectoryModule,

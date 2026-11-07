@@ -5,6 +5,7 @@ import { runVersionCommand } from './commands/version.js';
 import { runDevCommand } from './commands/dev.js';
 import { runBuildCommand } from './commands/build.js';
 import { runStartCommand } from './commands/start.js';
+import { runPreviewCommand } from './commands/preview.js';
 import { runDeployCommand } from './commands/deploy.js';
 import { runCreateCommand } from './commands/create.js';
 import { runDescribeCommand } from './commands/describe.js';
@@ -54,6 +55,9 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
 
       case 'start':
         return await runStartCommand(args, logger);
+
+      case 'preview':
+        return await runPreviewCommand(args, logger);
 
       case 'deploy':
         return await runDeployCommand(args, logger);

@@ -6,8 +6,11 @@ import type {
 } from './types.js';
 
 function formDataToObject(formData: FormData): Record<string, unknown> {
-  const obj: Record<string, unknown> = {};
+  const obj: Record<string, unknown> = Object.create(null);
   formData.forEach((value, key) => {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return;
+    }
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const existing = obj[key];
       if (Array.isArray(existing)) {

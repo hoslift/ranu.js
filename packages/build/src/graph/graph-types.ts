@@ -22,6 +22,8 @@ export interface ModuleNode {
   classification: ModuleClassification;
   isClientEntry: boolean;
   isServerOnly: boolean;
+  hasUseServer?: boolean;
+  actions?: readonly import('../compiler/directive-detector.js').DiscoveredServerAction[];
   serverOnlyReason?: 'server-directory' | 'server-only-import' | undefined;
   imports: ModuleImport[];
   importedBy: string[]; // Node IDs that import this node

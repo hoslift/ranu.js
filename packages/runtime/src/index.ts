@@ -12,3 +12,7 @@ export type * from './dispatch.js';
 export * from './errors.js';
 export * from './engine.js';
 export * from './matcher.js';
+export * from './cache/types.js';
+export * from './cache/memory-store.js';
+export * from './cache/route-cache.js';
+

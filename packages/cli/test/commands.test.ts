@@ -35,6 +35,7 @@ describe('@ranu/cli commands comprehensive', () => {
       expect(runHelpCommand('dev', logger)).toBe(0);
       expect(runHelpCommand('build', logger)).toBe(0);
       expect(runHelpCommand('start', logger)).toBe(0);
+      expect(runHelpCommand('preview', logger)).toBe(0);
       expect(runHelpCommand('create', logger)).toBe(0);
       expect(runHelpCommand('deploy', logger)).toBe(0);
       expect(runHelpCommand('unknownSub', logger)).toBe(0);
@@ -597,6 +598,11 @@ describe('@ranu/cli commands comprehensive', () => {
       const startPromise = runCli(['start', '--root', tempDir]);
       setTimeout(() => process.emit('SIGINT'), 50);
       expect(await startPromise).toBe(0);
+
+      // Dispatch preview
+      const previewPromise = runCli(['preview', '--root', tempDir]);
+      setTimeout(() => process.emit('SIGINT'), 50);
+      expect(await previewPromise).toBe(0);
 
       // Dispatch deploy (without adapter returns 1)
       expect(await runCli(['deploy', '--root', tempDir])).toBe(1);

@@ -74,3 +74,26 @@ export function waitUntil(promise: Promise<unknown>): void {
   context.waitUntil(promise);
 }
 
+const GLOBAL_CACHE_STORE_KEY = Symbol.for('ranu.activeCacheStore');
+
+/**
+ * Sets or replaces the globally active CacheStore.
+ */
+export function setActiveCacheStore(store: import('./cache/types.js').CacheStore | undefined): void {
+  const g = globalThis as Record<symbol, unknown>;
+  if (store === undefined) {
+    delete g[GLOBAL_CACHE_STORE_KEY];
+  } else {
+    g[GLOBAL_CACHE_STORE_KEY] = store;
+  }
+}
+
+/**
+ * Returns the globally active CacheStore.
+ */
+export function getActiveCacheStore(): import('./cache/types.js').CacheStore | undefined {
+  const g = globalThis as Record<symbol, unknown>;
+  return g[GLOBAL_CACHE_STORE_KEY] as import('./cache/types.js').CacheStore | undefined;
+}
+
+

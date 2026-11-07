@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { isClientDirective } from '../compiler/directive-detector.js';
+import { detectDirectives } from '../compiler/directive-detector.js';
 import { isServerOnlyModule } from '../compiler/server-only-detector.js';
 import { analyzePageRenderMode } from '../pipeline/stage-routes.js';
 import type { ModuleGraph, ModuleNode, ModuleImport } from './graph-types.js';
@@ -168,7 +168,9 @@ export function buildModuleGraph(serverRootFiles: string[], projectRoot: string)
       fileContent = '';
     }
 
-    const hasClientDirective = isClientDirective(normPath, fileContent);
+    const directives = detectDirectives(relId, fileContent);
+    const hasClientDirective = directives.isClient;
+    const hasUseServer = directives.hasUseServer;
     const hasClientRender = fileContent.includes('render') && fileContent.includes('client') && analyzePageRenderMode(normPath, fileContent).renderMode === 'client';
     const isClient = hasClientDirective || hasClientRender;
     const serverOnlyCheck = isServerOnlyModule(normPath, fileContent, projectRoot);
@@ -179,6 +181,8 @@ export function buildModuleGraph(serverRootFiles: string[], projectRoot: string)
       classification: isClient ? 'client-entry' : serverOnlyCheck.isServerOnly ? 'server-only' : 'shared',
       isClientEntry: isClient,
       isServerOnly: serverOnlyCheck.isServerOnly,
+      hasUseServer,
+      actions: directives.actions,
       serverOnlyReason: serverOnlyCheck.reason,
       imports: [],
       importedBy: [],

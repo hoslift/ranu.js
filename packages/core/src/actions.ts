@@ -55,3 +55,50 @@ export type FormAction<TInput, TOutput> = {
   (input: FormData | Request | Record<string, unknown>): Promise<FormActionResult<TOutput>>;
   raw(data: TInput, request?: Request): Promise<TOutput>;
 };
+
+/**
+ * Server Action Metadata recorded in ActionManifest.
+ */
+export interface ServerActionMetadata {
+  readonly actionId: string; // e.g. "act_a8f9c1b2d3e4"
+  readonly routeId: string;  // e.g. "app/actions/user.ts"
+  readonly exportName: string;
+  readonly astSignatureHash: string;
+  readonly isMutating?: boolean | undefined;
+}
+
+/**
+ * Action Manifest schema.
+ */
+export interface ActionManifest {
+  readonly schemaVersion: number;
+  readonly buildId: string;
+  readonly actions: Record<string, ServerActionMetadata>;
+  readonly previousBuildGraceActions?: Record<string, ServerActionMetadata> | undefined;
+}
+
+/**
+ * Structured error frame emitted mid-stream when a streaming Server Action fails.
+ */
+export interface MidStreamErrorFrame {
+  readonly $e: true;
+  readonly code: string;
+  readonly message: string;
+  readonly recoverable: boolean;
+}
+
+/**
+ * Error thrown in client stubs when a mid-stream exception frame is received.
+ */
+export class RanuActionStreamError extends Error {
+  readonly code: string;
+  readonly recoverable: boolean;
+
+  constructor(message: string, code = 'ACTION_STREAM_ERROR', recoverable = false) {
+    super(message);
+    this.name = 'RanuActionStreamError';
+    this.code = code;
+    this.recoverable = recoverable;
+  }
+}
+

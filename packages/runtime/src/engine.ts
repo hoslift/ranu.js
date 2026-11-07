@@ -9,7 +9,9 @@ import type { CompiledRouteRecord } from '@ranu/router';
 import { matchRoute } from '@ranu/router';
 import { isControlSignal, RedirectSignal, NotFoundSignal } from './signals.js';
 import { sanitizeErrorResponse } from './errors.js';
-import { registerRequestContextStore } from './context.js';
+import { registerRequestContextStore, setActiveCacheStore } from './context.js';
+import { RouteCacheManager } from './cache/route-cache.js';
+import type { CacheStore } from './cache/types.js';
 import type { RouteKind } from '@ranu/core';
 
 let globalRequestSequence = 0;
@@ -68,6 +70,8 @@ function finalizeResponse(
 export class RanuServerRuntime {
   private staticLookup = new Map<string, { routeId: string; file: string }>();
   private unregisterStore: (() => void) | undefined;
+  private routeCache: RouteCacheManager | undefined;
+  private cacheStore: CacheStore | undefined;
 
   constructor(private options: RanuServerRuntimeOptions) {
     this.unregisterStore = registerRequestContextStore(options.contextStore);
@@ -76,6 +80,23 @@ export class RanuServerRuntime {
         this.staticLookup.set(route.pathname, route);
       }
     }
+    this.cacheStore = options.cacheStore;
+    if (options.routeCache) {
+      this.routeCache = options.routeCache;
+    } else if (options.cacheStore) {
+      this.routeCache = new RouteCacheManager(options.cacheStore);
+    }
+    if (this.cacheStore) {
+      setActiveCacheStore(this.cacheStore);
+    }
+  }
+
+  getCacheStore(): CacheStore | undefined {
+    return this.cacheStore;
+  }
+
+  getRouteCache(): RouteCacheManager | undefined {
+    return this.routeCache;
   }
 
   /**
@@ -150,6 +171,10 @@ export class RanuServerRuntime {
       backgroundPromises.push(safePromise);
     };
 
+    if (this.cacheStore) {
+      locals.set('__ranu_cache_store__', this.cacheStore);
+    }
+
     const context: RanuRequestContext = {
       requestId,
       request,
@@ -222,6 +247,42 @@ export class RanuServerRuntime {
         let normalizedPathname = effectivePathname;
         if (normalizedPathname !== '/' && normalizedPathname.endsWith('/')) {
           normalizedPathname = normalizedPathname.slice(0, -1);
+        }
+
+        // 5b. Server Action wire protocol endpoint check: POST /_ranu/action/:actionId
+        if (normalizedPathname.startsWith('/_ranu/action/')) {
+          const actionId = normalizedPathname.slice('/_ranu/action/'.length);
+          if (method !== 'POST') {
+            return finalizeResponse(
+              new Response('Method Not Allowed', {
+                status: 405,
+                headers: { Allow: 'POST' },
+              }),
+              context,
+              middlewareHeaders,
+            );
+          }
+
+          if (this.options.actionDispatcher) {
+            const res = await this.options.actionDispatcher(actionId, currentRequest, context);
+            return finalizeResponse(res, context, middlewareHeaders);
+          }
+
+          return finalizeResponse(
+            new Response(
+              JSON.stringify({
+                success: false,
+                errors: {},
+                formErrors: ['Server Action dispatcher not configured'],
+              }),
+              {
+                status: 404,
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              },
+            ),
+            context,
+            middlewareHeaders,
+          );
         }
 
         // 6. Precedence check: StaticManifest exact concrete pathname match
@@ -305,6 +366,49 @@ export class RanuServerRuntime {
             ...(routeRecord.loading !== undefined ? { loading: routeRecord.loading } : {}),
             ...(routeRecord.notFound !== undefined ? { notFound: routeRecord.notFound } : {}),
           };
+
+          const isrTtl =
+            typeof (routeRecord as any).revalidate === 'number'
+              ? (routeRecord as any).revalidate
+              : 0;
+
+          if (this.routeCache && isrTtl > 0) {
+            const routeKey = `route:${normalizedPathname}`;
+            const tags: string[] = Array.isArray((routeRecord as any).tags)
+              ? (routeRecord as any).tags
+              : [];
+
+            const { result: cached, isStale, isHit } = await this.routeCache.getOrRevalidate(
+              routeKey,
+              isrTtl,
+              tags,
+              async () => {
+                const renderRes = await this.options.renderer.render(
+                  currentRequest,
+                  context,
+                  pageTarget,
+                );
+                const bodyText = await renderRes.text();
+                const headersList: [string, string][] = [];
+                renderRes.headers.forEach((v, k) => headersList.push([k, v]));
+                return {
+                  body: bodyText,
+                  status: renderRes.status,
+                  statusText: renderRes.statusText,
+                  headers: headersList,
+                };
+              },
+            );
+
+            const resHeaders = new Headers(cached.headers);
+            resHeaders.set('x-ranu-cache', isHit ? (isStale ? 'STALE' : 'HIT') : 'MISS');
+            const res = new Response(cached.body, {
+              status: cached.status,
+              statusText: cached.statusText,
+              headers: resHeaders,
+            });
+            return finalizeResponse(res, context, middlewareHeaders);
+          }
 
           const res = await this.options.renderer.render(currentRequest, context, pageTarget);
           return finalizeResponse(res, context, middlewareHeaders);

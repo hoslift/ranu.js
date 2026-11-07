@@ -7,6 +7,7 @@ import {
   validateServerManifest,
   validateClientManifest,
   validateStaticManifest,
+  validateActionManifest,
   isAbsolutePath,
   type BuildDescriptor,
   type BuildRuntimeTarget,
@@ -14,6 +15,7 @@ import {
   type ServerManifest,
   type ClientManifest,
   type StaticManifest,
+  type ActionManifest,
 } from '../src/index.js';
 
 describe('@ranu/manifests', () => {
@@ -731,6 +733,105 @@ describe('@ranu/manifests', () => {
       const result = validateStaticManifest(manifest);
       expect(result.success).toBe(false);
       expect(result.diagnostics[0].message).toContain('ordered deterministically');
+    });
+  });
+
+  describe('ActionManifest validation', () => {
+    it('passes for valid ActionManifest', () => {
+      const manifest: ActionManifest = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        actions: {
+          act_a1b2c3d4e5f67890: {
+            actionId: 'act_a1b2c3d4e5f67890',
+            routeId: 'app/actions/user.ts',
+            exportName: 'updateUser',
+            astSignatureHash: 'hash123',
+            isMutating: true,
+          },
+        },
+      };
+      const result = validateActionManifest(manifest);
+      expect(result.success).toBe(true);
+    });
+
+    it('passes for valid ActionManifest with previousBuildGraceActions', () => {
+      const manifest: ActionManifest = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        actions: {
+          act_a1b2c3d4e5f67890: {
+            actionId: 'act_a1b2c3d4e5f67890',
+            routeId: 'app/actions/user.ts',
+            exportName: 'updateUser',
+            astSignatureHash: 'hash123',
+          },
+        },
+        previousBuildGraceActions: {
+          act_098765f4e3d2c1ba: {
+            actionId: 'act_098765f4e3d2c1ba',
+            routeId: 'app/actions/user.ts',
+            exportName: 'updateUser',
+            astSignatureHash: 'hashOld',
+          },
+        },
+      };
+      const result = validateActionManifest(manifest, 'build_123');
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects invalid action ID format', () => {
+      const manifest = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        actions: {
+          invalid_id: {
+            actionId: 'invalid_id',
+            routeId: 'app/actions/user.ts',
+            exportName: 'updateUser',
+            astSignatureHash: 'hash123',
+          },
+        },
+      };
+      const result = validateActionManifest(manifest);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics[0].message).toContain('not a valid action ID format');
+    });
+
+    it('rejects actionId mismatch with entry key', () => {
+      const manifest = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        actions: {
+          act_a1b2c3d4e5f67890: {
+            actionId: 'act_1122334455667788',
+            routeId: 'app/actions/user.ts',
+            exportName: 'updateUser',
+            astSignatureHash: 'hash123',
+          },
+        },
+      };
+      const result = validateActionManifest(manifest);
+      expect(result.success).toBe(false);
+      expect(result.diagnostics[0].message).toContain('actionId mismatch');
+    });
+
+    it('validates BuildDescriptor with optional actions path', () => {
+      const desc: BuildDescriptor = {
+        schemaVersion: 1,
+        buildId: 'build_123',
+        frameworkVersion: '0.3.0',
+        runtime: 'node',
+        manifests: {
+          routes: './manifest/routes.json',
+          server: './manifest/server.json',
+          client: './manifest/client.json',
+          static: './manifest/static.json',
+          actions: './manifest/actions.json',
+        },
+      };
+      const result = validateBuildDescriptor(desc);
+      expect(result.success).toBe(true);
     });
   });
 });
