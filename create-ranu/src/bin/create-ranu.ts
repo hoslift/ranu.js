@@ -4,6 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import type { Readable, Writable } from 'node:stream';
 import { scaffoldProject } from '../scaffold.js';
+import { runInteractivePrompts } from '../prompts.js';
 import { getRunCommand, detectPackageManager } from '../package-manager.js';
 import type { PackageManager, TemplateName, AIEngineName } from '../types.js';
 import { SUPPORTED_AI_ENGINES } from '../types.js';
@@ -151,7 +152,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === '--adapter' || arg === '-a') {
       i++;
       const val = argv[i];
-      const validAdapters = ['cloudflare', 'node', 'netlify', 'bun', 'deno', 'vercel'];
+      const validAdapters = ['cloudflare', 'node', 'netlify', 'bun', 'deno', 'vercel', 'static'];
       if (!val || val.startsWith('-') || !validAdapters.includes(val)) {
         throw new Error(`Invalid adapter "${val}". Supported: ${validAdapters.join(', ')}.`);
       }
@@ -245,7 +246,7 @@ Usage:
 
 Options:
   -t, --template <name>         Starter template (default, minimal, cloudflare, node-docker, api-routes, saas)
-  -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel)
+  -a, --adapter <name>          Deployment adapter (cloudflare, node, netlify, bun, deno, vercel, static)
   --ai, --ai-engine <name>      AI engine to configure (none, gemini, groq, claude, codex, openai, custom) [default: none]
   --api-key <key>               API key or session token for configured AI engine
   --endpoint <url>              Custom or local endpoint URL for AI engine (e.g. http://localhost:11434)
@@ -281,9 +282,17 @@ Examples:
  * @param argv - Argument strings without node binary and script path.
  * @returns Exit status code (0 for success, 1 for error).
  */
+/**
+ * Checks whether any CLI flags (arguments starting with '-') were provided.
+ */
+export function hasCliFlags(argv: readonly string[]): boolean {
+  return argv.some((arg) => arg.startsWith('-'));
+}
+
 export async function runCreateRanu(
   argv: readonly string[] = process.argv.slice(2),
-  io: { input?: Readable; output?: Writable } = {}
+  runtimeOptions?: { input?: Readable; output?: Writable; interactive?: boolean }
+
 ): Promise<number> {
   const wantsJson = argv.includes('--json');
   try {
@@ -313,8 +322,43 @@ export async function runCreateRanu(
       return 0;
     }
 
+    const flagsProvided = hasCliFlags(argv);
+    const isTty = Boolean(process.stdin.isTTY);
+    const isCi = process.env.CI === 'true';
+    const forceInteractive = runtimeOptions?.interactive;
+
+    const shouldPrompt =
+      !parsed.json &&
+      !parsed.quiet &&
+      !parsed.help &&
+      !parsed.version &&
+      !flagsProvided &&
+      (forceInteractive ?? (isTty && !isCi));
+
+    let targetDir = parsed.targetPath ?? 'my-ranu-app';
+    let pm = parsed.packageManager ?? detectPackageManager();
+    let template = parsed.template;
+    let adapter = parsed.adapter;
+    let force = parsed.force;
+
+    if (shouldPrompt) {
+      const promptResult = await runInteractivePrompts({
+        initialTargetDir: parsed.targetPath,
+      });
+
+      if (!promptResult) {
+        return 0; // Clean cancellation
+      }
+
+      targetDir = promptResult.targetPath;
+      pm = promptResult.packageManager;
+      template = promptResult.template;
+      adapter = promptResult.adapter;
+      force = promptResult.force ?? force;
+    }
+
     const isInteractive = Boolean(
-      (io.input ? true : (process.stdin.isTTY && !process.env.CI)) && !parsed.quiet && !parsed.json
+      (runtimeOptions?.input ? true : (process.stdin.isTTY && !process.env.CI)) && !parsed.quiet && !parsed.json
     );
 
     let selectedAI = parsed.ai;
@@ -323,11 +367,11 @@ export async function runCreateRanu(
 
     const aiSelectedInteractively = selectedAI === undefined && isInteractive;
     if (aiSelectedInteractively) {
-      const inStream = io.input ?? process.stdin;
-      const outStream = io.output ?? process.stdout;
+      const inStream = runtimeOptions?.input ?? process.stdin;
+      const outStream = runtimeOptions?.output ?? process.stdout;
       const rl = readline.createInterface({ input: inStream, output: outStream });
       try {
-        selectedAI = await promptSelect('Select AI Engine:', AI_ENGINE_CHOICES, 0, { ...io, rl });
+        selectedAI = await promptSelect('Select AI Engine:', AI_ENGINE_CHOICES, 0, { ...runtimeOptions, rl });
         selectedAI = selectedAI ?? 'none';
 
         if (selectedAI !== 'none') {
@@ -335,14 +379,14 @@ export async function runCreateRanu(
             if (!endpoint) {
               const inputEndpoint = await promptInput(
                 'Local / Custom AI Endpoint URL',
-                { ...io, rl, defaultValue: 'http://localhost:11434' }
+                { ...runtimeOptions, rl, defaultValue: 'http://localhost:11434' }
               );
               endpoint = inputEndpoint || 'http://localhost:11434';
             }
             if (!apiKey) {
               const inputKey = await promptInput(
                 'Custom AI API Key or Session Token (optional)',
-                { ...io, rl }
+                { ...runtimeOptions, rl }
               );
               apiKey = inputKey || undefined;
             }
@@ -355,7 +399,7 @@ export async function runCreateRanu(
                   : selectedAI === 'claude'
                     ? 'Anthropic Claude'
                     : 'OpenAI';
-            const inputKey = await promptInput(`Enter ${providerName} API Key`, { ...io, rl });
+            const inputKey = await promptInput(`Enter ${providerName} API Key`, { ...runtimeOptions, rl });
             apiKey = inputKey || undefined;
           }
         }
@@ -365,9 +409,6 @@ export async function runCreateRanu(
     }
     selectedAI = selectedAI ?? 'none';
 
-    const targetDir = parsed.targetPath ?? 'my-ranu-app';
-    const pm = parsed.packageManager ?? detectPackageManager();
-
     if (!parsed.quiet && !parsed.json) {
       console.log(`\nCreating a new Ranu.js project in \x1b[36m${targetDir}\x1b[0m...\n`);
     }
@@ -375,15 +416,15 @@ export async function runCreateRanu(
     const result = scaffoldProject({
       projectPath: targetDir,
       packageManager: pm,
-      template: parsed.template,
-      adapter: parsed.adapter,
+      template,
+      adapter,
       tests: parsed.tests,
       ai: selectedAI,
       apiKey,
       endpoint,
       install: parsed.install,
       git: parsed.git,
-      force: parsed.force,
+      force,
       quiet: parsed.quiet,
     });
 

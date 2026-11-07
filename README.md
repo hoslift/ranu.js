@@ -333,7 +333,7 @@ Explore the comprehensive [Ranu.js Documentation Hub](./docs/README.md) for deta
 The long-term vision of Ranu.js extends beyond a conventional frontend layer. The objective is to cultivate a self-sustaining, full-stack application ecosystem:
 
 - **Integrated Application Primitives:** Built-in conventions for data access layers, background workers, scheduled jobs, and session management.
-- **Multi-Runtime Ecosystem:** Official adapters for edge environments, Cloudflare Workers, AWS Lambda, Fastly Edge, Deno, and Bun.
+- **Multi-Runtime Ecosystem:** Deployment adapters for edge environments, Cloudflare Workers, AWS Lambda, Fastly Edge, Deno, and Bun.
 - **Community-Driven Open Governance:** Transparent RFC processes, community roadmaps, and vendor-neutral development.
 
 ### Release Milestones

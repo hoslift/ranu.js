@@ -2,7 +2,7 @@
 
 Cloudflare Pages and Workers deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.6)**: Official deployment adapter enabling Ranu.js applications on Cloudflare Workers and Cloudflare Pages.
+> **Public Alpha (v0.1.6)**: Deployment adapter enabling Ranu.js applications on Cloudflare Workers and Cloudflare Pages.
 
 ## Installation
 

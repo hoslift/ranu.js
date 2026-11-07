@@ -10,4 +10,4 @@
 
 ### Patch Changes
 
-- Initial release of official Netlify deployment adapter for Ranu.js.
+- Initial release of Netlify deployment adapter for Ranu.js.

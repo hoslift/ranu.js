@@ -10,4 +10,4 @@
 
 ### Patch Changes
 
-- Initial release of official Cloudflare Pages and Workers deployment adapter for Ranu.js.
+- Initial release of Cloudflare Pages and Workers deployment adapter for Ranu.js.

@@ -9,9 +9,9 @@ export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' | 'api-routes' | 'saas';
 
 /**
- * Official deployment adapters supported for scaffolding.
+ * Deployment adapters supported for scaffolding.
  */
-export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno' | 'vercel';
+export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno' | 'vercel' | 'static';
 
 /**
  * Supported AI engines for project scaffolding.
