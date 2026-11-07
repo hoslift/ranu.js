@@ -741,19 +741,21 @@ export const DEV_CLIENT_SCRIPT = `
     });
 
     // Capture clicks on the launcher button
-    document.addEventListener('click', function(e) {
-      var t = e.target;
-      var launcher = t && t.closest && (
-        t.closest('.launcher') ||
-        t.closest('#ranu-devtools-launcher') ||
-        t.closest('[data-ranu-devtools-launcher]')
-      );
-      if (launcher) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleDevTools();
-      }
-    }, true);
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('click', function(e) {
+        var t = e.target;
+        var launcher = t && t.closest && (
+          t.closest('.launcher') ||
+          t.closest('#ranu-devtools-launcher') ||
+          t.closest('[data-ranu-devtools-launcher]')
+        );
+        if (launcher) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleDevTools();
+        }
+      }, true);
+    }
   })();
 
   connect();

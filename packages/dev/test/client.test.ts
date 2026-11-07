@@ -104,6 +104,8 @@ describe('DEV_CLIENT_SCRIPT browser injection payload', () => {
       },
       createElement: (tag: string) => createMockElement(tag),
       querySelectorAll: () => [],
+      addEventListener: () => {},
+      removeEventListener: () => {},
     };
     mockDocument.body.appendChild = (child: any) => {
       child.parentNode = mockDocument.body;
