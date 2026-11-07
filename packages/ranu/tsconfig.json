@@ -15,7 +15,13 @@
     { "path": "../runtime-node" },
     { "path": "../server" },
     { "path": "../testing" },
-    { "path": "../devtools" }
+    { "path": "../devtools" },
+    { "path": "../ai" },
+    { "path": "../../ai/gemini" },
+    { "path": "../../ai/groq" },
+    { "path": "../../ai/claude" },
+    { "path": "../../ai/codex" },
+    { "path": "../../ai/custom" }
   ],
   "include": ["src"],
   "exclude": ["dist", "node_modules"]

@@ -12,6 +12,8 @@ export type CliCommand =
   | 'fix'
   | 'generate'
   | 'add'
+  | 'ai'
+  | 'prompt'
   | 'help'
   | 'version';
 
@@ -34,9 +36,31 @@ export interface ParsedCliArgs {
   readonly client?: boolean | undefined;
   readonly dryRun?: boolean | undefined;
   readonly yes?: boolean | undefined;
+  readonly force?: boolean | undefined;
+  readonly name?: string | undefined;
+  readonly endpoint?: string | undefined;
+  readonly model?: string | undefined;
+  readonly provider?: string | undefined;
+  readonly files?: readonly string[] | undefined;
+  readonly target?: string | undefined;
+  readonly copy?: boolean | undefined;
+  readonly stdout?: boolean | undefined;
   readonly help?: boolean | undefined;
   readonly version?: boolean | undefined;
   readonly [key: string]: unknown;
+}
+
+export interface AddOnResult {
+  readonly success: boolean;
+  readonly addon: string;
+  readonly dryRun?: boolean | undefined;
+  readonly filesCreated: readonly string[];
+  readonly dependencies: readonly string[];
+  readonly devDependencies: readonly string[];
+  readonly envVars?: readonly string[] | undefined;
+  readonly nextSteps?: readonly string[] | undefined;
+  readonly error?: string | undefined;
+  readonly hint?: string | undefined;
 }
 
 export interface CliLogger {

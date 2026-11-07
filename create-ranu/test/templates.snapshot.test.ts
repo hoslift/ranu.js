@@ -17,6 +17,10 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(fileKeys).toContain('tsconfig.json');
     expect(fileKeys).toContain('.gitignore');
     expect(fileKeys).toContain('README.md');
+    expect(fileKeys).toContain('.cursorrules');
+    expect(fileKeys).toContain('AGENTS.md');
+    expect(fileKeys).toContain('CLAUDE.md');
+    expect(fileKeys).toContain('.ranu/AGENT_GUIDE.md');
 
     // Verify package.json is valid JSON
     const pkg = JSON.parse(files['package.json']!);
@@ -24,6 +28,20 @@ describe('create-ranu multi-template scaffolding', () => {
     expect(pkg.dependencies['@ranujs/core']).toBeDefined();
 
     // Snapshot deterministic file list
+    expect(fileKeys).toMatchSnapshot();
+  });
+
+  const aiEngines = ['gemini', 'groq', 'claude', 'openai', 'custom'] as const;
+  it.each(aiEngines)('generates valid deterministic file tree with --ai %s', (ai) => {
+    const files = generateTemplateFiles('my-ai-app', 'pnpm', { template: 'default', ai });
+    const fileKeys = Object.keys(files).sort();
+
+    expect(fileKeys).toContain('app/routes/api.ai.ts');
+    expect(fileKeys).toContain('.env.example');
+    expect(fileKeys).toContain('.cursorrules');
+    expect(fileKeys).toContain('AGENTS.md');
+    expect(fileKeys).toContain('CLAUDE.md');
+    expect(fileKeys).toContain('.ranu/AGENT_GUIDE.md');
     expect(fileKeys).toMatchSnapshot();
   });
 

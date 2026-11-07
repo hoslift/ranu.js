@@ -135,6 +135,7 @@ export async function runServerGraphStage(
     treeShaking: true,
     entryNames: '[dir]/[name]',
     outExtension: { '.js': '.mjs' },
+    external: ['react', 'react/*', 'react-dom', 'react-dom/*'],
     // Resolve react from the project being built, supporting monorepo workspaces
     nodePaths: [
       path.join(ctx.projectRoot, 'node_modules'),

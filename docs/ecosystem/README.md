@@ -59,4 +59,4 @@ Discover verified deployment targets and partner infrastructure.
 Ranu.js adheres strictly to open-source governance principles:
 1. **Zero Core Lock-in:** The core framework never depends on proprietary vendor APIs. All features run locally without cloud accounts.
 2. **First-Party Identity:** Ranu.js maintains its own independent architecture, routing engine, and React 19 SSR renderer.
-3. **Sponsorship Program Milestone:** Formal commercial sponsorship programs and partner tiers are scheduled to launch alongside the official **v1.0.0** stable release.
+3. **Ecosystem Milestone:** Community provider adapters and partner ecosystem showcases will continuously expand alongside the official **v1.0.0** stable release.

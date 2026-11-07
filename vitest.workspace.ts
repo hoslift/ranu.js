@@ -19,6 +19,13 @@ const sharedAliases = {
   '@ranu/dev': path.resolve(__dirname, 'packages/dev/src/index.ts'),
   '@ranu/cli': path.resolve(__dirname, 'packages/cli/src/index.ts'),
   '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/src/index.ts'),
+  '@ranu/ai': path.resolve(__dirname, 'packages/ai/src/index.ts'),
+  '@ranu/ai-gemini': path.resolve(__dirname, 'ai/gemini/src/index.ts'),
+  '@ranu/ai-groq': path.resolve(__dirname, 'ai/groq/src/index.ts'),
+  '@ranu/ai-claude': path.resolve(__dirname, 'ai/claude/src/index.ts'),
+  '@ranu/ai-codex': path.resolve(__dirname, 'ai/codex/src/index.ts'),
+  '@ranu/ai-openai': path.resolve(__dirname, 'ai/codex/src/index.ts'),
+  '@ranu/ai-custom': path.resolve(__dirname, 'ai/custom/src/index.ts'),
   '@ranujs/adapter-vercel': path.resolve(__dirname, 'adapters/vercel/src/index.ts'),
   '@ranujs/adapter-cloudflare': path.resolve(__dirname, 'adapters/cloudflare/src/index.ts'),
   '@ranujs/adapter-node': path.resolve(__dirname, 'adapters/node/src/index.ts'),
@@ -38,6 +45,7 @@ const sharedAliases = {
   'ranu/plugin': path.resolve(__dirname, 'packages/ranu/src/plugin.ts'),
   'ranu/server-only': path.resolve(__dirname, 'packages/ranu/src/server-only.ts'),
   'create-ranu': path.resolve(__dirname, 'create-ranu/src/index.ts'),
+  '@ranu/devtools': path.resolve(__dirname, 'packages/devtools/src/index.ts'),
   ranu: path.resolve(__dirname, 'packages/ranu/src/index.ts'),
 };
 
@@ -51,6 +59,16 @@ export default [
       ...sharedTestConfig,
       name: 'packages',
       include: ['packages/*/test/**/*.{test,spec}.{ts,tsx}'],
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'ai',
+      include: ['ai/*/test/**/*.{test,spec}.{ts,tsx}'],
     },
     resolve: {
       alias: sharedAliases,
@@ -125,6 +143,7 @@ export default [
         '@ranu/dev': path.resolve(__dirname, 'packages/dev/dist/index.js'),
         '@ranu/cli': path.resolve(__dirname, 'packages/cli/dist/index.js'),
         '@ranu/plugin': path.resolve(__dirname, 'packages/plugin/dist/index.js'),
+        '@ranu/ai': path.resolve(__dirname, 'packages/ai/dist/index.js'),
       },
     },
   },
@@ -194,6 +213,18 @@ export default [
       name: 'examples',
       include: ['tests/examples/**/*.test.ts'],
       testTimeout: 240000,
+      hookTimeout: 60000,
+    },
+    resolve: {
+      alias: sharedAliases,
+    },
+  },
+  {
+    test: {
+      ...sharedTestConfig,
+      name: 'e2e',
+      include: ['tests/e2e/**/*.test.ts'],
+      testTimeout: 120000,
       hookTimeout: 60000,
     },
     resolve: {

@@ -43,6 +43,9 @@ export {
   validateClientSourceEnv,
   validateGraphEnvAccess,
   buildPublicEnvDefines,
+  KNOWN_AI_SECRET_KEYS,
+  isKnownAiSecretKey,
+  createPrivateEnvDiagnostic,
 } from './env/env-validator.js';
 export {
   isPathContained,
@@ -53,6 +56,7 @@ export {
   cleanupTempArtifacts,
 } from './output/artifact-writer.js';
 export { generateProductionEntrySource } from './output/production-entry.js';
+export { auditProductionBundle, DEVTOOLS_SENSITIVE_SYMBOLS, type BundleAuditResult } from './output/bundle-audit.js';
 export {
   runRouteStage,
   analyzePageRenderMode,

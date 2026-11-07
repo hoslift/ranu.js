@@ -12,6 +12,8 @@ import { runCheckCommand } from './commands/check.js';
 import { runFixCommand } from './commands/fix.js';
 import { runGenerateCommand } from './commands/generate.js';
 import { runAddCommand } from './commands/add.js';
+import { runAiCommand } from './commands/ai.js';
+import { runPromptCommand } from './commands/prompt.js';
 
 /**
  * Dispatches CLI arguments to the corresponding command and reports command errors.
@@ -71,6 +73,12 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
       case 'add':
         return await runAddCommand(args, logger);
 
+      case 'ai':
+        return await runAiCommand(args, logger);
+
+      case 'prompt':
+        return await runPromptCommand(args, logger);
+
       case 'create':
         return runCreateCommand(args, logger);
 
@@ -90,7 +98,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
     } else {
       console.error(`\x1b[31m✖\x1b[0m ${message}`);
       if (isDebug && err instanceof Error && err.stack) {
-        console.debug(`\x1b[90m${err.stack}\x1b[0m`);
+        console.error(`\x1b[90m${err.stack}\x1b[0m`);
       }
     }
     return 1;

@@ -144,4 +144,40 @@ describe('@ranu/cli argument parsing', () => {
   ])('rejects %s --format value', (_label, argv) => {
     expect(() => parseCliArgs(argv)).toThrow('Flag "--format" requires "json" or "text".');
   });
+
+  it('parses --force and -f flags', () => {
+    expect(parseCliArgs(['add', 'ai-gemini', '--force']).force).toBe(true);
+    expect(parseCliArgs(['add', 'ai-gemini', '-f']).force).toBe(true);
+    expect(parseCliArgs(['add', 'ai-gemini']).force).toBeUndefined();
+  });
+
+  it('parses and trims --name and --name=', () => {
+    expect(parseCliArgs(['add', 'ai-custom', '--name', 'internal-ai']).name).toBe('internal-ai');
+    expect(parseCliArgs(['add', 'ai-custom', '--name=internal-ai']).name).toBe('internal-ai');
+  });
+
+  it.each([
+    ['missing', ['add', 'ai-custom', '--name']],
+    ['flag-like', ['add', 'ai-custom', '--name', '--force']],
+    ['whitespace-only', ['add', 'ai-custom', '--name', '   ']],
+  ])('rejects %s --name value', (_label, argv) => {
+    expect(() => parseCliArgs(argv)).toThrow('Flag "--name" requires a valid name string.');
+  });
+
+  it('parses and trims --endpoint and --endpoint=', () => {
+    expect(
+      parseCliArgs(['add', 'ai-custom', '--endpoint', 'http://localhost:11434/v1']).endpoint,
+    ).toBe('http://localhost:11434/v1');
+    expect(
+      parseCliArgs(['add', 'ai-custom', '--endpoint=http://localhost:11434/v1']).endpoint,
+    ).toBe('http://localhost:11434/v1');
+  });
+
+  it.each([
+    ['missing', ['add', 'ai-custom', '--endpoint']],
+    ['flag-like', ['add', 'ai-custom', '--endpoint', '--force']],
+    ['whitespace-only', ['add', 'ai-custom', '--endpoint', '   ']],
+  ])('rejects %s --endpoint value', (_label, argv) => {
+    expect(() => parseCliArgs(argv)).toThrow('Flag "--endpoint" requires a valid endpoint URL.');
+  });
 });

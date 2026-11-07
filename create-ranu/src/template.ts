@@ -1,5 +1,6 @@
-import type { PackageManager, TemplateName, SupportedAdapter } from './types.js';
+import type { PackageManager, TemplateName, SupportedAdapter, AIEngineName } from './types.js';
 import { getRunCommand } from './package-manager.js';
+import { generateAgentContextFiles } from './agent-context.js';
 
 export interface TemplateFileMap {
   [relativePath: string]: string;
@@ -9,6 +10,9 @@ export interface GenerateTemplateOptions {
   template?: TemplateName | undefined;
   adapter?: string | undefined;
   tests?: boolean | undefined;
+  ai?: AIEngineName | undefined;
+  apiKey?: string | undefined;
+  endpoint?: string | undefined;
 }
 
 /**
@@ -66,11 +70,14 @@ export function generateTemplateFiles(
 node_modules/
 
 # Production & Development Build Caches
-.ranu/
+.ranu/*
+!.ranu/AGENT_GUIDE.md
 dist/
 
 # Environment Files
+.env
 .env*.local
+!.env.example
 
 # Logs
 *.log
@@ -124,6 +131,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   if (includeTests) {
     scripts['test'] = 'vitest run';
     devDependencies['vitest'] = '^4.0.0';
+  }
+
+  const aiEngine = options.ai && options.ai !== 'none' ? options.ai : undefined;
+  if (aiEngine) {
+    dependencies['@ranu/ai'] = '^0.1.0';
+    dependencies[`@ranu/ai-${aiEngine}`] = '^0.1.0';
   }
 
   // --- TEMPLATE SPECIFIC LOGIC ---
@@ -294,7 +307,9 @@ CMD ["npm", "start"]
 .ranu/
 dist/
 .git/
+.env
 .env*.local
+!.env.example
 *.log
 `;
 
@@ -888,5 +903,271 @@ describe('${projectName} Smoke Test', () => {
 `;
   }
 
+  // Include AI streaming route and environment variables template if AI engine selected
+  if (aiEngine) {
+    files['app/routes/api.ai.ts'] = getAIRouteTemplate(aiEngine, options.endpoint);
+    files['.env.example'] = getEnvExample(aiEngine, options.endpoint);
+
+    const hasKey = Boolean(options.apiKey && options.apiKey.trim().length > 0);
+    const hasCustomEndpoint = Boolean(options.endpoint && options.endpoint.trim().length > 0);
+    const isCustomWithConfig = aiEngine === 'custom' && (hasCustomEndpoint || hasKey);
+
+    if (hasKey || isCustomWithConfig) {
+      files['.env'] = getEnvContent(aiEngine, options.apiKey?.trim(), options.endpoint?.trim());
+    }
+  }
+
+  // Merge automated agent context files across all templates
+  const agentContextFiles = generateAgentContextFiles({
+    projectName,
+    packageManager,
+    aiEngine: options.ai ?? 'none',
+    template,
+    adapter,
+    tests: includeTests,
+  });
+  Object.assign(files, agentContextFiles);
+
   return files;
 }
+
+/**
+ * Returns canonical W3C streaming handler template for chosen AI provider.
+ */
+function getAIRouteTemplate(ai: AIEngineName, endpoint?: string): string {
+  switch (ai) {
+    case 'gemini':
+      return `import { streamAI } from '@ranu/ai';
+import { gemini } from '@ranu/ai-gemini';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Gemini!';
+
+  return streamAI({
+    model: gemini('gemini-1.5-pro'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'gemini',
+    model: 'gemini-1.5-pro',
+  });
+}
+`;
+    case 'groq':
+      return `import { streamAI } from '@ranu/ai';
+import { groq } from '@ranu/ai-groq';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Groq!';
+
+  return streamAI({
+    model: groq('llama-3.3-70b-versatile'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'groq',
+    model: 'llama-3.3-70b-versatile',
+  });
+}
+`;
+    case 'claude':
+      return `import { streamAI } from '@ranu/ai';
+import { claude } from '@ranu/ai-claude';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Claude!';
+
+  return streamAI({
+    model: claude('claude-3-5-sonnet-20241022'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'claude',
+    model: 'claude-3-5-sonnet-20241022',
+  });
+}
+`;
+    case 'codex':
+      return `import { streamAI } from '@ranu/ai';
+import { codex } from '@ranu/ai-codex';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Codex!';
+
+  return streamAI({
+    model: codex('gpt-4o'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'codex',
+    model: 'gpt-4o',
+  });
+}
+`;
+    case 'openai':
+      return `import { streamAI } from '@ranu/ai';
+import { openai } from '@ranu/ai-openai';
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, OpenAI!';
+
+  return streamAI({
+    model: openai('gpt-4o'),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'openai',
+    model: 'gpt-4o',
+  });
+}
+`;
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
+      return `import { streamAI } from '@ranu/ai';
+import { createCustomAI } from '@ranu/ai-custom';
+
+const customAI = createCustomAI({
+  baseURL: process.env.CUSTOM_AI_ENDPOINT || '${ep}',
+  apiKey: process.env.CUSTOM_AI_KEY,
+});
+
+export async function POST(request: Request): Promise<Response> {
+  const { messages, prompt, model: reqModel } = (await request.json().catch(() => ({}))) as {
+    messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    prompt?: string;
+    model?: string;
+  };
+
+  const inputPrompt = prompt || messages?.[messages.length - 1]?.content || 'Hello, Custom AI!';
+  const selectedModel = reqModel || process.env.CUSTOM_AI_MODEL || 'llama3';
+
+  return streamAI({
+    model: customAI(selectedModel),
+    prompt: inputPrompt,
+    messages,
+    signal: request.signal,
+  });
+}
+
+export async function GET(): Promise<Response> {
+  return Response.json({
+    status: 'ready',
+    provider: 'custom',
+    endpoint: process.env.CUSTOM_AI_ENDPOINT || '${ep}',
+    defaultModel: process.env.CUSTOM_AI_MODEL || 'llama3',
+  });
+}
+`;
+    }
+    default:
+      return '';
+  }
+}
+
+/**
+ * Returns environment configuration template for chosen AI provider.
+ */
+function getEnvExample(ai: AIEngineName, endpoint?: string): string {
+  switch (ai) {
+    case 'gemini':
+      return `PORT=3000\nGEMINI_API_KEY=your_gemini_api_key_here\n`;
+    case 'groq':
+      return `PORT=3000\nGROQ_API_KEY=your_groq_api_key_here\n`;
+    case 'claude':
+      return `PORT=3000\nANTHROPIC_API_KEY=your_anthropic_api_key_here\n`;
+    case 'codex':
+      return `PORT=3000\nCODEX_API_KEY=your_codex_api_key_here\n`;
+    case 'openai':
+      return `PORT=3000\nOPENAI_API_KEY=your_openai_api_key_here\n`;
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
+      return `PORT=3000\nCUSTOM_AI_ENDPOINT=${ep}\nCUSTOM_AI_KEY=your_custom_ai_key_here\n`;
+    }
+    default:
+      return '';
+  }
+}
+
+/**
+ * Returns environment configuration populated with user credentials for chosen AI provider.
+ */
+export function getEnvContent(
+  ai: AIEngineName,
+  apiKey?: string,
+  endpoint?: string
+): string {
+  switch (ai) {
+    case 'gemini':
+      return `PORT=3000\nGEMINI_API_KEY=${apiKey ?? ''}\n`;
+    case 'groq':
+      return `PORT=3000\nGROQ_API_KEY=${apiKey ?? ''}\n`;
+    case 'claude':
+      return `PORT=3000\nANTHROPIC_API_KEY=${apiKey ?? ''}\n`;
+    case 'openai':
+      return `PORT=3000\nOPENAI_API_KEY=${apiKey ?? ''}\n`;
+    case 'custom': {
+      const ep = endpoint ? endpoint.trim() : 'http://localhost:11434';
+      const keyLine = apiKey && apiKey.trim().length > 0 ? `CUSTOM_AI_KEY=${apiKey.trim()}\n` : '';
+      return `PORT=3000\nCUSTOM_AI_ENDPOINT=${ep}\n${keyLine}`;
+    }
+    default:
+      return '';
+  }
+}
+
+

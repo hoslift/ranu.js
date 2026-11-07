@@ -60,4 +60,36 @@ describe('create-ranu integration', () => {
     const dirValidation = validateTargetDirectory(path.parse(tempDir).root);
     expect(dirValidation.valid).toBe(false);
   });
+
+  it('scaffolds with --ai gemini and builds successfully with @ranu/build', async () => {
+    const projectDir = path.join(tempDir, 'gemini-integration-app');
+
+    const result = scaffoldProject({
+      projectPath: projectDir,
+      packageManager: 'pnpm',
+      ai: 'gemini',
+      quiet: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.filesCreated).toContain('app/routes/api.ai.ts');
+    expect(result.filesCreated).toContain('.cursorrules');
+    expect(result.filesCreated).toContain('AGENTS.md');
+    expect(result.filesCreated).toContain('CLAUDE.md');
+    expect(result.filesCreated).toContain('.ranu/AGENT_GUIDE.md');
+
+    const buildResult = await build({
+      projectRoot: projectDir,
+      mode: 'production',
+      minify: false,
+      sourceMaps: false,
+    });
+
+    if (!buildResult.success) {
+      console.error('Build Diagnostics:', JSON.stringify(buildResult.diagnostics, null, 2));
+    }
+
+    expect(buildResult.success).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, '.ranu', 'build', 'manifest', 'routes.json'))).toBe(true);
+  });
 });

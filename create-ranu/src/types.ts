@@ -14,6 +14,30 @@ export type TemplateName = 'default' | 'minimal' | 'cloudflare' | 'node-docker' 
 export type SupportedAdapter = 'cloudflare' | 'node' | 'netlify' | 'bun' | 'deno' | 'vercel';
 
 /**
+ * Supported AI engines for project scaffolding.
+ */
+export type AIEngineName = 'none' | 'gemini' | 'groq' | 'claude' | 'codex' | 'openai' | 'custom';
+
+/**
+ * Type aliases for AIEngineName.
+ */
+export type AIEngine = AIEngineName;
+export type AIEngineChoice = AIEngineName;
+
+/**
+ * Readonly array of all supported AI engines.
+ */
+export const SUPPORTED_AI_ENGINES: readonly AIEngineName[] = [
+  'none',
+  'gemini',
+  'groq',
+  'claude',
+  'codex',
+  'openai',
+  'custom',
+] as const;
+
+/**
  * Options controlling project scaffolding in create-ranu.
  */
 export interface ScaffoldOptions {
@@ -75,6 +99,22 @@ export interface ScaffoldOptions {
   quiet?: boolean | undefined;
 
   /**
+   * AI engine integration to scaffold ('none', 'gemini', 'groq', 'claude', 'openai', 'custom').
+   * Defaults to 'none' (Zero AI).
+   */
+  ai?: AIEngineName | undefined;
+
+  /**
+   * API key or session token for selected AI engine.
+   */
+  apiKey?: string | undefined;
+
+  /**
+   * Custom or local endpoint URL for selected AI engine.
+   */
+  endpoint?: string | undefined;
+
+  /**
    * Base working directory for resolving relative project paths.
    * Defaults to process.cwd().
    */
@@ -124,6 +164,16 @@ export interface ScaffoldResult {
    * Status of git repository initialization.
    */
   gitStatus?: 'initialized' | 'skipped' | 'failed' | undefined;
+
+  /**
+   * Configured AI engine.
+   */
+  ai?: AIEngineName | undefined;
+
+  /**
+   * Whether credentials or endpoint were configured during scaffolding.
+   */
+  hasCredentials?: boolean | undefined;
 
   /**
    * Error message if scaffolding failed.
