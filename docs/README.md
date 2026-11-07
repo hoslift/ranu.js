@@ -160,7 +160,7 @@ Comprehensive technical API documentation and type signatures:
 Extend Ranu.js with verified ecosystem packages and partner integrations:
 
 - **[Ecosystem Hub & Directory](./ecosystem/README.md)**  
-  Overview of official and community extensions, adapters, and tools.
+  Overview of extensions, adapters, and community tools.
 - **[Plugin API Specification v1](./ecosystem/plugins/PLUGIN_SPECIFICATION.md)**  
   Formal contract and lifecycle hooks for developing custom Ranu.js compiler and runtime plugins.
 - **[Cloud Object Storage](./ecosystem/storage/README.md)**  

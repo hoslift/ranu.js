@@ -1,0 +1,23 @@
+{
+  "name": "example-saas-reference",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ranu dev",
+    "build": "ranu build",
+    "start": "ranu start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ranujs/core": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}

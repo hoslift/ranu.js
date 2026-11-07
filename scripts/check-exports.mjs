@@ -49,6 +49,12 @@ const publishedPackages = [
     name: '@ranujs/adapter-deno', 
     canonicalExports: ['.'],
     technicalExports: []
+  },
+  { 
+    dir: 'adapters/static', 
+    name: '@ranujs/adapter-static', 
+    canonicalExports: ['.'],
+    technicalExports: []
   }
 ];
 

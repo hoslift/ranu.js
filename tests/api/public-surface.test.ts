@@ -195,6 +195,7 @@ describe('Phase 27 — Public API Conformance & Boundary Hardening', () => {
         'adapters/netlify',
         'adapters/bun',
         'adapters/deno',
+        'adapters/static',
       ]);
 
       const scanDirs = ['packages', 'adapters'];

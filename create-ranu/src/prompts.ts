@@ -1,7 +1,158 @@
 import readline from 'node:readline/promises';
 import { stdin as defaultInput, stdout as defaultOutput } from 'node:process';
 import type { Readable, Writable } from 'node:stream';
-import type { AIEngineName } from './types.js';
+import path from 'node:path';
+import * as p from '@clack/prompts';
+import { validateProjectName, validateTargetDirectory } from './validator.js';
+import { detectPackageManager } from './package-manager.js';
+import type { AIEngineName, PackageManager, TemplateName } from './types.js';
+
+export interface InteractivePromptOptions {
+  initialTargetDir?: string | undefined;
+  cwd?: string | undefined;
+}
+
+export interface PromptResult {
+  targetPath: string;
+  template: TemplateName;
+  adapter?: string | undefined;
+  packageManager: PackageManager;
+  force?: boolean | undefined;
+}
+
+/**
+ * Runs interactive prompt workflow using @clack/prompts.
+ * Returns null if the user cancelled any prompt step.
+ */
+export async function runInteractivePrompts(
+  options: InteractivePromptOptions = {}
+): Promise<PromptResult | null> {
+  p.intro('\x1b[36m>\x1b[0m create-ranu \x1b[90m- Ranu.js Project Scaffolder\x1b[0m');
+
+  let targetPath = options.initialTargetDir;
+
+  // 1. Project name / directory prompt (if not pre-supplied via positional argument)
+  if (!targetPath) {
+    const response = await p.text({
+      message: 'Where should your new project be created?',
+      placeholder: 'my-ranu-app',
+      defaultValue: 'my-ranu-app',
+      validate(input) {
+        const val = (input ?? '').trim() || 'my-ranu-app';
+        const result = validateProjectName(path.basename(val));
+        if (!result.valid) {
+          return result.errors[0] ?? 'Invalid project name';
+        }
+        return undefined;
+      },
+    });
+
+    if (p.isCancel(response)) {
+      p.cancel('Scaffolding cancelled.');
+      return null;
+    }
+
+    targetPath = response.trim() || 'my-ranu-app';
+  }
+
+  // 2. Directory collision check
+  let force = false;
+  const dirCheck = validateTargetDirectory(targetPath, { cwd: options.cwd });
+  if (!dirCheck.valid) {
+    // If target exists and is not empty, prompt user for overwrite confirmation
+    if (dirCheck.error && dirCheck.error.includes('is not empty')) {
+      const confirmOverwrite = await p.confirm({
+        message: `Target directory "${targetPath}" is not empty. Overwrite existing files?`,
+        initialValue: false,
+      });
+
+      if (p.isCancel(confirmOverwrite) || !confirmOverwrite) {
+        p.cancel('Scaffolding cancelled. Directory was not empty.');
+        return null;
+      }
+      force = true;
+    } else {
+      p.cancel(`Invalid directory: ${dirCheck.error}`);
+      return null;
+    }
+  }
+
+  // 3. Starter template selection
+  const templateResponse = await p.select({
+    message: 'Select a starter template:',
+    options: [
+      { value: 'default', label: 'Default', hint: 'React 19 Streaming SSR full-stack baseline' },
+      { value: 'saas', label: 'SaaS Starter', hint: 'Tailwind v4, Drizzle ORM, SQLite & Auth routes' },
+      { value: 'minimal', label: 'Minimal', hint: 'Lightweight zero-dependency baseline' },
+      { value: 'api-routes', label: 'API Routes', hint: 'Web Request/Response handlers co-located with pages' },
+      { value: 'cloudflare', label: 'Cloudflare Workers', hint: 'Low-latency edge SSR on Cloudflare' },
+      { value: 'node-docker', label: 'Node.js Docker', hint: 'Containerized standalone Node.js server' },
+    ],
+    initialValue: 'default',
+  });
+
+  if (p.isCancel(templateResponse)) {
+    p.cancel('Scaffolding cancelled.');
+    return null;
+  }
+  const template = templateResponse as TemplateName;
+
+  // 4. Deployment adapter selection
+  let adapter: string | undefined;
+  if (template === 'cloudflare') {
+    adapter = 'cloudflare';
+  } else if (template === 'node-docker') {
+    adapter = 'node';
+  } else {
+    const adapterResponse = await p.select({
+      message: 'Select a deployment adapter:',
+      options: [
+        { value: 'node', label: 'Node.js Standalone', hint: 'Built-in Node.js server (recommended default)' },
+        { value: 'cloudflare', label: 'Cloudflare Pages / Workers', hint: 'Edge serverless deployment' },
+        { value: 'vercel', label: 'Vercel', hint: 'Vercel Serverless Functions' },
+        { value: 'static', label: 'Static HTML / SSG', hint: 'Zero-runtime static compilation (@ranujs/adapter-static)' },
+        { value: 'netlify', label: 'Netlify', hint: 'Netlify Edge & Functions' },
+        { value: 'bun', label: 'Bun', hint: 'Native Bun.serve runtime' },
+        { value: 'deno', label: 'Deno', hint: 'Native Deno.serve runtime' },
+      ],
+      initialValue: 'node',
+    });
+
+    if (p.isCancel(adapterResponse)) {
+      p.cancel('Scaffolding cancelled.');
+      return null;
+    }
+    adapter = adapterResponse as string;
+  }
+
+  // 5. Package manager selection
+  const detectedPm = detectPackageManager();
+  const pmResponse = await p.select({
+    message: 'Select your package manager:',
+    options: [
+      { value: 'pnpm', label: 'pnpm', hint: 'Fast, disk-space efficient' },
+      { value: 'npm', label: 'npm', hint: 'Standard Node.js package manager' },
+      { value: 'yarn', label: 'yarn', hint: 'Classic or Modern Yarn' },
+      { value: 'bun', label: 'bun', hint: 'Fast all-in-one JavaScript toolkit' },
+    ],
+    initialValue: detectedPm,
+  });
+
+  if (p.isCancel(pmResponse)) {
+    p.cancel('Scaffolding cancelled.');
+    return null;
+  }
+  const packageManager = pmResponse as PackageManager;
+
+  return {
+    targetPath,
+    template,
+    adapter,
+    packageManager,
+    force,
+  };
+}
+
 
 export interface Choice<T> {
   readonly label: string;

@@ -153,8 +153,9 @@ vite.config.ts.timestamp-*
 test-results/
 playwright-report/
 
-
-
 # Local scaffold test outputs
 test-app/
 my-ai-app/
+
+# Internal Audit Documentation
+docs/audit/

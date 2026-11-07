@@ -1,7 +1,124 @@
-import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { PassThrough } from 'node:stream';
 import readline from 'node:readline/promises';
-import { promptSelect, promptInput, AI_ENGINE_CHOICES } from '../src/prompts.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as p from '@clack/prompts';
+import { runInteractivePrompts, promptSelect, promptInput, AI_ENGINE_CHOICES } from '../src/prompts.js';
+
+
+vi.mock('@clack/prompts', () => {
+  return {
+    intro: vi.fn(),
+    outro: vi.fn(),
+    text: vi.fn(),
+    select: vi.fn(),
+    confirm: vi.fn(),
+    cancel: vi.fn(),
+    isCancel: vi.fn((val) => val === Symbol.for('clack:cancel')),
+  };
+});
+
+describe('create-ranu interactive prompts workflow', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-ranu-prompts-'));
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    vi.clearAllMocks();
+  });
+
+  it('collects all inputs in happy path workflow', async () => {
+    const target = path.join(tempDir, 'my-test-app');
+    vi.mocked(p.text).mockResolvedValueOnce(target);
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('saas') // template
+      .mockResolvedValueOnce('node') // adapter
+      .mockResolvedValueOnce('pnpm'); // package manager
+
+    const result = await runInteractivePrompts({ cwd: tempDir });
+
+    expect(result).not.toBeNull();
+    expect(result?.targetPath).toBe(target);
+    expect(result?.template).toBe('saas');
+    expect(result?.adapter).toBe('node');
+    expect(result?.packageManager).toBe('pnpm');
+    expect(result?.force).toBe(false);
+  });
+
+  it('handles cancellation gracefully on text prompt', async () => {
+    const cancelSymbol = Symbol.for('clack:cancel');
+    vi.mocked(p.text).mockResolvedValueOnce(cancelSymbol as any);
+
+    const result = await runInteractivePrompts({ cwd: tempDir });
+    expect(result).toBeNull();
+    expect(p.cancel).toHaveBeenCalledWith('Scaffolding cancelled.');
+  });
+
+  it('handles cancellation on template selection', async () => {
+    const cancelSymbol = Symbol.for('clack:cancel');
+    const target = path.join(tempDir, 'my-test-app');
+    vi.mocked(p.text).mockResolvedValueOnce(target);
+    vi.mocked(p.select).mockResolvedValueOnce(cancelSymbol as any);
+
+    const result = await runInteractivePrompts({ cwd: tempDir });
+    expect(result).toBeNull();
+    expect(p.cancel).toHaveBeenCalledWith('Scaffolding cancelled.');
+  });
+
+  it('prompts overwrite when directory exists and is non-empty', async () => {
+    const target = path.join(tempDir, 'existing-app');
+    fs.mkdirSync(target, { recursive: true });
+    fs.writeFileSync(path.join(target, 'package.json'), '{}');
+
+    vi.mocked(p.confirm).mockResolvedValueOnce(true); // confirmed overwrite
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('minimal')
+      .mockResolvedValueOnce('static')
+      .mockResolvedValueOnce('npm');
+
+    const result = await runInteractivePrompts({ initialTargetDir: target, cwd: tempDir });
+
+    expect(result).not.toBeNull();
+    expect(result?.targetPath).toBe(target);
+    expect(result?.force).toBe(true);
+    expect(result?.adapter).toBe('static');
+  });
+
+  it('aborts when user declines directory overwrite', async () => {
+    const target = path.join(tempDir, 'existing-app');
+    fs.mkdirSync(target, { recursive: true });
+    fs.writeFileSync(path.join(target, 'package.json'), '{}');
+
+    vi.mocked(p.confirm).mockResolvedValueOnce(false); // rejected overwrite
+
+    const result = await runInteractivePrompts({ initialTargetDir: target, cwd: tempDir });
+
+    expect(result).toBeNull();
+    expect(p.cancel).toHaveBeenCalledWith('Scaffolding cancelled. Directory was not empty.');
+  });
+
+  it('skips adapter prompt when cloudflare or node-docker template is selected', async () => {
+    const target = path.join(tempDir, 'cf-app');
+    vi.mocked(p.text).mockResolvedValueOnce(target);
+    vi.mocked(p.select)
+      .mockResolvedValueOnce('cloudflare') // template
+      .mockResolvedValueOnce('pnpm'); // package manager (adapter skipped!)
+
+    const result = await runInteractivePrompts({ cwd: tempDir });
+
+    expect(result).not.toBeNull();
+    expect(result?.template).toBe('cloudflare');
+    expect(result?.adapter).toBe('cloudflare');
+    expect(result?.packageManager).toBe('pnpm');
+    expect(p.select).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('create-ranu interactive prompter', () => {
   it('returns default choice when input is non-interactive / CI / quiet / json', async () => {

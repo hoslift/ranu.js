@@ -1,6 +1,6 @@
 # Deploying to Vercel with `@ranujs/adapter-vercel`
 
-**Ranu.js** provides an official first-party deployment adapter—`@ranujs/adapter-vercel`—that transforms pre-compiled production build artifacts into the [Vercel Build Output API (v3)](https://vercel.com/docs/build-output-api/v3) specification.
+**Ranu.js** provides a dedicated deployment adapter - `@ranujs/adapter-vercel` - that transforms pre-compiled production build artifacts into the [Vercel Build Output API (v3)](https://vercel.com/docs/build-output-api/v3) specification.
 
 This enables zero-configuration, production-grade deployments on Vercel with automatic serverless functions, React 19 streaming Server-Side Rendering (SSR), immutable static asset edge routing, and full W3C Web Standards compatibility.
 
@@ -43,7 +43,7 @@ vercel login
 
 ## 2. Package Installation
 
-Install the public Ranu.js runtime dependencies along with the official `@ranujs/adapter-vercel` package:
+Install the public Ranu.js runtime dependencies along with the `@ranujs/adapter-vercel` package:
 
 ### Using pnpm
 

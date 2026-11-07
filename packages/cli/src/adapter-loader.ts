@@ -12,6 +12,7 @@ export const KNOWN_ADAPTER_SHORTHANDS: Readonly<Record<string, string>> = {
   bun: '@ranujs/adapter-bun',
   deno: '@ranujs/adapter-deno',
   netlify: '@ranujs/adapter-netlify',
+  static: '@ranujs/adapter-static',
 };
 
 export type AdapterResolutionKind = 'shorthand' | 'package' | 'local-file';
@@ -258,7 +259,7 @@ export async function loadDeploymentAdapter(
     if (isNotFound) {
       const hint =
         resolved.kind === 'shorthand'
-          ? `Install the official adapter package: npm install -D ${resolved.resolvedTarget} (or pnpm add -D ${resolved.resolvedTarget})`
+          ? `Install the adapter package: npm install -D ${resolved.resolvedTarget} (or pnpm add -D ${resolved.resolvedTarget})`
           : resolved.kind === 'package'
             ? `Ensure the package is installed in your project: npm install -D ${resolved.resolvedTarget}`
             : `Verify that "${resolved.resolvedTarget}" exists and is accessible.`;

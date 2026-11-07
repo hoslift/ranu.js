@@ -24,6 +24,7 @@ const OFFICIAL_EXAMPLES = [
   'deployment-node',
   'deployment-vercel',
   'plugin-basic',
+  'saas-reference',
 ] as const;
 
 const FORBIDDEN_IMPORT_PATTERNS = [

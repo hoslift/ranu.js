@@ -496,7 +496,7 @@ export const db = drizzle(sqlite, { schema });
     authenticated: true,
     user: {
       id: 'usr_demo',
-      email: 'founder@hoslift.com',
+      email: 'founder@example.com',
       name: 'Founder',
       role: 'admin',
     },
@@ -533,7 +533,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>${projectName} — SaaS</title>
+        <title>${projectName} - SaaS</title>
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen antialiased">
         {children}
@@ -578,7 +578,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <h1 className="text-xl font-bold text-slate-900">${projectName} Dashboard</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">founder@hoslift.com</span>
+            <span className="text-sm text-slate-500">founder@example.com</span>
             <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
               Active
             </span>
@@ -818,6 +818,8 @@ ${devCmd}
     // DEFAULT TEMPLATE
     if (adapter === 'vercel') {
       dependencies['@ranujs/adapter-vercel'] = '^0.1.5';
+    } else if (adapter === 'static') {
+      dependencies['@ranujs/adapter-static'] = '^0.1.0';
     }
 
     const ranuConfig = adapter === 'vercel'
@@ -830,6 +832,19 @@ export default defineConfig({
   },
   deployment: {
     adapter: vercel(),
+  },
+});
+`
+      : adapter === 'static'
+      ? `import { defineConfig } from '@ranujs/core/config';
+import staticAdapter from '@ranujs/adapter-static';
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  deployment: {
+    adapter: staticAdapter(),
   },
 });
 `

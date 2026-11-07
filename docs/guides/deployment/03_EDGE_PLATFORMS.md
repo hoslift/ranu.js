@@ -225,7 +225,7 @@ pnpm wrangler deploy
 
 | Platform / Adapter     |    Status     | Package                                                               |
 | :--------------------- | :-----------: | :-------------------------------------------------------------------- |
-| **Vercel Adapter**     | **Available** | `@ranujs/adapter-vercel` (Official)                                   |
+| **Vercel Adapter**     | **Available** | `@ranujs/adapter-vercel`                                              |
 | **Custom Adapters**    | **Available** | `RanuDeploymentAdapter` contract via `ranu.config.ts`                 |
-| **Cloudflare Adapter** |  **Roadmap**  | Planned for official release in Phase 8 (Ecosystem & Partner Plugins) |
-| **AWS Lambda Adapter** |  **Roadmap**  | Planned for official release in Phase 8                               |
+| **Cloudflare Adapter** |  **Roadmap**  | Planned for release in Phase 8 (Ecosystem & Partner Plugins)           |
+| **AWS Lambda Adapter** |  **Roadmap**  | Planned for release in Phase 8                                        |

@@ -36,7 +36,7 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
     setup(build) {
       // Keep the public/internal server specifier intact in Node bundles and
       // reject either form from client-reachable code.
-      build.onResolve({ filter: /^@?ranu\/server$/ }, (args) => {
+      build.onResolve({ filter: /^(@?ranu\/server|@ranujs\/core\/server)$/ }, (args) => {
         if (platform === 'node') {
           return {
             path: args.path,
@@ -118,6 +118,14 @@ export function createRanuEsbuildPlugin(options: RanuPluginOptions): Plugin {
         path: args.path,
         external: true,
       }));
+
+      // Route public React package to internal client React bundle
+      if (platform === 'browser') {
+        build.onResolve({ filter: /^@ranujs\/core\/react$/ }, () => ({
+          path: '@ranu/react',
+          external: true,
+        }));
+      }
 
       // Transform Server Action modules into client RPC stubs in browser bundles
       if (platform === 'browser') {

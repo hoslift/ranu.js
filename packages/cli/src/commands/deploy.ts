@@ -9,7 +9,7 @@ import {
 export * from '../adapter-loader.js';
 
 /**
- * Loads the official Vercel deployment adapter (retained for backward compatibility).
+ * Loads the Vercel deployment adapter (retained for backward compatibility).
  */
 export async function loadVercelAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
@@ -18,7 +18,7 @@ export async function loadVercelAdapter(
 }
 
 /**
- * Loads the official Cloudflare deployment adapter.
+ * Loads the Cloudflare deployment adapter.
  */
 export async function loadCloudflareAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
@@ -27,7 +27,7 @@ export async function loadCloudflareAdapter(
 }
 
 /**
- * Loads the official Node.js deployment adapter.
+ * Loads the Node.js deployment adapter.
  */
 export async function loadNodeAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
@@ -36,7 +36,7 @@ export async function loadNodeAdapter(
 }
 
 /**
- * Loads the official Netlify deployment adapter.
+ * Loads the Netlify deployment adapter.
  */
 export async function loadNetlifyAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
@@ -45,7 +45,7 @@ export async function loadNetlifyAdapter(
 }
 
 /**
- * Loads the official Bun deployment adapter.
+ * Loads the Bun deployment adapter.
  */
 export async function loadBunAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),
@@ -54,7 +54,7 @@ export async function loadBunAdapter(
 }
 
 /**
- * Loads the official Deno deployment adapter.
+ * Loads the Deno deployment adapter.
  */
 export async function loadDenoAdapter(
   importer: (pkg: string) => Promise<unknown> = (pkg) => import(pkg),

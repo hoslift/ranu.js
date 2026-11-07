@@ -38,7 +38,7 @@ describe('Dynamic Deployment Adapter Loader', () => {
     });
 
     it('resolves shorthands case-insensitively with whitespace trimmed', () => {
-      const variations = ['  VERCEL  ', 'CloudFlare', 'NoDe', 'BUN', 'Deno', 'NetLify'];
+      const variations = ['  VERCEL  ', 'CloudFlare', 'NoDe', 'BUN', 'Deno', 'NetLify', 'Static'];
 
       for (const variation of variations) {
         const lower = variation.trim().toLowerCase();

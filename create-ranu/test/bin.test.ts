@@ -20,7 +20,7 @@ describe('create-ranu bin CLI', () => {
   });
 
   describe('parseArgs', () => {
-    it('parses target path and flags', () => {
+    it('parses target path and flags', async () => {
       const parsed = parseArgs([
         '',
         'my-app',
@@ -39,7 +39,7 @@ describe('create-ranu bin CLI', () => {
       expect(parsed.quiet).toBe(true);
     });
 
-    it('parses short flags and negation flags', () => {
+    it('parses short flags and negation flags', async () => {
       const parsed = parseArgs(['./app-dir', '-p', 'bun', '--no-install', '--no-git', '-q', '--json']);
       expect(parsed.targetPath).toBe('./app-dir');
       expect(parsed.packageManager).toBe('bun');
@@ -49,21 +49,21 @@ describe('create-ranu bin CLI', () => {
       expect(parsed.json).toBe(true);
     });
 
-    it('parses supported package manager arguments via -p and --package-manager', () => {
+    it('parses supported package manager arguments via -p and --package-manager', async () => {
       expect(parseArgs(['-p', 'npm']).packageManager).toBe('npm');
       expect(parseArgs(['-p', 'pnpm']).packageManager).toBe('pnpm');
       expect(parseArgs(['-p', 'yarn']).packageManager).toBe('yarn');
       expect(parseArgs(['-p', 'bun']).packageManager).toBe('bun');
     });
 
-    it('parses --help and --version', () => {
+    it('parses --help and --version', async () => {
       expect(parseArgs(['--help']).help).toBe(true);
       expect(parseArgs(['-h']).help).toBe(true);
       expect(parseArgs(['--version']).version).toBe(true);
       expect(parseArgs(['-v']).version).toBe(true);
     });
 
-    it('throws on invalid package manager', () => {
+    it('throws on invalid package manager', async () => {
       expect(() => parseArgs(['my-app', '-p', 'invalid_pm'])).toThrow(
         'Invalid package manager "invalid_pm"'
       );
@@ -75,7 +75,7 @@ describe('create-ranu bin CLI', () => {
       );
     });
 
-    it('throws on unknown flag', () => {
+    it('throws on unknown flag', async () => {
       expect(() => parseArgs(['my-app', '--unknown-flag'])).toThrow(
         'Unknown flag "--unknown-flag"'
       );
@@ -349,6 +349,22 @@ describe('create-ranu bin CLI', () => {
       const exitCode2 = await runCreateRanu(['bad-app', '--ai', 'unknown-model', '--json']);
       expect(exitCode2).toBe(1);
       errSpy.mockRestore();
+    });
+
+    it('detects CLI flags with hasCliFlags', async () => {
+      const { hasCliFlags } = await import('../src/bin/create-ranu.js');
+      expect(hasCliFlags(['my-app'])).toBe(false);
+      expect(hasCliFlags(['my-app', '--template', 'saas'])).toBe(true);
+      expect(hasCliFlags(['-a', 'node'])).toBe(true);
+      expect(hasCliFlags([])).toBe(false);
+    });
+
+    it('supports static adapter flag in CLI', async () => {
+      const targetDir = path.join(tempDir, 'static-app');
+      const code = await runCreateRanu([targetDir, '--adapter', 'static', '--no-install', '--no-git']);
+      expect(code).toBe(0);
+      const config = fs.readFileSync(path.join(targetDir, 'ranu.config.ts'), 'utf8');
+      expect(config).toContain('@ranujs/adapter-static');
     });
 
     it('catches and reports unexpected errors in text and JSON mode, including non-Error types', async () => {

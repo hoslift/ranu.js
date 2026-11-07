@@ -10,4 +10,4 @@
 
 ### Patch Changes
 
-- Initial release of official Node.js standalone deployment adapter for Ranu.js.
+- Initial release of Node.js standalone deployment adapter for Ranu.js.

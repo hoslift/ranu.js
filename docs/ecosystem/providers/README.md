@@ -12,7 +12,7 @@ This directory outlines verified infrastructure providers and partner deployment
 
 | Platform Tier | Example Providers | Deployment Method | Ranu Status |
 | :--- | :--- | :--- | :---: |
-| **Serverless Platforms** | Vercel | `@ranujs/adapter-vercel` | **Officially Supported** |
+| **Serverless Platforms** | Vercel | `@ranujs/adapter-vercel` | **Supported** |
 | **Edge Compute (V8)** | Cloudflare Workers, Fastly | `RanuDeploymentAdapter` / Worker | **Compatible (Custom Adapter)** |
 | **Container Clouds** | AWS ECS, Google Cloud Run, Railway | Multi-stage `Dockerfile` | **Officially Supported** |
 | **Virtual Servers (VMs)**| Ubuntu / Debian, DigitalOcean, Hetzner | `ranu start` + PM2 / systemd | **Officially Supported** |
