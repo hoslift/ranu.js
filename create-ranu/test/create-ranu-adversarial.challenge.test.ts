@@ -114,7 +114,7 @@ describe('Adversarial Stress Testing: create-ranu AI engine selector (Milestone 
             expect(fs.existsSync(path.join(targetDir, '.dockerignore'))).toBe(true);
           } else if (template === 'saas') {
             expect(pkg.dependencies['drizzle-orm']).toBe('^0.39.0');
-            expect(pkg.dependencies['@tailwindcss/vite']).toBe('^4.0.0');
+            expect(pkg.devDependencies['@tailwindcss/postcss']).toBe('^4.0.0');
             expect(fs.existsSync(path.join(targetDir, 'drizzle.config.ts'))).toBe(true);
           }
 

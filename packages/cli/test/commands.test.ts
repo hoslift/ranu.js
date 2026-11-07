@@ -63,6 +63,18 @@ describe('@ranu/cli commands comprehensive', () => {
 
   describe('runCreateCommand', () => {
     it('outputs create instructions in text and JSON mode', () => {
+      let jsonPayload: any = null;
+      const jsonLogger: any = {
+        json: (data: any) => { jsonPayload = data; },
+        log: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+      };
+      expect(runCreateCommand({ args: ['my-app'], json: true }, jsonLogger)).toBe(0);
+      expect(jsonPayload.commands).toContain('npm create ranujs@latest my-app');
+      expect(jsonPayload.commands).toContain('pnpm create ranujs my-app');
+
       const logger = createCliLogger({ quiet: true });
       expect(runCreateCommand({ args: ['my-app'] }, logger)).toBe(0);
       expect(runCreateCommand({ args: [], json: true }, logger)).toBe(0);

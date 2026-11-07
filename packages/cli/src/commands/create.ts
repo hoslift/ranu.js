@@ -14,10 +14,10 @@ export function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): number
       command: 'create',
       targetDir,
       commands: [
-        `npm create ranu@latest ${targetDir}`,
-        `pnpm create ranu ${targetDir}`,
-        `yarn create ranu ${targetDir}`,
-        `bun create ranu ${targetDir}`,
+        `npm create ranujs@latest ${targetDir}`,
+        `pnpm create ranujs ${targetDir}`,
+        `yarn create ranujs ${targetDir}`,
+        `bun create ranujs ${targetDir}`,
       ],
     });
     return 0;
@@ -25,10 +25,10 @@ export function runCreateCommand(args: ParsedCliArgs, logger: CliLogger): number
 
   logger.log('');
   logger.info(`To scaffold a new Ranu.js application, run:`);
-  logger.log(`  \x1b[36mnpm create ranu@latest ${targetDir}\x1b[0m`);
-  logger.log(`  or: \x1b[36mpnpm create ranu ${targetDir}\x1b[0m`);
-  logger.log(`  or: \x1b[36myarn create ranu ${targetDir}\x1b[0m`);
-  logger.log(`  or: \x1b[36mbun create ranu ${targetDir}\x1b[0m`);
+  logger.log(`  \x1b[36mnpm create ranujs@latest ${targetDir}\x1b[0m`);
+  logger.log(`  or: \x1b[36mpnpm create ranujs ${targetDir}\x1b[0m`);
+  logger.log(`  or: \x1b[36myarn create ranujs ${targetDir}\x1b[0m`);
+  logger.log(`  or: \x1b[36mbun create ranujs ${targetDir}\x1b[0m`);
   logger.log('');
 
   return 0;

@@ -423,11 +423,12 @@ curl http://localhost:3000/app/api/hello?name=Developer
 
   } else if (template === 'saas') {
     // SAAS TURNKEY PRESET
-    dependencies['tailwindcss'] = '^4.0.0';
-    dependencies['@tailwindcss/vite'] = '^4.0.0';
     dependencies['drizzle-orm'] = '^0.39.0';
     dependencies['better-sqlite3'] = '^11.0.0';
 
+    devDependencies['@tailwindcss/postcss'] = '^4.0.0';
+    devDependencies['postcss'] = '^8.4.0';
+    devDependencies['tailwindcss'] = '^4.0.0';
     devDependencies['@types/better-sqlite3'] = '^7.6.0';
     devDependencies['drizzle-kit'] = '^0.30.0';
 
@@ -435,16 +436,19 @@ curl http://localhost:3000/app/api/hello?name=Developer
     scripts['db:studio'] = 'drizzle-kit studio';
 
     const saasConfig = `import { defineConfig } from '@ranujs/core/config';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   server: {
     port: 3000,
   },
-  vite: {
-    plugins: [tailwindcss()],
-  },
 });
+`;
+
+    const postcssConfig = `export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+};
 `;
 
     const drizzleConfig = `import { defineConfig } from 'drizzle-kit';
@@ -632,6 +636,7 @@ ${getRunCommand(packageManager, 'db:push')}
 
     files['package.json'] = `${JSON.stringify({ name: projectName, version: '0.1.0', private: true, type: 'module', scripts, dependencies, devDependencies }, null, 2)}\n`;
     files['ranu.config.ts'] = saasConfig;
+    files['postcss.config.mjs'] = postcssConfig;
     files['drizzle.config.ts'] = drizzleConfig;
     files['app/db/schema.ts'] = dbSchema;
     files['app/db/index.ts'] = dbClient;

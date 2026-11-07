@@ -280,6 +280,26 @@ describe('create-ranu bin CLI', () => {
       logSpy.mockRestore();
     });
 
+    it('displays install command before dev command when dependencies were not installed', async () => {
+      const logs: string[] = [];
+      const logSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
+        logs.push(args.join(' '));
+      });
+
+      const targetDir = path.join(tempDir, 'uninstalled-app');
+      const code = await runCreateRanu([targetDir, '--no-install', '--no-git']);
+      expect(code).toBe(0);
+
+      const output = logs.join('\n');
+      expect(output).toContain('install');
+      const installIdx = output.indexOf('install');
+      const devIdx = output.lastIndexOf('dev');
+      expect(installIdx).toBeGreaterThan(-1);
+      expect(devIdx).toBeGreaterThan(installIdx);
+
+      logSpy.mockRestore();
+    });
+
     it('runs create-ranu successfully with --ai gemini and forwards to scaffoldProject', async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const targetDir = path.join(tempDir, 'app-ai-gemini');

@@ -149,6 +149,7 @@ export const DEV_CLIENT_SCRIPT = `
           return; // Reject stale updates
         }
         lastAppliedGeneration = data.generation || lastAppliedGeneration;
+        dismissBuildErrorOverlay();
 
         if (Array.isArray(data.updates)) {
           data.updates.forEach(function(u) {
@@ -166,15 +167,29 @@ export const DEV_CLIENT_SCRIPT = `
     });
 
     source.addEventListener('reload', function(e) {
+      dismissBuildErrorOverlay();
       window.location.reload();
     });
 
     source.addEventListener('build-error', function(e) {
-      // Build error received
+      try {
+        var data = JSON.parse(e.data);
+        var diagnostics = data && Array.isArray(data.diagnostics) ? data.diagnostics : [];
+        if (diagnostics.length === 0 && data) {
+          diagnostics = [{
+            code: 'RANU_BUILD_ERROR',
+            severity: 'error',
+            message: data.message || data.error || 'Compilation failed with unknown build error.',
+          }];
+        }
+        showBuildErrorOverlay(diagnostics);
+      } catch (err) {
+        console.error('[Ranu HMR] Failed to process build error event:', err);
+      }
     });
 
     source.addEventListener('recovered', function(e) {
-      // Rebuild recovered
+      dismissBuildErrorOverlay();
     });
 
     source.addEventListener('error', function(e) {
@@ -188,7 +203,136 @@ export const DEV_CLIENT_SCRIPT = `
     });
   }
 
-  // 5. Browser Hydration Visual Diff Overlay & Error Hook
+  // 5. Development Build Error Overlay
+  function dismissBuildErrorOverlay() {
+    var existing = document.getElementById('ranu-build-error-overlay-root');
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+  }
+
+  function showBuildErrorOverlay(diagnostics) {
+    if (!diagnostics || diagnostics.length === 0) return;
+    dismissBuildErrorOverlay();
+
+    var container = document.createElement('div');
+    container.id = 'ranu-build-error-overlay-root';
+    container.style.cssText = 'position:fixed;inset:0;z-index:9999999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);padding:20px;pointer-events:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;box-sizing:border-box;';
+
+    var root = typeof container.attachShadow === 'function' ? container.attachShadow({ mode: 'open' }) : container;
+
+    var style = document.createElement('style');
+    style.textContent = [
+      '* { box-sizing: border-box; margin: 0; padding: 0; }',
+      '.modal { background: #0f172a; border: 1px solid #ef4444; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); color: #f8fafc; max-width: 860px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }',
+      '.header { background: #1e1e38; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }',
+      '.title-wrap { display: flex; align-items: center; gap: 10px; }',
+      '.title { font-size: 13px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em; }',
+      '.badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; }',
+      '.actions { display: flex; gap: 8px; }',
+      'button { background: #334155; color: #f8fafc; border: none; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.15s; }',
+      'button:hover { background: #475569; }',
+      '.dismiss-btn { background: #ef4444; color: #fff; }',
+      '.dismiss-btn:hover { background: #dc2626; }',
+      '.content { overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }',
+      '.item { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }',
+      '.item-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }',
+      '.code-badge { font-size: 11px; font-weight: 700; background: #450a0a; color: #fca5a5; padding: 2px 6px; border-radius: 4px; border: 1px solid #991b1b; }',
+      '.location { font-size: 11px; color: #38bdf8; word-break: break-all; }',
+      '.route { font-size: 11px; color: #94a3b8; }',
+      '.message { font-size: 12px; color: #f1f5f9; line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #1e293b; font-family: inherit; }',
+      '.hint { font-size: 11px; color: #bae6fd; background: #0c4a6e; border-left: 3px solid #0284c7; padding: 8px 10px; border-radius: 0 4px 4px 0; }',
+      '.trace { font-size: 10px; color: #94a3b8; padding-left: 10px; border-left: 2px solid #334155; display: flex; flex-direction: column; gap: 2px; }'
+    ].join('');
+
+    var modal = document.createElement('div');
+    modal.className = 'modal';
+
+    var header = document.createElement('div');
+    header.className = 'header';
+
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'title-wrap';
+    var count = diagnostics.length;
+    titleWrap.innerHTML = '<span class="title">Build Error</span><span class="badge">' + count + (count === 1 ? ' error' : ' errors') + '</span>';
+
+    var actions = document.createElement('div');
+    actions.className = 'actions';
+
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy Error';
+    copyBtn.onclick = function() {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        var text = diagnostics.map(function(d) {
+          var loc = d.location && d.location.file ? d.location.file + (d.location.line ? ':' + d.location.line : '') : '';
+          return '[' + d.code + '] ' + (loc ? loc + ' - ' : '') + d.message + (d.hint ? '\\n  Hint: ' + d.hint : '');
+        }).join('\\n\\n');
+        navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function() { copyBtn.textContent = 'Copy Error'; }, 1500);
+      }
+    };
+
+    var dismissBtn = document.createElement('button');
+    dismissBtn.className = 'dismiss-btn';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.onclick = function() { dismissBuildErrorOverlay(); };
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(dismissBtn);
+    header.appendChild(titleWrap);
+    header.appendChild(actions);
+
+    var content = document.createElement('div');
+    content.className = 'content';
+
+    diagnostics.forEach(function(d) {
+      var item = document.createElement('div');
+      item.className = 'item';
+
+      var itemHeader = document.createElement('div');
+      itemHeader.className = 'item-header';
+      var locText = d.location && d.location.file
+        ? d.location.file + (d.location.line ? ':' + d.location.line + (d.location.column ? ':' + d.location.column : '') : '')
+        : (d.routeId ? 'Route: ' + d.routeId : '');
+      itemHeader.innerHTML = '<span class="code-badge">' + (d.code || 'RANU_BUILD_ERROR') + '</span>' + (locText ? '<span class="location">' + locText + '</span>' : '');
+
+      var msg = document.createElement('pre');
+      msg.className = 'message';
+      msg.textContent = d.message || '';
+
+      item.appendChild(itemHeader);
+      item.appendChild(msg);
+
+      if (d.hint) {
+        var hintEl = document.createElement('div');
+        hintEl.className = 'hint';
+        hintEl.textContent = '💡 Hint: ' + d.hint;
+        item.appendChild(hintEl);
+      }
+
+      if (Array.isArray(d.importChain) && d.importChain.length > 0) {
+        var traceEl = document.createElement('div');
+        traceEl.className = 'trace';
+        traceEl.innerHTML = d.importChain.map(function(mod, idx) {
+          return '<span>' + (idx + 1) + '. ' + mod + '</span>';
+        }).join('');
+        item.appendChild(traceEl);
+      }
+
+      content.appendChild(item);
+    });
+
+    modal.appendChild(header);
+    modal.appendChild(content);
+    root.appendChild(style);
+    root.appendChild(modal);
+    if (document.body) {
+      document.body.appendChild(container);
+    }
+  }
+
+  // 6. Browser Hydration Visual Diff Overlay & Error Hook
   var originalConsoleError = console.error;
   var initialSsrMarkup = document.body ? document.body.innerHTML : '';
 
@@ -597,19 +741,21 @@ export const DEV_CLIENT_SCRIPT = `
     });
 
     // Capture clicks on the launcher button
-    document.addEventListener('click', function(e) {
-      var t = e.target;
-      var launcher = t && t.closest && (
-        t.closest('.launcher') ||
-        t.closest('#ranu-devtools-launcher') ||
-        t.closest('[data-ranu-devtools-launcher]')
-      );
-      if (launcher) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleDevTools();
-      }
-    }, true);
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('click', function(e) {
+        var t = e.target;
+        var launcher = t && t.closest && (
+          t.closest('.launcher') ||
+          t.closest('#ranu-devtools-launcher') ||
+          t.closest('[data-ranu-devtools-launcher]')
+        );
+        if (launcher) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleDevTools();
+        }
+      }, true);
+    }
   })();
 
   connect();

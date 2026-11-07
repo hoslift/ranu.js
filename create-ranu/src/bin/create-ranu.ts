@@ -445,6 +445,10 @@ export async function runCreateRanu(
         const formattedDir = relDir.includes(' ') ? `"${relDir}"` : relDir;
         console.log(`  \x1b[36mcd ${formattedDir}\x1b[0m`);
       }
+      if (result.installStatus !== 'installed') {
+        const installCmd = `${result.packageManager} install`;
+        console.log(`  \x1b[36m${installCmd}\x1b[0m`);
+      }
       console.log(`  \x1b[36m${devCmd}\x1b[0m\n`);
     }
 
