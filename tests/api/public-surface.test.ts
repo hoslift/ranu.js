@@ -47,6 +47,7 @@ describe('Public API Conformance & Boundary Hardening', () => {
       expect(reactApi.useRouter).toBeTypeOf('function');
       expect(reactApi.usePathname).toBeTypeOf('function');
       expect(reactApi.useSearchParams).toBeTypeOf('function');
+      expect(reactApi.useFormAction).toBeTypeOf('function');
     });
 
     it('resolves "@ranujs/core/server" server helpers and navigation utilities', async () => {
@@ -59,6 +60,7 @@ describe('Public API Conformance & Boundary Hardening', () => {
       expect(serverApi.rewrite).toBeTypeOf('function');
       expect(serverApi.getRequestContext).toBeTypeOf('function');
       expect(serverApi.waitUntil).toBeTypeOf('function');
+      expect(serverApi.createFormAction).toBeTypeOf('function');
     });
 
     it('resolves "@ranujs/core/plugin" plugin authoring API', async () => {
@@ -104,6 +106,7 @@ describe('Public API Conformance & Boundary Hardening', () => {
       const exportKeys = Object.keys(pkg.exports);
 
       // Canonical and technical subpaths per 11_PUBLIC_API_SPECIFICATION.md §10 and PR #256 AI exports
+
       const expectedExports = [
         '.',
         './config',
