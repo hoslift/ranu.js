@@ -321,10 +321,31 @@ export function createStaticPreviewServer(options: {
     }
 
     const rawUrl = (req.url ?? '/').split('?')[0] ?? '/';
-    const decodedUrl = decodeURIComponent(rawUrl);
+    let decodedUrl: string;
+    try {
+      decodedUrl = decodeURIComponent(rawUrl);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Bad Request');
+      return;
+    }
 
-    // Defense against traversal
-    const safePath = path.normalize(path.join(rootDir, decodedUrl));
+    const normalizedUrl = path.posix.normalize(decodedUrl);
+    if (
+      decodedUrl.includes('..') ||
+      normalizedUrl.includes('..') ||
+      decodedUrl.includes('\\') ||
+      normalizedUrl.startsWith('/../') ||
+      normalizedUrl === '/..'
+    ) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden');
+      return;
+    }
+
+    // Defense against traversal: ensure path is strictly contained within rootDir
+    const relPath = normalizedUrl.replace(/^\/+/, '');
+    const safePath = path.resolve(rootDir, '.' + path.sep + relPath);
     if (!isPathContained(rootDir, safePath)) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end('Forbidden');
@@ -333,14 +354,21 @@ export function createStaticPreviewServer(options: {
 
     let targetFile = safePath;
     if (fs.existsSync(targetFile) && fs.statSync(targetFile).isDirectory()) {
-      targetFile = path.join(targetFile, 'index.html');
+      targetFile = path.resolve(targetFile, 'index.html');
+    }
+
+    if (!isPathContained(rootDir, targetFile)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden');
+      return;
     }
 
     if (!fs.existsSync(targetFile) || !fs.statSync(targetFile).isFile()) {
       // Try fallback if defined
       if (fallback) {
-        const fbPath = path.join(rootDir, fallback);
-        if (fs.existsSync(fbPath)) {
+        const safeFallbackName = path.basename(fallback);
+        const fbPath = path.resolve(rootDir, safeFallbackName);
+        if (isPathContained(rootDir, fbPath) && fs.existsSync(fbPath) && fs.statSync(fbPath).isFile()) {
           targetFile = fbPath;
         } else {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -352,6 +380,12 @@ export function createStaticPreviewServer(options: {
         res.end('Not Found');
         return;
       }
+    }
+
+    if (!isPathContained(rootDir, targetFile)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden');
+      return;
     }
 
     const stat = fs.statSync(targetFile);
