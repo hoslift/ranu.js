@@ -16,7 +16,7 @@ const root = path.resolve(__dirname, '../..');
 const cliBin = path.join(root, 'packages/cli/dist/bin/ranu.js');
 const cliEnv = { ...process.env, NODE_ENV: 'production' };
 
-describe('Phase 28 — Deployment E2E Lifecycle Consolidation', () => {
+describe('Deployment E2E Lifecycle Consolidation', () => {
   afterAll(async () => {
     await cleanupAllProcesses();
   });

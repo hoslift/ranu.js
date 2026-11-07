@@ -11,6 +11,8 @@ import type { RequestContextStore } from './context.js';
 
 export interface RanuRequestContext {
   readonly requestId: string;
+  readonly traceId?: string | undefined;
+  readonly spanId?: string | undefined;
   readonly request: Request;
   readonly url: URL;
   readonly params: Record<string, string | string[]>;
@@ -40,6 +42,16 @@ export interface StaticDispatchTarget {
   readonly pathname: string;
 }
 
+export interface TelemetryRuntimeOptions {
+  readonly enabled?: boolean;
+}
+
+export interface MetricsRuntimeOptions {
+  readonly enabled?: boolean;
+  readonly endpoint?: string;
+  readonly provider?: import('./telemetry/metrics.js').MetricsProvider;
+}
+
 export interface RanuServerRuntimeOptions {
   readonly routeRecords: readonly CompiledRouteRecord[];
   readonly staticManifest?: StaticManifest;
@@ -57,4 +69,6 @@ export interface RanuServerRuntimeOptions {
     request: Request,
     context: RanuRequestContext,
   ) => Promise<Response>;
+  readonly telemetry?: TelemetryRuntimeOptions;
+  readonly metrics?: MetricsRuntimeOptions;
 }

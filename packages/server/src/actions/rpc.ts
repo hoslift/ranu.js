@@ -1,4 +1,6 @@
 import type { RanuRequestContext } from '@ranu/runtime';
+import { getTracer, getMetrics } from '@ranu/runtime';
+import { trace, context as otelContext, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { FormActionResult, StandardSchemaIssue } from './types.js';
 import { ServerActionRegistry, defaultActionRegistry } from './registry.js';
 export { ServerActionRegistry, defaultActionRegistry };
@@ -102,16 +104,32 @@ export async function executeServerAction(
   context: RanuRequestContext,
   registry: ServerActionRegistry = defaultActionRegistry,
 ): Promise<Response> {
-  // 1. Method verification
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', {
-      status: 405,
-      headers: {
-        Allow: 'POST',
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-    });
-  }
+  const tracer = getTracer();
+  const metrics = getMetrics();
+  const contentType = request.headers.get('content-type') ?? '';
+
+  const actionSpan = tracer.startSpan('ranu.server_action', {
+    kind: SpanKind.INTERNAL,
+    attributes: {
+      'ranu.action_id': actionId,
+      'ranu.action.content_type': contentType,
+    },
+  });
+  const actionStart = performance.now();
+
+  return otelContext.with(trace.setSpan(otelContext.active(), actionSpan), async () => {
+    try {
+      const response = await (async (): Promise<Response> => {
+        // 1. Method verification
+        if (request.method !== 'POST') {
+          return new Response('Method Not Allowed', {
+            status: 405,
+            headers: {
+              Allow: 'POST',
+              'Content-Type': 'text/plain; charset=utf-8',
+            },
+          });
+        }
 
   // 2. Action ID format validation
   if (!ACTION_ID_PATTERN.test(actionId)) {
@@ -266,21 +284,47 @@ export async function executeServerAction(
       };
     }
 
-    return new Response(JSON.stringify(responseBody), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        return new Response(JSON.stringify(responseBody), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        });
+      } catch (err: any) {
+        const errorBody: FormActionResult<never> = {
+          success: false,
+          errors: {},
+          formErrors: [err.message || 'Internal action execution error'],
+        };
+        return new Response(JSON.stringify(errorBody), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        });
+      }
+    })();
+
+    actionSpan.setStatus({
+      code: response.status >= 400 ? SpanStatusCode.ERROR : SpanStatusCode.OK,
     });
+    metrics.increment('ranu_server_actions_total', 1, {
+      action: actionId,
+      status: String(response.status),
+    });
+    return response;
   } catch (err: any) {
-    const errorBody: FormActionResult<never> = {
-      success: false,
-      errors: {},
-      formErrors: [err.message || 'Internal action execution error'],
-    };
-    return new Response(JSON.stringify(errorBody), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    actionSpan.recordException(err instanceof Error ? err : new Error(String(err)));
+    actionSpan.setStatus({ code: SpanStatusCode.ERROR });
+    metrics.increment('ranu_server_actions_total', 1, {
+      action: actionId,
+      status: '500',
     });
+    throw err;
+  } finally {
+    const actionDurationSec = (performance.now() - actionStart) / 1000;
+    metrics.record('ranu_server_action_duration_seconds', actionDurationSec, {
+      action: actionId,
+    });
+    actionSpan.end();
   }
+});
 }
 
 /**

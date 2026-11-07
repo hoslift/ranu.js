@@ -32,6 +32,7 @@ export default defineConfig({
     'esbuild',
     'dotenv',
     'typescript',
+    '@opentelemetry/api',
   ],
   noExternal: [/@ranu\/.*/],
   banner: ({ entry }: { entry?: string } = {}) => {

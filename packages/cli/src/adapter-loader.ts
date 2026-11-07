@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { RanuDeploymentAdapter } from '@ranu/core';
+import { ADAPTER_API_VERSION, type RanuDeploymentAdapter } from '@ranu/core';
 import type { RanuDiagnostic } from '@ranu/diagnostics';
 
 /** Canonical mapping from shorthand provider names to first-party packages */
@@ -301,6 +301,21 @@ export async function loadDeploymentAdapter(
         severity: 'error',
         message: `Deployment adapter "${specifier}" (${resolved.resolvedTarget}) does not implement a valid adapt() method.`,
         hint: 'Ensure the adapter exports a factory function or object implementing the RanuDeploymentAdapter interface with an adapt(context) method.',
+      },
+    };
+  }
+
+  if (adapter.apiVersion !== ADAPTER_API_VERSION) {
+    const err = `Deployment adapter "${specifier}" declares incompatible apiVersion "${adapter.apiVersion}". Framework expects apiVersion ${ADAPTER_API_VERSION}.`;
+    return {
+      success: false,
+      specifier: resolved,
+      error: err,
+      diagnostic: {
+        code: 'RANU_DEPLOY_ADAPTER_INCOMPATIBLE_API_VERSION',
+        severity: 'error',
+        message: err,
+        hint: 'Update the adapter package to match the framework adapter protocol version.',
       },
     };
   }

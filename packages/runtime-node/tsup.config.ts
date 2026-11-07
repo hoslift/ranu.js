@@ -12,6 +12,7 @@ export default defineConfig({
     '@ranu/react',
     '@ranu/router',
     '@ranu/runtime',
+    '@opentelemetry/api',
   ],
   platform: 'node',
   tsconfig: 'tsconfig.build.json',

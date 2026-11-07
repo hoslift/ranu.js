@@ -137,7 +137,7 @@ describe('@ranu/cli commands comprehensive', () => {
       const adapt = vi
         .fn()
         .mockResolvedValue({ outputDirectory: '/vercel-output', files: ['config.json'] });
-      const createVercelAdapter = vi.fn(() => ({ name: 'vercel', adapt }));
+      const createVercelAdapter = vi.fn(() => ({ name: 'vercel', apiVersion: 1, adapt }));
       vi.doMock('@ranujs/adapter-vercel', () => ({ createVercelAdapter }));
       vi.resetModules();
       const { runDeployCommand: runWithMock } = await import('../src/commands/deploy.js');
@@ -168,7 +168,7 @@ describe('@ranu/cli commands comprehensive', () => {
 
     it('falls back to the Vercel default factory', async () => {
       const adapt = vi.fn().mockResolvedValue({ success: true });
-      const defaultFactory = vi.fn(() => ({ name: 'vercel-default', adapt }));
+      const defaultFactory = vi.fn(() => ({ name: 'vercel-default', apiVersion: 1, adapt }));
       vi.doMock('@ranujs/adapter-vercel', () => ({
         createVercelAdapter: undefined,
         default: defaultFactory,
@@ -189,7 +189,7 @@ describe('@ranu/cli commands comprehensive', () => {
 
     it('falls back to a Vercel default adapter object', async () => {
       const adapt = vi.fn().mockResolvedValue({ success: true });
-      const defaultAdapter = { name: 'vercel-default', adapt };
+      const defaultAdapter = { name: 'vercel-default', apiVersion: 1, adapt };
       vi.doMock('@ranujs/adapter-vercel', () => ({
         createVercelAdapter: undefined,
         default: defaultAdapter,
