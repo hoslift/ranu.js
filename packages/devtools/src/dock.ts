@@ -37,6 +37,15 @@ const ICONS = {
   eye: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
 };
 
+export function escapeHtml(str: unknown): string {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * WeakMap store for private closed Shadow DOM instances.
  */
@@ -889,11 +898,11 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
           const maxDelta = Math.max(...state.streamingChunks.map((ch) => ch.deltaMs), 1);
           const barWidth = Math.max(10, Math.min(300, Math.round((c.deltaMs / maxDelta) * 250)));
           row.innerHTML = `
-            <span style="width:70px;color:#94a3b8;">Chunk #${c.id}</span>
-            <span style="width:80px;color:#33BBCA;">+${c.deltaMs}ms</span>
-            <span style="width:70px;color:#e2e8f0;">${c.bytes} B</span>
+            <span style="width:70px;color:#94a3b8;">Chunk #${escapeHtml(c.id)}</span>
+            <span style="width:80px;color:#33BBCA;">+${escapeHtml(c.deltaMs)}ms</span>
+            <span style="width:70px;color:#e2e8f0;">${escapeHtml(c.bytes)} B</span>
             <div class="waterfall-bar" style="width:${barWidth}px;"></div>
-            <span style="margin-left:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${c.preview}</span>
+            <span style="margin-left:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${escapeHtml(c.preview)}</span>
           `;
           list.appendChild(row);
         });
@@ -905,10 +914,10 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
       } else {
         content.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div><strong style="color:#33BBCA;">Active Route:</strong> <code>${state.currentRoute.routeId}</code></div>
-            <div><strong>Pathname:</strong> <code>${state.currentRoute.pathname}</code></div>
-            <div><strong>Layouts Stack:</strong> ${state.currentRoute.layouts.map((l) => `<code>${l}</code>`).join(' → ') || '<em>None</em>'}</div>
-            <div><strong>Loading Boundary:</strong> <code>${state.currentRoute.loading || 'Default'}</code></div>
+            <div><strong style="color:#33BBCA;">Active Route:</strong> <code>${escapeHtml(state.currentRoute.routeId)}</code></div>
+            <div><strong>Pathname:</strong> <code>${escapeHtml(state.currentRoute.pathname)}</code></div>
+            <div><strong>Layouts Stack:</strong> ${state.currentRoute.layouts.map((l) => `<code>${escapeHtml(l)}</code>`).join(' → ') || '<em>None</em>'}</div>
+            <div><strong>Loading Boundary:</strong> <code>${escapeHtml(state.currentRoute.loading || 'Default')}</code></div>
           </div>
         `;
       }
@@ -924,8 +933,8 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
 
       content.innerHTML = `
         <div style="margin-bottom:12px;">
-          <span class="badge ${badgeClass}">Status: ${state.hydration.status.toUpperCase()}</span>
-          ${state.hydration.hydrationTimeMs !== undefined ? `<span style="margin-left:10px;color:#94a3b8;">Hydrated in ${state.hydration.hydrationTimeMs}ms</span>` : ''}
+          <span class="badge ${badgeClass}">Status: ${escapeHtml(state.hydration.status.toUpperCase())}</span>
+          ${state.hydration.hydrationTimeMs !== undefined ? `<span style="margin-left:10px;color:#94a3b8;">Hydrated in ${escapeHtml(state.hydration.hydrationTimeMs)}ms</span>` : ''}
         </div>
       `;
 
@@ -936,8 +945,8 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
           item.style.borderBottom = '1px solid #1f1f26';
           item.style.padding = '8px 0';
           item.innerHTML = `
-            <div style="color:#fbbf24;font-weight:600;">${m.type}: <code>${m.path}</code></div>
-            <div style="color:#cbd5e1;font-size:12px;margin:4px 0;">${m.message}</div>
+            <div style="color:#fbbf24;font-weight:600;">${escapeHtml(m.type)}: <code>${escapeHtml(m.path)}</code></div>
+            <div style="color:#cbd5e1;font-size:12px;margin:4px 0;">${escapeHtml(m.message)}</div>
           `;
           table.appendChild(item);
         });
@@ -954,9 +963,9 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
           const card = activeDoc.createElement('div');
           card.style.marginBottom = '12px';
           card.innerHTML = `
-            <div style="color:#f87171;font-weight:600;">[${d.code}] ${d.message}</div>
-            ${d.location ? `<div style="color:#64748b;font-size:11px;">at ${d.location.file || ''}:${d.location.line || ''}</div>` : ''}
-            ${d.hint ? `<div class="code-block" style="margin-top:4px;">💡 Hint: ${d.hint}</div>` : ''}
+            <div style="color:#f87171;font-weight:600;">[${escapeHtml(d.code)}] ${escapeHtml(d.message)}</div>
+            ${d.location ? `<div style="color:#64748b;font-size:11px;">at ${escapeHtml(d.location.file || '')}:${escapeHtml(d.location.line || '')}</div>` : ''}
+            ${d.hint ? `<div class="code-block" style="margin-top:4px;">💡 Hint: ${escapeHtml(d.hint)}</div>` : ''}
           `;
           diagList.appendChild(card);
         });
@@ -1111,7 +1120,7 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
       dropdownBtn.innerHTML = `
         <span>Provider:</span>
         <span style="display:inline-flex;align-items:center;">${providerIcon}</span>
-        <span>${providerDisplayName}</span>
+        <span>${escapeHtml(providerDisplayName)}</span>
         ${ICONS.chevronDown}
       `;
       dropdownBtn.onclick = (e) => {
@@ -1148,7 +1157,7 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
           item.innerHTML = `
             <span style="display:flex;align-items:center;gap:8px;">
               ${opt.icon}
-              <span style="font-weight:500;">${opt.name}</span>
+              <span style="font-weight:500;">${escapeHtml(opt.name)}</span>
             </span>
             <span style="width:6px;height:6px;border-radius:50%;background:${opt.status};display:inline-block;"></span>
           `;
@@ -1242,8 +1251,8 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
         info.style.alignItems = 'center';
         info.style.gap = '8px';
         info.innerHTML = `
-          <span style="color:#33BBCA;font-weight:600;">📄 ${diff.filePath}</span>
-          <span style="font-size:11px;color:#94a3b8;">${diff.patchSummary}</span>
+          <span style="color:#33BBCA;font-weight:600;">📄 ${escapeHtml(diff.filePath)}</span>
+          <span style="font-size:11px;color:#94a3b8;">${escapeHtml(diff.patchSummary)}</span>
         `;
         toolbar.appendChild(info);
 
@@ -1436,7 +1445,7 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
         provBtn.innerHTML = `
           <span style="display:flex;align-items:center;gap:8px;">
             ${prov.icon}
-            <span>${prov.name}</span>
+            <span>${escapeHtml(prov.name)}</span>
           </span>
           <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};"></span>
         `;
@@ -1508,9 +1517,9 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
       provHeader.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;">
           ${activeIcon}
-          <span style="font-weight:700;font-size:14px;color:#ffffff;text-transform:capitalize;">${activeModalProvider}</span>
+          <span style="font-weight:700;font-size:14px;color:#ffffff;text-transform:capitalize;">${escapeHtml(activeModalProvider)}</span>
           <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-family:monospace;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBorder};">
-            ${badgeText}
+            ${escapeHtml(badgeText)}
           </span>
         </div>
       `;
@@ -1851,22 +1860,22 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
         resultBanner.style.alignItems = 'center';
         resultBanner.style.gap = '6px';
 
-        const codeBadge = `<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:rgba(255,255,255,0.08);margin-left:6px;">${pingResult.code}</span>`;
+        const codeBadge = `<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:rgba(255,255,255,0.08);margin-left:6px;">${escapeHtml(pingResult.code)}</span>`;
         if (pingResult.code === '200 OK') {
           resultBanner.style.background = 'rgba(52,211,153,0.15)';
           resultBanner.style.border = '1px solid rgba(52,211,153,0.3)';
           resultBanner.style.color = '#34d399';
-          resultBanner.innerHTML = `${ICONS.check} <span>${pingResult.message || `Verified: ${pingResult.latency}ms latency`}</span> ${codeBadge}`;
+          resultBanner.innerHTML = `${ICONS.check} <span>${escapeHtml(pingResult.message || `Verified: ${pingResult.latency}ms latency`)}</span> ${codeBadge}`;
         } else if (pingResult.code === 'OFF') {
           resultBanner.style.background = 'rgba(100,116,139,0.15)';
           resultBanner.style.border = '1px solid rgba(100,116,139,0.3)';
           resultBanner.style.color = '#94a3b8';
-          resultBanner.innerHTML = `${ICONS.none} <span>${pingResult.message}</span> ${codeBadge}`;
+          resultBanner.innerHTML = `${ICONS.none} <span>${escapeHtml(pingResult.message)}</span> ${codeBadge}`;
         } else {
           resultBanner.style.background = 'rgba(239,68,68,0.15)';
           resultBanner.style.border = '1px solid rgba(239,68,68,0.3)';
           resultBanner.style.color = '#f87171';
-          resultBanner.innerHTML = `<span>✕</span> <span>${pingResult.message}</span> ${codeBadge}`;
+          resultBanner.innerHTML = `<span>✕</span> <span>${escapeHtml(pingResult.message)}</span> ${codeBadge}`;
         }
         pingActions.appendChild(resultBanner);
       }
