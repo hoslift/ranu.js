@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -55,14 +55,14 @@ jobs:
 
       - name: Run Dry-Run Release Simulation
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: node scripts/publish-dual-registry.mjs --dry-run
+        run: pnpm run release:dual --dry-run
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Automated Changesets State Machine:
       # - When changesets exist on main: Opens/updates "chore(release): version packages" PR. Does NOT publish.
-      # - When the release PR is merged into main: Runs `publish: node scripts/publish-dual-registry.mjs`,
+      # - When the release PR is merged into main: Runs `publish: pnpm run release:dual`,
       #   creates Git release tags, publishes releases, and distributes to npmjs.com and GitHub Packages!
       - name: Create Release Pull Request or Dual-Publish
         id: changeset
@@ -70,7 +70,7 @@ jobs:
         uses: changesets/action@v1
         with:
           version: pnpm version-packages
-          publish: node scripts/publish-dual-registry.mjs
+          publish: pnpm run release:dual
           title: "chore(release): version packages"
           commit: "chore(release): version packages"
         env:

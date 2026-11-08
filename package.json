@@ -47,6 +47,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm sync:docs",
     "release": "node scripts/publish-dual-registry.mjs",
+    "release:dual": "node scripts/publish-dual-registry.mjs",
     "release:dry-run": "node scripts/publish-dual-registry.mjs --dry-run",
     "sync:docs": "node scripts/sync-docs-version.mjs",
     "check-cycles": "node scripts/check-cycles.mjs",
