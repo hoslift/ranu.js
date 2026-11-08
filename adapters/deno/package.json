@@ -1,6 +1,6 @@
 {
   "name": "@ranujs/adapter-deno",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Ranu.js native Deno deployment adapter",
   "license": "MIT",
   "funding": [

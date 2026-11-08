@@ -1,5 +1,17 @@
 # @ranujs/adapter-static
 
+## 0.4.0
+
+### Minor Changes
+
+- cac708a: Introduce `@ranujs/adapter-static` zero-runtime static site generation (SSG) adapter, interactive CLI template picker via `@clack/prompts`, and full-stack reference applications.
+
+### Patch Changes
+
+- @ranu/core@0.4.0
+  - @ranu/diagnostics@0.4.0
+  - @ranu/manifests@0.4.0
+
 ## 0.1.6
 
 ### Minor Changes

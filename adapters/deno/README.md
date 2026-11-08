@@ -2,7 +2,7 @@
 
 Native Deno deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.6)**: Native deployment adapter enabling Ranu.js applications on Deno.
+> **Public Alpha (v0.4.0)**: Native deployment adapter enabling Ranu.js applications on Deno.
 
 ## Installation
 
