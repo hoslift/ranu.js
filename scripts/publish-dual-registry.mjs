@@ -566,7 +566,7 @@ export async function publishMonorepo() {
         let releaseNotes = '';
         if (fs.existsSync(changelogPath)) {
           const changelog = fs.readFileSync(changelogPath, 'utf8');
-          const escapedVer = detectedReleaseVersion.replace(/\./g, '\\.');
+          const escapedVer = detectedReleaseVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const match = changelog.match(
             new RegExp(`(?:^|\\r?\\n)##\\s*\\[?${escapedVer}\\]?[^\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`)
           );
@@ -593,7 +593,7 @@ export async function publishMonorepo() {
           if (fs.existsSync(tempNotesFile)) {
             try {
               fs.unlinkSync(tempNotesFile);
-            } catch {}
+            } catch { /* ignore cleanup errors */ }
           }
         }
       }
