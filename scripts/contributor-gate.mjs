@@ -50,7 +50,7 @@ async function postComment() {
 
   try {
     // Check if already commented
-    const listRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
+    const listRes = await globalThis.fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'User-Agent': 'contributor-gate',
@@ -68,7 +68,7 @@ async function postComment() {
     }
 
     // Post comment
-    await fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
+    await globalThis.fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
