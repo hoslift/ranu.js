@@ -3,6 +3,6 @@ import { CLI_VERSION } from '../src/index.js';
 
 describe('@ranu/cli', () => {
   it('exports CLI_VERSION', () => {
-    expect(CLI_VERSION).toBe('0.3.0');
+    expect(CLI_VERSION).toMatch(/^\d+\.\d+\.\d+/);
   });
 });

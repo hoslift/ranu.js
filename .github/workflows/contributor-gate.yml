@@ -1,0 +1,71 @@
+name: Contributor Permission Gate
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, labeled]
+
+jobs:
+  verify-permission:
+    name: Verify Contributor Permission
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: read
+
+    steps:
+      - name: Check Contributor Authorization
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const authorAssociation = pr.author_association; // 'OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR', 'NONE', etc.
+
+            core.info(`PR #${pr.number} opened by ${author} with association: ${authorAssociation}`);
+
+            // 1. Maintainers, owners, and repository collaborators have immediate full access
+            const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (trustedRoles.includes(authorAssociation)) {
+              core.info(`✅ Author ${author} is a verified maintainer/collaborator (${authorAssociation}). Gate cleared.`);
+              return;
+            }
+
+            // 2. Check if maintainer has applied the 'contribution: approved' label to the PR
+            const labels = pr.labels.map(l => l.name);
+            if (labels.includes('contribution: approved')) {
+              core.info(`✅ PR #${pr.number} has explicit maintainer approval ('contribution: approved'). Gate cleared.`);
+              return;
+            }
+
+            // 3. For external contributors without prior approval, block and post guidance
+            const issueLink = 'https://github.com/hoslift/ranu.js/issues/new?template=contribution_request.yml';
+            const body = `### 🛑 Prior Permission Required for External Contributions
+
+Hello @${author}! 👋 Thank you for your interest in contributing to **Ranu.js**.
+
+In accordance with our [**CONTRIBUTING.md**](https://github.com/hoslift/ranu.js/blob/main/CONTRIBUTING.md), direct pull requests from outside contributors are not accepted without prior approval.
+
+#### 📋 How to request permission:
+1. Please open a [**Contribution & Permission Request**](${issueLink}) issue describing your proposed change.
+2. Once the maintainers review and approve your proposal, they will apply the \`contribution: approved\` label to this PR or invite you to proceed.
+
+*This check ensures framework stability, API consistency, and security during our public alpha phase.*`;
+
+            // Check if comment was already posted to prevent duplicate noise
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+            });
+
+            const alreadyCommented = comments.data.some(c => c.body.includes('Prior Permission Required for External Contributions'));
+            if (!alreadyCommented) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: body,
+              });
+            }
+
+            core.setFailed(`External contributor @${author} must request prior approval via an issue before submitting a PR.`);

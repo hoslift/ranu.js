@@ -1,11 +1,14 @@
-name: Release
+name: Release & Dual-Registry Publish
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      confirm_publish:
-        description: "Explicitly confirm npm publication"
-        required: true
+      dry_run:
+        description: "Dry-run release check (no publish)"
+        required: false
         type: boolean
         default: false
 
@@ -15,13 +18,13 @@ concurrency:
 
 jobs:
   release:
-    name: Release
+    name: Release & Dual-Publish
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.confirm_publish == 'true' }}
     permissions:
       contents: write
       pull-requests: write
       id-token: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -33,7 +36,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -43,17 +45,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Authenticate with npm registry
+      - name: Build workspace packages
+        run: pnpm build
+
+      - name: Authenticate registries in ~/.npmrc
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
-      - name: Publish Packages to NPM
+      - name: Run Dry-Run Release Simulation
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: node scripts/publish-dual-registry.mjs --dry-run
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Automated Changesets State Machine:
+      # - When changesets exist on main: Opens/updates "chore(release): version packages" PR. Does NOT publish.
+      # - When the release PR is merged into main: Runs `publish: node scripts/publish-dual-registry.mjs`,
+      #   creates Git release tags, publishes releases, and distributes to npmjs.com and GitHub Packages!
+      - name: Create Release Pull Request or Dual-Publish
+        id: changeset
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: changesets/action@v1
         with:
-          publish: pnpm release
+          version: pnpm version-packages
+          publish: node scripts/publish-dual-registry.mjs
+          title: "chore(release): version packages"
+          commit: "chore(release): version packages"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CHANGESETS_TOKEN || secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true

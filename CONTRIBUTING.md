@@ -25,19 +25,24 @@ Ranu.js is an open-source project, and contributions from the community are warm
 > **Public Alpha Stage**  
 > Ranu.js is currently in **Public Alpha development**. Architecture, APIs, package boundaries, and internal workflows are actively evolving as the project progresses toward the stable V1 milestone.
 
+> [!IMPORTANT]
+> **External Contribution Policy (Prior Approval Required)**  
+> To protect framework stability, API consistency, and security during our Public Alpha development, **direct Pull Requests from external contributors are not accepted without prior permission**.  
+> Before writing code or opening a PR, please submit a [**Contribution & Permission Request**](https://github.com/hoslift/ranu.js/issues/new?template=contribution_request.yml) issue. Once maintainers approve your proposal (or apply the `contribution: approved` label), you are warmly welcomed to submit your PR. Direct unapproved PRs will be held by our automated gatekeeper bot until permission is granted.
+
 ---
 
 ## Quick Contribution Decision Matrix
 
 To save your time and keep contributions streamlined, refer to this quick guide:
 
-| Type of Contribution | Issue Required First? | Changeset Required? | Example Commit Prefix |
+| Type of Contribution | Permission Request First? | Changeset Required? | Example Commit Prefix |
 | :--- | :---: | :---: | :--- |
-| **Documentation / Typo Fixes** | ❌ No (Direct PR) | ❌ No | `docs: fix routing example typo` |
-| **Small Bug Fix (Clear & scoped)** | ❌ No (Direct PR) | ✅ Yes (if in published package) | `fix(router): resolve dynamic segment matching` |
-| **New Feature / API Change** | ✅ Yes (Open Issue/RFC first) | ✅ Yes | `feat(runtime): add response streaming support` |
-| **Tests & Internal Tooling** | ❌ No (Direct PR) | ❌ No | `test: add unit tests for cookie parsing` |
-| **Refactoring (No external API change)** | Optional | ❌ No | `refactor(build): simplify module graph traversal` |
+| **New Feature / API Change** | ✅ Yes (Open Issue first) | ✅ Yes | `feat(runtime): add response streaming support` |
+| **Bug Fix (Kernel / Adapters / AI)** | ✅ Yes (Open Issue first) | ✅ Yes (if in published package) | `fix(router): resolve dynamic segment matching` |
+| **Documentation / Typo Fixes** | ✅ Yes (Open Issue first) | ❌ No | `docs: fix routing example typo` |
+| **Tests & Internal Tooling** | ✅ Yes (Open Issue first) | ❌ No | `test: add unit tests for cookie parsing` |
+| **Refactoring (Architecture)** | ✅ Yes (Open Issue first) | ❌ No | `refactor(build): simplify module graph traversal` |
 
 ---
 
@@ -216,7 +221,7 @@ Ranu.js employs a structured hybrid release architecture:
 2. Open a Pull Request targeting the `main` branch.
 3. Complete the PR template with:
    * A clear explanation of what changed and why.
-   * Links to relevant issues (e.g., `Closes #123`).
+   * Links to relevant approved issue (e.g., `Closes #123`).
    * How the change was tested.
 
 ---
@@ -225,6 +230,7 @@ Ranu.js employs a structured hybrid release architecture:
 
 Before submitting your pull request, verify:
 
+- [ ] A [Contribution Request issue](https://github.com/hoslift/ranu.js/issues/new?template=contribution_request.yml) was approved prior to submitting this PR.
 - [ ] Changes are focused and do not include unrelated code or formatting changes.
 - [ ] Code follows project conventions and passes `pnpm lint`.
 - [ ] TypeScript compiles cleanly with `pnpm typecheck`.
@@ -235,6 +241,9 @@ Before submitting your pull request, verify:
 ---
 
 ## Frequently Asked Questions (FAQ)
+
+### Q: Why do I need prior approval before opening a PR?
+During Public Alpha development, architecture and internal APIs evolve rapidly. Requiring an approved Contribution Request ensures maintainer alignment, prevents duplicated work, and keeps the code base secure and consistent.
 
 ### Q: Where can I find beginner-friendly tasks?
 Check our [GitHub Issues](https://github.com/hoslift/ranu.js/issues) and filter by labels:
@@ -251,9 +260,6 @@ Fix the reported error, commit, and push to your PR branch.
 
 ### Q: Do I need to create a Changeset for documentation or test updates?
 **No.** Changesets are only required when modifying code inside published packages (`packages/` or `adapters/`).
-
-### Q: Can I submit a large new feature directly as a PR?
-For substantial features, architectural modifications, or breaking API changes, please **open an issue or RFC first**. This ensures community and maintainer alignment before you invest time writing code.
 
 ---
 

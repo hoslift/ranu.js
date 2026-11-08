@@ -10,14 +10,23 @@
       "@ranujs/adapter-node",
       "@ranujs/adapter-netlify",
       "@ranujs/adapter-bun",
-      "@ranujs/adapter-deno"
+      "@ranujs/adapter-deno",
+      "@ranujs/adapter-static"
+    ],
+    [
+      "@ranu/ai",
+      "@ranu/ai-gemini",
+      "@ranu/ai-groq",
+      "@ranu/ai-claude",
+      "@ranu/ai-codex",
+      "@ranu/ai-custom"
     ]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["example-*"],
+  "ignore": ["example-*", "fixture-*", "test-app"],
   "privatePackages": {
     "version": true,
     "tag": false

@@ -1,0 +1,62 @@
+name: "🤝 Contribution & Permission Request"
+description: "Request prior permission to contribute code, features, or fixes before opening a Pull Request."
+title: "[Contribution Request]: "
+labels: ["contribution: pending-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Welcome to Ranu.js!
+        In accordance with [`CONTRIBUTING.md`](../CONTRIBUTING.md), all external contributions require prior permission and alignment before submitting a Pull Request.
+  - type: dropdown
+    id: contribution-type
+    attributes:
+      label: "Contribution Type"
+      description: "What category does this proposed change fall under?"
+      options:
+        - "Bug Fix"
+        - "Feature Proposal"
+        - "Performance Improvement"
+        - "Refactoring / Architecture"
+        - "Documentation / Examples"
+    validations:
+      required: true
+  - type: dropdown
+    id: target-package
+    attributes:
+      label: "Target Area / Package"
+      description: "Which part of the monorepo does this affect?"
+      options:
+        - "Core Framework (@ranujs/core, @ranujs/runtime)"
+        - "CLI Scaffolder (ranu, create-ranujs)"
+        - "Deployment Adapters (@ranujs/adapter-*)"
+        - "AI Kernel & Providers (@ranu/ai-*)"
+        - "Router / Manifests / Testing Tools"
+        - "Documentation / Guides"
+    validations:
+      required: true
+  - type: textarea
+    id: problem-summary
+    attributes:
+      label: "Problem or Proposal Summary"
+      description: "Describe what you would like to implement or fix and why."
+      placeholder: "Explain the motivation, problem, or feature..."
+    validations:
+      required: true
+  - type: textarea
+    id: technical-approach
+    attributes:
+      label: "Proposed Technical Implementation"
+      description: "Outline the technical design, architectural considerations, and how you plan to test it."
+      placeholder: "Packages touched, API contracts, new test cases..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: "Pre-Contribution Checklist"
+      options:
+        - label: "I have read and agree to follow the Code of Conduct and CONTRIBUTING.md."
+          required: true
+        - label: "I understand that I should wait for maintainer approval (`contribution: approved`) before submitting code."
+          required: true

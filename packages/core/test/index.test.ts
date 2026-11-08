@@ -4,7 +4,7 @@ import type { RanuMode, RanuCommand, RouteKind, RenderMode, FrameworkCapabilitie
 
 describe('@ranu/core', () => {
   it('exports RANU_VERSION and DEFAULT_OUT_DIR', () => {
-    expect(RANU_VERSION).toBe('0.3.0');
+    expect(RANU_VERSION).toMatch(/^\d+\.\d+\.\d+/);
     expect(DEFAULT_OUT_DIR).toBe('.ranu');
   });
 
