@@ -1,6 +1,6 @@
 {
   "name": "@ranu/ai-gemini",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Google Gemini model driver for Ranu.js with multimodal support and streaming SSE",
   "license": "MIT",
   "type": "module",

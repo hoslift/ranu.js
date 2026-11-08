@@ -1,6 +1,6 @@
 {
   "name": "@ranu/ai-claude",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Anthropic Claude model driver for Ranu.js with tool-use streaming, prompt caching, and SSE",
   "license": "MIT",
   "type": "module",

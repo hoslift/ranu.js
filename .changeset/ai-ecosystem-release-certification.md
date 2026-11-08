@@ -4,7 +4,7 @@
 "@ranu/ai-gemini": minor
 "@ranu/ai-groq": minor
 "@ranu/ai-claude": minor
-"@ranu/ai-openai": minor
+"@ranu/ai-codex": minor
 "@ranu/ai-custom": minor
 "@ranu/devtools": minor
 "@ranu/server": minor
