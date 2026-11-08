@@ -1,6 +1,6 @@
 {
   "name": "@ranu/diagnostics",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Ranu.js diagnostic codes and formatting (internal)",
   "license": "MIT",
   "type": "module",

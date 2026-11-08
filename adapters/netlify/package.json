@@ -1,6 +1,6 @@
 {
   "name": "@ranujs/adapter-netlify",
-  "version": "0.1.6",
+  "version": "0.3.0",
   "description": "Ranu.js Netlify deployment adapter",
   "license": "MIT",
   "funding": [

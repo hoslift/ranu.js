@@ -1,6 +1,6 @@
 {
   "name": "@ranu/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ranu CLI implementation (internal)",
   "license": "MIT",
   "type": "module",
@@ -30,7 +30,6 @@
     "@ranu/build": "workspace:*",
     "@ranu/router": "workspace:*",
     "@ranu/manifests": "workspace:*",
-
     "@ranu/dev": "workspace:*",
     "@ranu/runtime-node": "workspace:*",
     "@ranu/ai": "workspace:*",

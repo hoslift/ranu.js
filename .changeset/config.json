@@ -3,30 +3,49 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["@ranujs/core", "create-ranujs"],
-    [
-      "@ranujs/adapter-vercel",
-      "@ranujs/adapter-cloudflare",
-      "@ranujs/adapter-node",
-      "@ranujs/adapter-netlify",
-      "@ranujs/adapter-bun",
-      "@ranujs/adapter-deno",
-      "@ranujs/adapter-static"
-    ],
     [
       "@ranu/ai",
-      "@ranu/ai-gemini",
-      "@ranu/ai-groq",
+      "@ranu/build",
+      "@ranu/cli",
+      "@ranu/config",
+      "@ranu/core",
+      "@ranu/dev",
+      "@ranu/devtools",
+      "@ranu/diagnostics",
+      "@ranu/manifests",
+      "@ranu/plugin",
+      "@ranujs/core",
+      "@ranu/react",
+      "@ranu/router",
+      "@ranu/runtime",
+      "@ranu/runtime-node",
+      "@ranu/server",
+      "@ranu/testing",
+      "@ranujs/adapter-bun",
+      "@ranujs/adapter-cloudflare",
+      "@ranujs/adapter-deno",
+      "@ranujs/adapter-netlify",
+      "@ranujs/adapter-node",
+      "@ranujs/adapter-static",
+      "@ranujs/adapter-vercel",
       "@ranu/ai-claude",
       "@ranu/ai-codex",
-      "@ranu/ai-custom"
+      "@ranu/ai-custom",
+      "@ranu/ai-gemini",
+      "@ranu/ai-groq",
+      "create-ranujs",
+      "@ranu/template-ai-studio"
     ]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["example-*", "fixture-*", "test-app"],
+  "ignore": [
+    "example-*",
+    "fixture-*",
+    "test-app"
+  ],
   "privatePackages": {
     "version": true,
     "tag": false

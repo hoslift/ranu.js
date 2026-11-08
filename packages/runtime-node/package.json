@@ -1,6 +1,6 @@
 {
   "name": "@ranu/runtime-node",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Ranu.js Node.js HTTP runtime bridge (internal)",
   "license": "MIT",
   "type": "module",

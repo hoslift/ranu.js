@@ -1,6 +1,6 @@
 {
   "name": "@ranu/ai-custom",
-  "version": "0.0.0",
+  "version": "0.3.0",
   "description": "Custom OpenAI-compatible and Ollama model driver for Ranu.js with enterprise proxies, DeepSeek-R1 reasoning, and W3C streaming",
   "license": "MIT",
   "type": "module",
