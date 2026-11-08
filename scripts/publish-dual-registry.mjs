@@ -593,7 +593,7 @@ export async function publishMonorepo() {
           if (fs.existsSync(tempNotesFile)) {
             try {
               fs.unlinkSync(tempNotesFile);
-            } catch {}
+            } catch { /* ignore cleanup errors */ }
           }
         }
       }

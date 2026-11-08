@@ -102,6 +102,13 @@ export default tseslint.config(
       globals: {
         console: 'readonly',
         process: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
       },
     },
     rules: {
