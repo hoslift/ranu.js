@@ -2,7 +2,7 @@
 
 Vercel deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.1.6)**: Community deployment adapter enabling Ranu.js applications on the Vercel platform.
+> **Public Alpha (v0.4.0)**: Community deployment adapter enabling Ranu.js applications on the Vercel platform.
 
 ## Installation
 

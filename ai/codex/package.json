@@ -1,6 +1,6 @@
 {
   "name": "@ranu/ai-codex",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Codex and OpenAI model driver for Ranu.js with GPT-4o, o1 reasoning models, and streaming SSE",
   "license": "MIT",
   "type": "module",

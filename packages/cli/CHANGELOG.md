@@ -1,5 +1,50 @@
 # @ranu/cli
 
+## 0.4.0
+
+### Minor Changes
+
+- 9a2dbfc: Implement `ranu ai` codebase-aware code generator and `ranu prompt` architecture clipboard helper commands with multi-provider model loading and target-tailored prompts.
+- cac708a: Introduce `@ranujs/adapter-static` zero-runtime static site generation (SSG) adapter, interactive CLI template picker via `@clack/prompts`, and full-stack reference applications.
+- cac708a: Add Standard Schema form actions validation, automated AI context synchronization on build, and developer tooling ergonomics.
+- cac708a: Add Web Crypto HMAC-SHA256 session token signing, constant-time equality checks, session expiration enforcement, and auth security test suites.
+
+### Patch Changes
+
+- cac708a: Improve developer onboarding, template configuration validation, and dev server process reliability.
+- Updated dependencies [0786e42]
+- Updated dependencies [ab9115f]
+- Updated dependencies [f7a1e94]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [9a2dbfc]
+- Updated dependencies [cac708a]
+- Updated dependencies [cac708a]
+- Updated dependencies [cac708a]
+  - @ranu/ai@0.4.0
+  - @ranu/ai-gemini@0.4.0
+  - @ranu/ai-groq@0.4.0
+  - @ranu/ai-claude@0.4.0
+  - @ranu/ai-codex@0.4.0
+  - @ranu/ai-custom@0.4.0
+  - @ranu/build@0.4.0
+  - @ranu/runtime-node@0.4.0
+  - @ranujs/adapter-bun@0.4.0
+  - @ranujs/adapter-deno@0.4.0
+  - @ranujs/adapter-node@0.4.0
+  - @ranu/dev@0.4.0
+  - @ranujs/adapter-cloudflare@0.4.0
+  - @ranujs/adapter-netlify@0.4.0
+  - @ranujs/adapter-vercel@0.4.0
+  - @ranu/config@0.4.0
+  - @ranu/core@0.4.0
+  - @ranu/diagnostics@0.4.0
+  - @ranu/manifests@0.4.0
+  - @ranu/router@0.4.0
+
 ## 0.2.0
 
 ### Minor Changes

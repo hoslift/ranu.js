@@ -1,5 +1,35 @@
 # @ranu/build
 
+## 0.4.0
+
+### Minor Changes
+
+- 0786e42: Ranu.js AI Developer Studio & Upfront Model Sponsorship Ecosystem release certification:
+  - Native In-Browser AI Developer Studio dock panel with Visual Diff review & live HMR triggers
+  - Standard W3C streaming execution kernel with bounded backpressure (<64KB) and Standard-Schema output generation
+  - Promoted upfront model drivers: Google DeepMind, Groq LPU, Anthropic Claude, OpenAI, and local Ollama
+  - Modular AI Studio showcase template (`templates/ai-studio`) with dynamic partner switcher
+  - Confidential VIP tokenized access middleware with timing-safe SHA-256 validation and 404 security gating
+  - AST compile-time client AI API key leak protection (`RANU_BUILD_AI_SECRET_CLIENT_LEAK`)
+  - Production zero-footprint tree-shaking audit guaranteeing 0 bytes of devtools code leaked in production
+  - 100% monorepo quality gates certified across all workspace packages and tests.
+- ab9115f: Implement AST compile-time AI API key client leak protection (`RANU_BUILD_AI_SECRET_CLIENT_LEAK`) blocking AI credentials (GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, CUSTOM_AI_KEY, MISTRAL_API_KEY, CEREBRAS_API_KEY) from client component bundles.
+- f7a1e94: Implement automated production bundle audit (`auditProductionBundle`) and esbuild tree-shaking virtual stubs for `@ranu/devtools` in browser bundles, asserting zero bytes of devtools code leak into production builds.
+- cac708a: Add Standard Schema form actions validation, automated AI context synchronization on build, and developer tooling ergonomics.
+
+### Patch Changes
+
+- Updated dependencies [cac708a]
+- Updated dependencies [cac708a]
+  - @ranu/react@0.4.0
+  - @ranu/runtime@0.4.0
+  - @ranu/config@0.4.0
+  - @ranu/core@0.4.0
+  - @ranu/diagnostics@0.4.0
+  - @ranu/manifests@0.4.0
+  - @ranu/plugin@0.4.0
+  - @ranu/router@0.4.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -6,7 +6,7 @@
  */
 
 /** Ranu.js framework version */
-export const RANU_VERSION = '0.3.0';
+export const RANU_VERSION = '0.4.0';
 
 /** Ranu.js default build directory name */
 export const DEFAULT_OUT_DIR = '.ranu';

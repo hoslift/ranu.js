@@ -1,5 +1,28 @@
 # create-ranujs
 
+## 0.4.0
+
+### Minor Changes
+
+- 0786e42: Ranu.js AI Developer Studio & Upfront Model Sponsorship Ecosystem release certification:
+  - Native In-Browser AI Developer Studio dock panel with Visual Diff review & live HMR triggers
+  - Standard W3C streaming execution kernel with bounded backpressure (<64KB) and Standard-Schema output generation
+  - Promoted upfront model drivers: Google DeepMind, Groq LPU, Anthropic Claude, OpenAI, and local Ollama
+  - Modular AI Studio showcase template (`templates/ai-studio`) with dynamic partner switcher
+  - Confidential VIP tokenized access middleware with timing-safe SHA-256 validation and 404 security gating
+  - AST compile-time client AI API key leak protection (`RANU_BUILD_AI_SECRET_CLIENT_LEAK`)
+  - Production zero-footprint tree-shaking audit guaranteeing 0 bytes of devtools code leaked in production
+  - 100% monorepo quality gates certified across all workspace packages and tests.
+- 9a2dbfc: Add interactive AI engine selector with Zero AI default, CLI --ai and --ai-engine flags, and automated agent context files (.cursorrules, AGENTS.md, CLAUDE.md, .ranu/AGENT_GUIDE.md).
+- cac708a: Introduce `@ranujs/adapter-static` zero-runtime static site generation (SSG) adapter, interactive CLI template picker via `@clack/prompts`, and full-stack reference applications.
+- 306e0bd: Introduce modular AI Studio showcase template (`templates/ai-studio`) featuring dynamic partner switcher for top AI models (Google DeepMind, Groq LPU, Anthropic Claude, OpenAI, Mistral, Cerebras, Ollama), live streaming metrics, and code generation sandbox.
+
+### Patch Changes
+
+- cac708a: Improve developer onboarding, template configuration validation, and dev server process reliability.
+- cac708a: Bump development toolchains across monorepo workspace packages (TypeScript, ESLint, Prettier, build tools).
+- cac708a: Resolve 9 Dependabot vulnerabilities in CLI dependency tree and lockfile graph.
+
 ## 0.3.0
 
 ### Minor Changes
