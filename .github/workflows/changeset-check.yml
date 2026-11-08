@@ -10,6 +10,9 @@ on:
       - 'ai/**'
       - 'create-ranu/**'
 
+permissions:
+  contents: read
+
 jobs:
   changeset-check:
     name: Verify Changeset
