@@ -566,7 +566,7 @@ export async function publishMonorepo() {
         let releaseNotes = '';
         if (fs.existsSync(changelogPath)) {
           const changelog = fs.readFileSync(changelogPath, 'utf8');
-          const escapedVer = detectedReleaseVersion.replace(/\./g, '\\.');
+          const escapedVer = detectedReleaseVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const match = changelog.match(
             new RegExp(`(?:^|\\r?\\n)##\\s*\\[?${escapedVer}\\]?[^\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`)
           );
