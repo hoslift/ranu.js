@@ -1,11 +1,11 @@
-name: NPM Unpublish Cleanup
+name: NPM Deprecate / Unpublish Cleanup
 
 on:
   workflow_dispatch:
 
 jobs:
   cleanup:
-    name: Unpublish Internal Packages
+    name: Deprecate Internal Packages
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
@@ -14,7 +14,7 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Unpublish packages from npm
+      - name: Deprecate packages on npm
         run: |
           packages=(
             "@ranujs/build"
@@ -37,8 +37,8 @@ jobs:
           )
 
           for pkg in "${packages[@]}"; do
-            echo "Unpublishing $pkg..."
-            npm unpublish "$pkg" --force || true
+            echo "Deprecating $pkg on npm..."
+            npm deprecate "$pkg" "This internal package is discontinued. Please install @ranujs/core instead." || true
           done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
