@@ -1,5 +1,11 @@
 # @ranujs/core
 
+## 0.4.1
+
+### Patch Changes
+
+- a7a7abb: Security release: sanitize devtools client credentials and restrict npm publishing scope to canonical ecosystem packages.
+
 ## 0.4.0
 
 ### Minor Changes

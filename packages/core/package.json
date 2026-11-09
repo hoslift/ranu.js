@@ -1,6 +1,6 @@
 {
   "name": "@ranu/core",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Ranu.js core shared contracts and foundational types (internal)",
   "license": "MIT",
   "type": "module",

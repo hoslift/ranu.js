@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-export const RANU_VERSION = '0.4.0';
+export const RANU_VERSION = '0.4.1';
 
 export { ADAPTER_API_VERSION } from '@ranu/core';
 

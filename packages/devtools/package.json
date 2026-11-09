@@ -1,6 +1,6 @@
 {
   "name": "@ranu/devtools",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "In-browser visual DevTools dock, streaming waterfall inspector, and route hierarchy viewer for Ranu.js",
   "license": "MIT",
   "type": "module",

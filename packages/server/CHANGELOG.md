@@ -1,5 +1,12 @@
 # @ranu/server
 
+## 0.4.1
+
+### Patch Changes
+
+- @ranu/core@0.4.1
+  - @ranu/runtime@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

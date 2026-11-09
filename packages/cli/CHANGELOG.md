@@ -1,5 +1,31 @@
 # @ranu/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [a7a7abb]
+  - @ranujs/adapter-bun@0.4.1
+  - @ranujs/adapter-cloudflare@0.4.1
+  - @ranujs/adapter-deno@0.4.1
+  - @ranujs/adapter-netlify@0.4.1
+  - @ranujs/adapter-node@0.4.1
+  - @ranujs/adapter-vercel@0.4.1
+  - @ranu/ai-claude@0.4.1
+  - @ranu/ai-codex@0.4.1
+  - @ranu/ai-custom@0.4.1
+  - @ranu/ai-gemini@0.4.1
+  - @ranu/ai-groq@0.4.1
+  - @ranu/ai@0.4.1
+  - @ranu/build@0.4.1
+  - @ranu/config@0.4.1
+  - @ranu/core@0.4.1
+  - @ranu/dev@0.4.1
+  - @ranu/diagnostics@0.4.1
+  - @ranu/manifests@0.4.1
+  - @ranu/router@0.4.1
+  - @ranu/runtime-node@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

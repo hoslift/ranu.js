@@ -1,5 +1,19 @@
 # @ranu/template-ai-studio
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [a7a7abb]
+  - @ranujs/core@0.4.1
+  - @ranu/ai-claude@0.4.1
+  - @ranu/ai-codex@0.4.1
+  - @ranu/ai-custom@0.4.1
+  - @ranu/ai-gemini@0.4.1
+  - @ranu/ai-groq@0.4.1
+  - @ranu/ai@0.4.1
+  - @ranu/devtools@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
