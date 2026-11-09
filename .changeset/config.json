@@ -4,7 +4,23 @@
   "commit": false,
   "fixed": [
     [
+      "@ranu/ai",
+      "@ranu/build",
+      "@ranu/cli",
+      "@ranu/config",
+      "@ranu/core",
+      "@ranu/dev",
+      "@ranu/devtools",
+      "@ranu/diagnostics",
+      "@ranu/manifests",
+      "@ranu/plugin",
       "@ranujs/core",
+      "@ranu/react",
+      "@ranu/router",
+      "@ranu/runtime",
+      "@ranu/runtime-node",
+      "@ranu/server",
+      "@ranu/testing",
       "@ranujs/adapter-bun",
       "@ranujs/adapter-cloudflare",
       "@ranujs/adapter-deno",
@@ -17,7 +33,8 @@
       "@ranu/ai-custom",
       "@ranu/ai-gemini",
       "@ranu/ai-groq",
-      "create-ranujs"
+      "create-ranujs",
+      "@ranu/template-ai-studio"
     ]
   ],
   "linked": [],
@@ -27,27 +44,10 @@
   "ignore": [
     "example-*",
     "fixture-*",
-    "test-app",
-    "@ranu/ai",
-    "@ranu/build",
-    "@ranu/cli",
-    "@ranu/config",
-    "@ranu/core",
-    "@ranu/dev",
-    "@ranu/devtools",
-    "@ranu/diagnostics",
-    "@ranu/manifests",
-    "@ranu/plugin",
-    "@ranu/react",
-    "@ranu/router",
-    "@ranu/runtime",
-    "@ranu/runtime-node",
-    "@ranu/server",
-    "@ranu/testing",
-    "@ranu/template-ai-studio"
+    "test-app"
   ],
   "privatePackages": {
-    "version": false,
+    "version": true,
     "tag": false
   }
 }
