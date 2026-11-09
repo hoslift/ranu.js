@@ -6,22 +6,37 @@ import type { RouteEntryInfo } from '../pipeline/stage-routes.js';
  * Normalizes a discovered source file path to a portable, project-relative POSIX path.
  */
 export function toRelativeSourcePath(projectRoot: string, sourceFile: string): string {
-  if (!path.isAbsolute(sourceFile)) {
-    return sourceFile.replace(/\\/g, '/').replace(/^\.\//, '');
+  const normalizedSource = sourceFile.replace(/\\/g, '/');
+
+  // Detect Windows absolute paths (e.g. C:\...) even when running on POSIX systems
+  const isWindowsAbsolute = /^[A-Za-z]:\//.test(normalizedSource);
+
+  if (!path.isAbsolute(sourceFile) && !isWindowsAbsolute) {
+    return normalizedSource.replace(/^\.\//, '');
   }
 
   // Calculate relative path from projectRoot
-  let rel = path.relative(projectRoot, sourceFile).replace(/\\/g, '/');
+  let rel: string;
+  if (isWindowsAbsolute) {
+    const normalizedRoot = projectRoot.replace(/\\/g, '/');
+    if (normalizedSource.startsWith(normalizedRoot + '/')) {
+      rel = normalizedSource.slice(normalizedRoot.length + 1);
+    } else {
+      rel = '..'; // cross-junction or different root — trigger fallback below
+    }
+  } else {
+    rel = path.relative(projectRoot, sourceFile).replace(/\\/g, '/');
+  }
 
   // Handle cross-junction or drive-alias mismatches defensively
   if (rel.startsWith('..')) {
-    const appIndex = rel.indexOf('/app/');
+    const appIndex = normalizedSource.indexOf('/app/');
     if (appIndex !== -1) {
-      rel = rel.slice(appIndex + 1); // e.g., "app/page.tsx"
+      rel = normalizedSource.slice(appIndex + 1); // e.g., "app/page.tsx"
     } else {
-      const slashIndex = sourceFile.replace(/\\/g, '/').indexOf('/app/');
-      if (slashIndex !== -1) {
-        rel = sourceFile.replace(/\\/g, '/').slice(slashIndex + 1);
+      const relAppIndex = rel.indexOf('/app/');
+      if (relAppIndex !== -1) {
+        rel = rel.slice(relAppIndex + 1);
       }
     }
   }
