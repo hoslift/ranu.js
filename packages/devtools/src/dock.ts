@@ -91,8 +91,8 @@ export function mountDevToolsDock(targetDocument?: Document): (() => void) | und
     none: false,
   };
   const enteredKeys: Record<string, string> = {
-    groq: 'gsk_948f21bb0298e26c447c3d8afbb657',
-    openai: 'sk-proj-48f21bb0298e26c447c3d8afbb',
+    groq: (typeof process !== 'undefined' && process.env?.GROQ_API_KEY) || '',
+    openai: (typeof process !== 'undefined' && process.env?.OPENAI_API_KEY) || '',
   };
   let ollamaEndpoint = 'http://127.0.0.1:11434';
   let isPingTesting = false;
