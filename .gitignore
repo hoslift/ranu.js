@@ -68,6 +68,7 @@ web_modules/
 # dotenv environment variable files
 .env
 .env.*
+.env*.local
 !.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -83,12 +84,11 @@ out
 dist
 .output
 
-# Ranu.js framework build output
-.ranu/
-.vercel/
-
-# Turborepo
-.turbo/
+# Framework & Cloud Deployment Caches (Recursive)
+**/.ranu/
+!.ranu/AGENT_GUIDE.md
+**/.vercel/
+**/.turbo/
 
 # Gatsby files
 .cache/
@@ -159,3 +159,65 @@ my-ai-app/
 
 # Internal Audit Documentation
 docs/audit/
+
+# ==============================================================================
+# OS Metadata & System Files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==============================================================================
+# IDE & Editor Configurations
+# ==============================================================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.user
+*.userosscache
+*.sln.docstates
+
+# ==============================================================================
+# Local Databases & State Dumps
+# ==============================================================================
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db
+*.db-journal
+*.dump
+dump.sql
+*.sql.gz
+
+# ==============================================================================
+# Ephemeral & Local Developer State
+# ==============================================================================
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+*.orig
+
+# ==============================================================================
+# Workspace & Local Audit Reports
+# ==============================================================================
+findings.json
+SECURITY_AUDIT_REPORT.md
+*AUDIT_REPORT.md
+!V1_0_0_RELEASE_AUDIT_REPORT.md
+audit_findings.json
+LOCAL_FILES_AND_PATHS_AUDIT_REPORT.md
+
