@@ -1,0 +1,44 @@
+name: NPM Unpublish Cleanup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Unpublish Internal Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Unpublish packages from npm
+        run: |
+          packages=(
+            "@ranujs/build"
+            "@ranujs/cli"
+            "@ranujs/config"
+            "@ranujs/core-internal"
+            "@ranujs/dev"
+            "@ranujs/devtools"
+            "@ranujs/diagnostics"
+            "@ranujs/manifests"
+            "@ranujs/plugin"
+            "@ranujs/react"
+            "@ranujs/router"
+            "@ranujs/runtime"
+            "@ranujs/runtime-node"
+            "@ranujs/server"
+            "@ranujs/testing"
+            "@ranujs/ai"
+            "@ranujs/template-ai-studio"
+          )
+
+          for pkg in "${packages[@]}"; do
+            echo "Unpublishing $pkg..."
+            npm unpublish "$pkg" --force || true
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
