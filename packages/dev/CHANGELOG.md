@@ -1,5 +1,20 @@
 # @ranu/dev
 
+## 0.4.1
+
+### Patch Changes
+
+- @ranu/build@0.4.1
+  - @ranu/config@0.4.1
+  - @ranu/core@0.4.1
+  - @ranu/diagnostics@0.4.1
+  - @ranu/manifests@0.4.1
+  - @ranu/plugin@0.4.1
+  - @ranu/react@0.4.1
+  - @ranu/router@0.4.1
+  - @ranu/runtime@0.4.1
+  - @ranu/runtime-node@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ranu/ai-groq",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Groq LPU high-speed inference model driver for Ranu.js with latency metrics tracking and SSE streaming",
   "license": "MIT",
   "type": "module",

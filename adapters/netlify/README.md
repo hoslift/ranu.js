@@ -2,7 +2,7 @@
 
 Netlify deployment adapter for Ranu.js.
 
-> **Public Alpha (v0.4.0)**: Deployment adapter enabling Ranu.js applications on Netlify Functions and Netlify CDN.
+> **Public Alpha (v0.4.1)**: Deployment adapter enabling Ranu.js applications on Netlify Functions and Netlify CDN.
 
 ## Installation
 
