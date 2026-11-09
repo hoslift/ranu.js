@@ -42,7 +42,7 @@ let isRestored = false;
  */
 function getWorkspacePackageManifests(dir) {
   const manifests = [];
-  const searchDirs = ['packages', 'adapters', 'ai', 'create-ranu', 'templates'];
+  const searchDirs = ['packages/ranu', 'adapters', 'ai', 'create-ranu'];
 
   for (const relDir of searchDirs) {
     const fullDir = path.join(dir, relDir);
