@@ -4,11 +4,11 @@
 This application is built on **Ranu.js**, an AI-native, TypeScript-first web framework pairing streaming React 19 SSR with deterministic standard Web APIs.
 
 ## Application Route Graph (5 routes)
-- **PAGE** `/` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\routing\app\page.tsx`
-- **PAGE** `/about` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\routing\app\about\page.tsx`
-- **PAGE** `/contact` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\routing\app\contact\page.tsx`
-- **PAGE** `/dashboard` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\routing\app\dashboard\page.tsx`
-- **PAGE** `/dashboard/settings` [server] -> `C:\HosliftWork\GitProjects\ranu.js\examples\routing\app\dashboard\settings\page.tsx`
+- **PAGE** `/` [server] -> `app/page.tsx`
+- **PAGE** `/about` [server] -> `app/about/page.tsx`
+- **PAGE** `/contact` [server] -> `app/contact/page.tsx`
+- **PAGE** `/dashboard` [server] -> `app/dashboard/page.tsx`
+- **PAGE** `/dashboard/settings` [server] -> `app/dashboard/settings/page.tsx`
 
 ## Core Architectural Invariants for AI Coding Agents & Human Developers
 

@@ -4,9 +4,9 @@
 This application is built on **Ranu.js**, an AI-native, TypeScript-first web framework pairing streaming React 19 SSR with deterministic standard Web APIs.
 
 ## Application Route Graph (3 routes)
-- **PAGE** `/` [server] -> `C:\HosliftWork\GitProjects\ranu.js\fixtures\build-basic\app\page.tsx`
-- **PAGE** `/about` [static] -> `C:\HosliftWork\GitProjects\ranu.js\fixtures\build-basic\app\about\page.tsx`
-- **API** `/api/hello` -> `C:\HosliftWork\GitProjects\ranu.js\fixtures\build-basic\app\api\hello\route.ts`
+- **PAGE** `/` [server] -> `app/page.tsx`
+- **PAGE** `/about` [static] -> `app/about/page.tsx`
+- **API** `/api/hello` -> `app/api/hello/route.ts`
 
 ## Core Architectural Invariants for AI Coding Agents & Human Developers
 

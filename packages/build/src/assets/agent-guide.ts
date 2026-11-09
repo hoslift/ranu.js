@@ -3,6 +3,33 @@ import path from 'node:path';
 import type { RouteEntryInfo } from '../pipeline/stage-routes.js';
 
 /**
+ * Normalizes a discovered source file path to a portable, project-relative POSIX path.
+ */
+export function toRelativeSourcePath(projectRoot: string, sourceFile: string): string {
+  if (!path.isAbsolute(sourceFile)) {
+    return sourceFile.replace(/\\/g, '/').replace(/^\.\//, '');
+  }
+
+  // Calculate relative path from projectRoot
+  let rel = path.relative(projectRoot, sourceFile).replace(/\\/g, '/');
+
+  // Handle cross-junction or drive-alias mismatches defensively
+  if (rel.startsWith('..')) {
+    const appIndex = rel.indexOf('/app/');
+    if (appIndex !== -1) {
+      rel = rel.slice(appIndex + 1); // e.g., "app/page.tsx"
+    } else {
+      const slashIndex = sourceFile.replace(/\\/g, '/').indexOf('/app/');
+      if (slashIndex !== -1) {
+        rel = sourceFile.replace(/\\/g, '/').slice(slashIndex + 1);
+      }
+    }
+  }
+
+  return rel;
+}
+
+/**
  * Generates an up-to-date Markdown guide and llms.txt context document for AI coding agents.
  */
 export function generateAgentGuideMarkdown(projectRoot: string, routes: RouteEntryInfo[]): string {
@@ -10,7 +37,8 @@ export function generateAgentGuideMarkdown(projectRoot: string, routes: RouteEnt
     ? routes
         .map((r) => {
           const modeStr = r.kind === 'page' ? ` [${r.renderMode}]` : '';
-          return `- **${r.kind.toUpperCase()}** \`${r.pathnameTemplate}\`${modeStr} -> \`${r.sourceFile}\``;
+          const relativeSource = toRelativeSourcePath(projectRoot, r.sourceFile);
+          return `- **${r.kind.toUpperCase()}** \`${r.pathnameTemplate}\`${modeStr} -> \`${relativeSource}\``;
         })
         .join('\n')
     : '- *(No routes discovered)*';

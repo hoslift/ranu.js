@@ -88,4 +88,62 @@ describe('AI Agent Context Guide & llms.txt synchronization', () => {
     expect(llmsContent).toContain('/dashboard');
     expect(llmsContent).toContain('static');
   });
+
+  it('converts absolute sourceFile paths into project-relative paths', () => {
+    const absoluteRoutes: RouteEntryInfo[] = [
+      {
+        routeId: 'page:/',
+        kind: 'page',
+        pathnameTemplate: '/',
+        params: [],
+        sourceFile: path.join(tempDir, 'app', 'page.tsx'),
+        renderMode: 'server',
+        methods: ['GET'],
+      },
+      {
+        routeId: 'api:/api/users',
+        kind: 'api',
+        pathnameTemplate: '/api/users',
+        params: [],
+        sourceFile: path.join(tempDir, 'app', 'api', 'users', 'route.ts'),
+        renderMode: 'server',
+        methods: ['GET'],
+      },
+    ];
+
+    const markdown = generateAgentGuideMarkdown(tempDir, absoluteRoutes);
+    expect(markdown).toContain('- **PAGE** `/` [server] -> `app/page.tsx`');
+    expect(markdown).toContain('- **API** `/api/users` -> `app/api/users/route.ts`');
+    expect(markdown).not.toContain(tempDir);
+    expect(markdown).not.toContain('C:');
+  });
+
+  it('handles cross-junction or external root mismatches defensively', () => {
+    const foreignRoutes: RouteEntryInfo[] = [
+      {
+        routeId: 'page:/',
+        kind: 'page',
+        pathnameTemplate: '/',
+        params: [],
+        sourceFile: 'C:\\HosliftWork\\GitProjects\\ranu.js\\examples\\hello-world\\app\\page.tsx',
+        renderMode: 'server',
+        methods: ['GET'],
+      },
+      {
+        routeId: 'api:/api/status',
+        kind: 'api',
+        pathnameTemplate: '/api/status',
+        params: [],
+        sourceFile: '/home/user/workspace/app/api/status/route.ts',
+        renderMode: 'server',
+        methods: ['GET'],
+      },
+    ];
+
+    const markdown = generateAgentGuideMarkdown('C:\\HosliftWork\\ranu.js\\examples\\hello-world', foreignRoutes);
+    expect(markdown).toContain('- **PAGE** `/` [server] -> `app/page.tsx`');
+    expect(markdown).toContain('- **API** `/api/status` -> `app/api/status/route.ts`');
+    expect(markdown).not.toContain('C:\\HosliftWork');
+    expect(markdown).not.toContain('/home/user');
+  });
 });
