@@ -1,6 +1,6 @@
 # Ranu.js Deployment Adapters
 
-Official deployment adapters for deploying Ranu.js applications to cloud platforms and servers.
+Deployment adapters for deploying Ranu.js applications to cloud platforms and servers.
 
 ---
 

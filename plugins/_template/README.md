@@ -39,4 +39,4 @@ Choose and display the appropriate badge in your module's README:
    - Set `"author": "Your Name (https://github.com/your-username)"`.
    - Set `"private": false`.
 3. Submit a **Module Submission & Certification Request** issue on GitHub.
-4. Once reviewed and approved, your module will be certified in the official Ranu.js Ecosystem!
+4. Once reviewed and approved, your plugin will be certified and published!

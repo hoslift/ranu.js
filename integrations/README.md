@@ -1,6 +1,6 @@
 # Ranu.js Ecosystem Integrations
 
-Official and community connectors for third-party databases, auth, payments, and mail services.
+Community and partner connectors for third-party databases, auth, payments, and mail services.
 
 ---
 

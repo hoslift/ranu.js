@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
-  "description": "Ranu.js Official Ecosystem Module Certification & Sponsorship Registry",
+  "description": "Ranu.js Ecosystem Module Certification & Sponsorship Registry",
   "modules": {
     "@ranujs/core": {
       "tier": "community-free",

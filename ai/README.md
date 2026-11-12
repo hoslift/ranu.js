@@ -1,6 +1,6 @@
 # Ranu.js AI Providers & Integrations
 
-Official native AI model integrations for Ranu.js React 19 full-stack applications.
+Native AI model integrations for Ranu.js React 19 full-stack applications.
 
 ---
 
