@@ -4,6 +4,44 @@ All notable changes to Ranu.js will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/) and changes are managed using [Changesets](https://github.com/changesets/changesets).
 
+## 0.4.1 (Public Alpha)
+
+### Security & Ecosystem Distribution Cleanup
+
+- Sanitized devtools client credentials and hardened AI secret handling across client bundles.
+- Restricted npmjs.com publishing scope to canonical ecosystem packages (`@ranujs/core`, `create-ranujs`, deployment adapters, and AI model drivers).
+- Synchronized framework (`@ranujs/core`), scaffolder (`create-ranujs`), adapters, and AI packages to `v0.4.1`.
+
+## 0.4.0 (Public Alpha)
+
+### AI Developer Studio, Server Actions & Security Hardening
+
+- **AI Developer Studio & Native Model Ecosystem:**
+  - Added universal AI streaming kernel (`@ranu/ai` / `ranu/ai`) with bounded backpressure (`<64KB`) and Standard-Schema structured output generation (`generateObject`).
+  - Added native AI model drivers for Google Gemini (`@ranu/ai-gemini`), Anthropic Claude (`@ranu/ai-claude`), OpenAI/Codex (`@ranu/ai-codex`), Groq (`@ranu/ai-groq`), and custom/local Ollama (`@ranu/ai-custom`).
+  - Added in-browser AI Developer Studio dock panel with Visual Diff review, live HMR triggers, and modular `templates/ai-studio` showcase template.
+  - Added `ranu ai` and `ranu prompt` CLI commands, plus interactive `create-ranujs` AI engine selector (`--ai`, `--ai-engine`, Zero AI default) and automated agent context generation.
+- **Server Actions, Static Export & Observability:**
+  - Introduced Server Actions RPC wire protocol (`x-ranu-action`), tag-based cache revalidation primitives (`revalidateTag`), and `ranu preview` CLI command.
+  - Added `@ranujs/adapter-static` zero-runtime static site generation (SSG) adapter and interactive CLI template picker via `@clack/prompts`.
+  - Added production OpenTelemetry observability with distributed tracing kernel, structured span exporters, and `/metrics` Prometheus endpoint.
+- **Security & Build Auditing:**
+  - Added AST compile-time client AI API key leak protection (`RANU_BUILD_AI_SECRET_CLIENT_LEAK`).
+  - Added tokenized preview/VIP access middleware with timing-safe SHA-256 comparison, 404 gating, and `X-Robots-Tag: noindex, nofollow` headers.
+  - Added Web Crypto HMAC-SHA256 session token signing and constant-time equality verification.
+  - Enforced automated production bundle audit (`auditProductionBundle`) and esbuild tree-shaking stubs ensuring zero bytes of devtools code leak into production builds.
+
+## 0.3.0 (Public Alpha)
+
+### AI-Agent DX, DevTools, Testing & Form Actions
+
+- Introduced AI-agent DX tooling: `ranu describe` route introspection, `ranu check` sub-second dry-run validation, and machine-readable JSON diagnostics.
+- Introduced `@ranu/devtools` (`ranu/devtools`) in-browser visual dock with streaming waterfall chunk inspector, route hierarchy viewer, hydration status, and compiler diagnostics display.
+- Introduced `@ranu/testing` (`ranu/testing`) headless in-memory test harness (`createTestContext`, `expectStatus`, `expectHeader`, `expectJson`, `expectText`, `expectRedirect`).
+- Implemented Standard Schema v1 form actions (`createFormAction`, `useFormAction`) supporting Zod, Valibot, and ArkType schemas.
+- Added streaming backpressure and memory bounding utilities (`createBoundedStream`, `pipeWithBackpressure`, `createStreamingDrainTracker`).
+- Added turnkey full-stack SaaS starter preset (`--template saas`) in `create-ranujs` with Drizzle ORM, session auth, and Tailwind CSS v4.
+
 ## 0.2.0 (Public Alpha)
 
 ### Multi-Cloud Adapter Ecosystem & Developer Experience

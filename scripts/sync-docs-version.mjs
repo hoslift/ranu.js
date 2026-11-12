@@ -330,6 +330,94 @@ if (fs.existsSync(changesetConfigPath)) {
   }
 }
 
+/**
+ * Extracts top-level change bullet blocks for a specific version from a Changesets CHANGELOG.md.
+ */
+function extractChangelogBullets(changelogPath, targetVersion) {
+  if (!fs.existsSync(changelogPath)) return [];
+  const content = fs.readFileSync(changelogPath, 'utf8');
+  const escaped = targetVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const headingMatch = new RegExp(`^##\\s+${escaped}(?:\\s|$)`, 'm').exec(content);
+  if (!headingMatch) return [];
+
+  const rest = content.slice(headingMatch.index + headingMatch[0].length);
+  const nextHeadingIdx = rest.search(/^##\s+/m);
+  const section = nextHeadingIdx === -1 ? rest : rest.slice(0, nextHeadingIdx);
+
+  const blocks = [];
+  let current = [];
+  for (const line of section.split(/\r?\n/)) {
+    if (/^###\s+/.test(line) || line.trim() === 'No changes in this release.') continue;
+    if (/^- /.test(line)) {
+      if (current.length > 0) blocks.push(current.join('\n'));
+      const cleaned = line.replace(/^- [0-9a-f]{7,12}:\s+/i, '- ');
+      current = /Updated dependencies(?:\s+\[|$)/.test(cleaned) ? [] : [cleaned];
+    } else if (current.length > 0 && (/^\s+/.test(line) || line.trim() !== '')) {
+      current.push(line);
+    } else if (current.length > 0 && line.trim() === '') {
+      blocks.push(current.join('\n'));
+      current = [];
+    }
+  }
+  if (current.length > 0) blocks.push(current.join('\n'));
+  return blocks;
+}
+
+/**
+ * Ensures the root CHANGELOG.md contains an entry for the current canonical framework version.
+ * Called automatically during `pnpm version-packages` (Changesets release bot PRs).
+ */
+function syncRootChangelog() {
+  const rootChangelogPath = path.join(rootDir, 'CHANGELOG.md');
+  if (!fs.existsSync(rootChangelogPath)) return;
+
+  const original = fs.readFileSync(rootChangelogPath, 'utf8');
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (new RegExp(`^##\\s+${escaped}(?:\\s|\\(|$)`, 'm').test(original)) {
+    return;
+  }
+
+  if (isCheckMode) {
+    hasDiscrepancy = true;
+    console.error(`❌ [OUT OF SYNC] CHANGELOG.md is missing release notes for v${version}`);
+    return;
+  }
+
+  const sources = [
+    path.join(rootDir, 'packages', 'ranu', 'CHANGELOG.md'),
+    path.join(rootDir, 'create-ranu', 'CHANGELOG.md'),
+    path.join(rootDir, 'packages', 'cli', 'CHANGELOG.md'),
+  ];
+  const seen = new Set();
+  const bullets = [];
+  for (const src of sources) {
+    for (const block of extractChangelogBullets(src, version)) {
+      const normalized = block.trim();
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        bullets.push(block.trimEnd());
+      }
+    }
+  }
+
+  if (bullets.length === 0) {
+    bullets.push(`- Release v${version} across Ranu.js workspace packages.`);
+  }
+
+  const newSection = `## ${version} (Public Alpha)\n\n### Changes\n\n${bullets.join('\n')}\n\n`;
+  const firstHeading = original.search(/^##\s+/m);
+  const updated =
+    firstHeading === -1
+      ? `${original.trimEnd()}\n\n${newSection}`
+      : `${original.slice(0, firstHeading)}${newSection}${original.slice(firstHeading)}`;
+
+  fs.writeFileSync(rootChangelogPath, updated, 'utf8');
+  updatedFilesCount++;
+  console.log(`✓ [UPDATED] CHANGELOG.md synchronized with v${version}`);
+}
+
+syncRootChangelog();
+
 for (const target of targets) {
   const filePath = path.join(rootDir, target.file);
   if (!fs.existsSync(filePath)) {
