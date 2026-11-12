@@ -36,9 +36,10 @@ const commentAuthorAssociation = process.env.COMMENT_AUTHOR_ASSOCIATION || '';
 const paypalClientId = process.env.PAYPAL_CLIENT_ID;
 const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
+const CORE_OWNERS = new Set(['hoslift', 'draj256']);
 const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-const isMaintainer =
-  trustedRoles.includes(commentAuthorAssociation) || commentAuthor.toLowerCase() === 'hoslift';
+const isOwnerAccount = CORE_OWNERS.has(commentAuthor.toLowerCase());
+const isMaintainer = trustedRoles.includes(commentAuthorAssociation) || isOwnerAccount;
 
 const ALLOWED_MODULE_NAME_REGEX = /^@hoslift\/[a-z0-9-]+$/;
 
@@ -47,10 +48,12 @@ const ALLOWED_MODULE_NAME_REGEX = /^@hoslift\/[a-z0-9-]+$/;
  * Example: /verify-payment tx=PAYID-12345 provider=paypal module=@hoslift/stripe-billing
  */
 export function parseVerifyCommand(text) {
-  const match = text.match(/\/verify-payment\s+([^\r\n]+)/i);
+  const match =
+    text.match(/\/verify-payment\s+([^\r\n]+)/i) || text.match(/^\s*(\/verify-payment)\s*$/im);
   if (!match) return null;
 
-  const rawArgs = match[1].trim().split(/\s+/);
+  const argStr = match[1] === '/verify-payment' ? '' : match[1].trim();
+  const rawArgs = argStr ? argStr.split(/\s+/) : [];
   const args = {
     provider: 'paypal',
     tx: null,
@@ -174,15 +177,21 @@ async function verifyGitHubSponsorship(sponsorLogin) {
   const targetUser = sponsorLogin || commentAuthor;
   if (!targetUser) throw new Error('Missing sponsor GitHub username.');
 
-  // Maintainer manual confirmation
-  if (isMaintainer) {
+  // Repository owners and maintainers do not require external sponsorship payment verification
+  if (CORE_OWNERS.has(targetUser.toLowerCase()) || isMaintainer) {
     console.log(
-      `[verify-payment] Sponsorship manually confirmed by maintainer @${commentAuthor} for @${targetUser}`,
+      `[verify-payment] Payment verification bypassed for owner/maintainer @${commentAuthor} (target: @${targetUser})`,
     );
     return {
       verified: true,
-      provider: 'github-sponsors',
-      transactionId: `gh-sponsor-${targetUser}-approved-by-${commentAuthor}`,
+      provider:
+        isOwnerAccount || CORE_OWNERS.has(targetUser.toLowerCase())
+          ? 'owner-exempt'
+          : 'github-sponsors',
+      transactionId:
+        isOwnerAccount || CORE_OWNERS.has(targetUser.toLowerCase())
+          ? `owner-exempt-${targetUser}`
+          : `gh-sponsor-${targetUser}-approved-by-${commentAuthor}`,
       payerEmail: `${targetUser}@users.noreply.github.com`,
       status: 'active',
       verifiedBy: commentAuthor,
@@ -314,10 +323,21 @@ export async function processPaymentVerification() {
     }
   }
 
-  // Verify payment with provider
+  // Verify payment with provider (core owners @draj256 / @hoslift are exempt unless validating an explicit external tx)
   let paymentDetails;
   try {
-    if (command.provider === 'paypal') {
+    if (isOwnerAccount && !command.tx) {
+      console.log(
+        `[verify-payment] Owner @${commentAuthor} is exempt from payment verification for ${targetModule}.`,
+      );
+      paymentDetails = {
+        verified: true,
+        provider: 'owner-exempt',
+        transactionId: `owner-exempt-${targetModule.replace(/[^a-z0-9-]/gi, '-')}-by-${commentAuthor}`,
+        payerEmail: `${commentAuthor}@users.noreply.github.com`,
+        status: 'active',
+      };
+    } else if (command.provider === 'paypal') {
       paymentDetails = await verifyPayPalTransaction(command.tx);
     } else if (command.provider === 'sponsors') {
       paymentDetails = await verifyGitHubSponsorship(commentAuthor);
@@ -355,12 +375,18 @@ export async function processPaymentVerification() {
 
   // Auto-commit registry changes using execFileSync (no shell interpolation)
   try {
-    execFileSync('git', ['config', 'user.name', 'github-actions[bot]'], {
-      stdio: 'ignore',
-    });
-    execFileSync('git', ['config', 'user.email', 'github-actions[bot]@users.noreply.github.com'], {
-      stdio: 'ignore',
-    });
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      execFileSync('git', ['config', 'user.name', 'github-actions[bot]'], {
+        stdio: 'ignore',
+      });
+      execFileSync(
+        'git',
+        ['config', 'user.email', 'github-actions[bot]@users.noreply.github.com'],
+        {
+          stdio: 'ignore',
+        },
+      );
+    }
     execFileSync('git', ['add', registryPath], { stdio: 'ignore' });
     execFileSync(
       'git',

@@ -164,11 +164,12 @@ async function runReviewGate() {
     matchedPackages.map((p) => `${p.relPrefix} (Owner: @${p.owner})`).join(', '),
   );
 
-  // Filter modules owned by third-party contributors (not Hoslift core maintainers, and not PR author)
+  // Filter modules owned by third-party contributors (not Hoslift core owners, and not PR author)
+  const coreOwners = new Set(['hoslift', 'draj256']);
   const thirdPartyModules = matchedPackages.filter((p) => {
     return (
       p.owner &&
-      p.owner.toLowerCase() !== 'hoslift' &&
+      !coreOwners.has(p.owner.toLowerCase()) &&
       p.owner.toLowerCase() !== prAuthor.toLowerCase()
     );
   });

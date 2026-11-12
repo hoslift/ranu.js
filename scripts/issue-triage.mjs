@@ -117,6 +117,7 @@ const matchedModules = packageRegistry.filter((pkg) => {
 });
 
 const moduleAuthors = [...new Set(matchedModules.map((m) => m.author).filter(Boolean))];
+const CORE_OWNERS = new Set(['hoslift', 'draj256']);
 const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
 
 /**
@@ -152,7 +153,8 @@ async function handleCommentCommand() {
   );
 
   const isModuleAuthor = moduleAuthors.some((a) => a.toLowerCase() === commentAuthor.toLowerCase());
-  const isTrustedMaintainer = trustedRoles.includes(commentAuthorAssociation);
+  const isTrustedMaintainer =
+    trustedRoles.includes(commentAuthorAssociation) || CORE_OWNERS.has(commentAuthor.toLowerCase());
 
   if (!isModuleAuthor && !isTrustedMaintainer) {
     console.warn(`[issue-triage] Unauthorized assignment attempt by @${commentAuthor}`);
@@ -221,7 +223,7 @@ async function handleInitialTriage() {
     if (
       module.author &&
       module.author.toLowerCase() !== issueAuthor.toLowerCase() &&
-      module.author.toLowerCase() !== 'hoslift'
+      !CORE_OWNERS.has(module.author.toLowerCase())
     ) {
       console.log(`[issue-triage] Matched module ${module.relPath} with author @${module.author}`);
       commentsToPost.push(`### 🔔 Module Notification
