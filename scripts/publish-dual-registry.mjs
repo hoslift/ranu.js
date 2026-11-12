@@ -2,7 +2,7 @@
 /**
  * scripts/publish-dual-registry.mjs
  * Production Idempotent Dual-Registry Publisher for npmjs.com and GitHub Packages.
- * 
+ *
  * Supports:
  * - Unified 31-package publishing across npmjs.com (@ranujs/*, create-ranujs) and GitHub Packages (@hoslift/*)
  * - Automatic scope transformation:
@@ -42,7 +42,17 @@ let isRestored = false;
  */
 function getWorkspacePackageManifests(dir) {
   const manifests = [];
-  const searchDirs = ['packages/ranu', 'adapters', 'ai', 'create-ranu'];
+  const searchDirs = [
+    'packages/ranu',
+    'adapters',
+    'ai',
+    'create-ranu',
+    'templates',
+    'plugins',
+    'integrations',
+    'ui',
+    'tools',
+  ];
 
   for (const relDir of searchDirs) {
     const fullDir = path.join(dir, relDir);
@@ -127,28 +137,6 @@ function mapPackageNameForNpmjs(rawName) {
 }
 
 /**
- * Map package name for GitHub Packages (@hoslift/*)
- * Disambiguates @ranujs/core -> @hoslift/ranu, @ranu/core -> @hoslift/core-internal,
- * and create-ranujs -> @hoslift/create-ranu.
- * All 31 unified packages map to unique names under @hoslift/*.
- */
-function mapPackageNameForGitHubPackages(rawName) {
-  if (rawName === '@ranujs/core') return '@hoslift/ranu';
-  if (rawName === '@ranu/core') return '@hoslift/core-internal';
-  if (rawName === 'create-ranujs') return '@hoslift/create-ranu';
-  if (rawName.startsWith('@ranujs/')) {
-    return `@hoslift/${rawName.slice('@ranujs/'.length)}`;
-  }
-  if (rawName.startsWith('@ranu/')) {
-    return `@hoslift/${rawName.slice('@ranu/'.length)}`;
-  }
-  if (rawName.startsWith('@hoslift/')) {
-    return rawName;
-  }
-  return `@hoslift/${rawName}`;
-}
-
-/**
  * Check if a package at a specific version is already live on a registry
  */
 async function isPackagePublished(pkgName, version, registry, token) {
@@ -172,7 +160,12 @@ async function isPackagePublished(pkgName, version, registry, token) {
  * Transform dependencies and resolve workspace:* protocols
  */
 function transformDependencies(pkg, nameMapper, packageVersions, defaultVersion = '0.4.0') {
-  for (const depType of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+  for (const depType of [
+    'dependencies',
+    'devDependencies',
+    'peerDependencies',
+    'optionalDependencies',
+  ]) {
     if (!pkg[depType]) continue;
     for (const depName of Object.keys(pkg[depType])) {
       const isWorkspaceDep =
@@ -214,7 +207,9 @@ export async function publishMonorepo() {
   console.log(`[publish-dual-registry] Monorepo Root: ${monorepoRoot}`);
 
   const allManifestPaths = getUnifiedPackageManifests(monorepoRoot);
-  console.log(`[publish-dual-registry] Identified ${allManifestPaths.length} unified release package manifests.`);
+  console.log(
+    `[publish-dual-registry] Identified ${allManifestPaths.length} unified release package manifests.`,
+  );
 
   // 1. Snapshot all original manifests into memory
   backupManifests(allManifestPaths);
@@ -257,6 +252,22 @@ export async function publishMonorepo() {
     }
   }
 
+  // Detect specific core framework version (@ranujs/core in packages/ranu)
+  const coreManifestPath = path.join(monorepoRoot, 'packages', 'ranu', 'package.json');
+  let coreFrameworkVersion = detectedReleaseVersion;
+  if (fs.existsSync(coreManifestPath)) {
+    try {
+      const corePkg = JSON.parse(fs.readFileSync(coreManifestPath, 'utf-8'));
+      if (corePkg.version && corePkg.version !== '0.0.0') {
+        coreFrameworkVersion = corePkg.version;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  let corePublishedThisRun = false;
+
   try {
     // ============================================================
     // Step 1: Target Registry 1 - npmjs.com
@@ -291,11 +302,13 @@ export async function publishMonorepo() {
         transformedName,
         pkg.version,
         'https://registry.npmjs.org/',
-        npmToken
+        npmToken,
       );
 
       if (alreadyPublished) {
-        console.log(`ℹ️ [publish-dual-registry] ${transformedName}@${pkg.version} is already published on npmjs.com. Marking private to skip.`);
+        console.log(
+          `ℹ️ [publish-dual-registry] ${transformedName}@${pkg.version} is already published on npmjs.com. Marking private to skip.`,
+        );
         pkg.private = true;
         npmSkipCount++;
       } else {
@@ -305,14 +318,25 @@ export async function publishMonorepo() {
           ...pkg.publishConfig,
           access: 'public',
         };
-        console.log(`📦 [publish-dual-registry] Ready to publish: ${transformedName}@${pkg.version}`);
+        console.log(
+          `📦 [publish-dual-registry] Ready to publish: ${transformedName}@${pkg.version}`,
+        );
         npmPublishCount++;
+        if (
+          pkg.name === '@ranujs/core' ||
+          pkg.name === '@ranu/core' ||
+          transformedName === '@ranujs/core'
+        ) {
+          corePublishedThisRun = true;
+        }
       }
 
       fs.writeFileSync(manifestPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
     }
 
-    console.log(`[publish-dual-registry] npmjs.com summary: ${npmPublishCount} to publish, ${npmSkipCount} skipped (already published).`);
+    console.log(
+      `[publish-dual-registry] npmjs.com summary: ${npmPublishCount} to publish, ${npmSkipCount} skipped (already published).`,
+    );
 
     const npmFlags = [
       '-r',
@@ -322,7 +346,9 @@ export async function publishMonorepo() {
       '--registry https://registry.npmjs.org/',
       '--@ranujs:registry=https://registry.npmjs.org/',
       isDryRun ? '--dry-run' : '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     const npmEnv = {
       ...process.env,
@@ -342,7 +368,9 @@ export async function publishMonorepo() {
       });
       console.log(`✅ [publish-dual-registry] Successfully published/validated to npmjs.com.`);
     } else {
-      console.log(`ℹ️ [publish-dual-registry] All packages already published to npmjs.com. Skipping pnpm publish.`);
+      console.log(
+        `ℹ️ [publish-dual-registry] All packages already published to npmjs.com. Skipping pnpm publish.`,
+      );
     }
 
     // Reset manifests back to clean state before Step 2 transformation
@@ -357,42 +385,48 @@ export async function publishMonorepo() {
     console.log(`   Provenance: Disabled (GitHub Packages constraint)`);
     console.log(`============================================================`);
 
-    const ghToken = process.env.GITHUB_TOKEN || process.env.CHANGESETS_TOKEN || process.env.GH_TOKEN;
+    const ghToken =
+      process.env.GITHUB_TOKEN || process.env.CHANGESETS_TOKEN || process.env.GH_TOKEN;
     if (!ghToken && !isDryRun) {
-      throw new Error(`Missing required authentication token in environment variable: GITHUB_TOKEN`);
+      throw new Error(
+        `Missing required authentication token in environment variable: GITHUB_TOKEN`,
+      );
     }
 
-    console.log(`[publish-dual-registry] Transforming manifests for GitHub Packages (@hoslift/*)...`);
+    // Grouped Meta-Packages presentation on GitHub Packages sidebar
+    const ghMetaCategories = ['adapters', 'ai', 'templates', 'integrations', 'ui', 'tools'];
+    const ghMetaManifestPaths = ghMetaCategories
+      .map((cat) => path.join(monorepoRoot, cat, 'package.json'))
+      .filter((p) => fs.existsSync(p));
+
+    console.log(
+      `[publish-dual-registry] Preparing ${ghMetaManifestPaths.length} grouped meta-packages for GitHub Packages (@hoslift/*)...`,
+    );
     let ghSkipCount = 0;
     let ghPublishCount = 0;
+    const readyToPublishMetaPaths = [];
 
-    for (const manifestPath of allManifestPaths) {
-      const originalContent = manifestBackups.get(manifestPath);
-      const pkg = JSON.parse(originalContent);
-
-      const transformedName = mapPackageNameForGitHubPackages(pkg.name);
-      pkg.name = transformedName;
-
-      // Transform internal dependencies
-      transformDependencies(pkg, mapPackageNameForGitHubPackages, packageVersions, detectedReleaseVersion);
-
-      // Add repository field expected by GitHub Packages
-      pkg.repository = pkg.repository || {
+    for (const manifestPath of ghMetaManifestPaths) {
+      const pkg = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      pkg.version = detectedReleaseVersion;
+      pkg.repository = {
         type: 'git',
         url: 'https://github.com/hoslift/ranu.js.git',
+        directory: path.basename(path.dirname(manifestPath)),
       };
 
       // Pre-flight idempotency check: check if already published on GitHub Packages
       const alreadyPublished = await isPackagePublished(
-        transformedName,
+        pkg.name,
         pkg.version,
         'https://npm.pkg.github.com/',
-        ghToken
+        ghToken,
       );
 
       if (alreadyPublished) {
-        console.log(`ℹ️ [publish-dual-registry] ${transformedName}@${pkg.version} is already published on GitHub Packages. Marking private to skip.`);
-        pkg.private = true;
+        console.log(
+          `ℹ️ [publish-dual-registry] ${pkg.name}@${pkg.version} is already published on GitHub Packages. Marking private to skip.`,
+        );
         ghSkipCount++;
       } else {
         pkg.private = false;
@@ -400,14 +434,19 @@ export async function publishMonorepo() {
           ...pkg.publishConfig,
           access: 'public',
         };
-        console.log(`📦 [publish-dual-registry] Ready to publish to GPR: ${transformedName}@${pkg.version}`);
+        console.log(
+          `📦 [publish-dual-registry] Ready to publish to GPR: ${pkg.name}@${pkg.version}`,
+        );
         ghPublishCount++;
+        readyToPublishMetaPaths.push(manifestPath);
       }
 
       fs.writeFileSync(manifestPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
     }
 
-    console.log(`[publish-dual-registry] GitHub Packages summary: ${ghPublishCount} to publish, ${ghSkipCount} skipped.`);
+    console.log(
+      `[publish-dual-registry] GitHub Packages summary: ${ghPublishCount} to publish, ${ghSkipCount} skipped.`,
+    );
 
     const ghEnv = {
       ...process.env,
@@ -421,28 +460,21 @@ export async function publishMonorepo() {
 
     if (ghPublishCount > 0) {
       if (isDryRun) {
-        const ghFlags = [
-          '-r',
-          '--filter "@hoslift/*"',
-          'publish',
-          '--access public',
-          '--no-git-checks',
-          '--registry https://npm.pkg.github.com/',
-          '--@hoslift:registry=https://npm.pkg.github.com/',
-          '--dry-run',
-        ].filter(Boolean).join(' ');
-
-        console.log(`[publish-dual-registry] Executing: pnpm ${ghFlags}`);
-        execSync(`pnpm ${ghFlags}`, {
-          cwd: monorepoRoot,
-          stdio: 'inherit',
-          env: ghEnv,
-        });
+        console.log(
+          `[publish-dual-registry] Simulating publish for ${readyToPublishMetaPaths.length} meta-packages to GitHub Packages...`,
+        );
+        for (const mPath of readyToPublishMetaPaths) {
+          const pkg = JSON.parse(fs.readFileSync(mPath, 'utf-8'));
+          console.log(`📦 ${pkg.name}@${pkg.version} → https://npm.pkg.github.com/`);
+          console.log(`   [WARN] Skip publishing ${pkg.name}@${pkg.version} (dry run)`);
+        }
         console.log(`✅ [publish-dual-registry] Successfully validated to GitHub Packages.`);
       } else {
-        // In live production mode, publish package-by-package to isolate already-published packages
-        console.log(`[publish-dual-registry] Publishing ${ghPublishCount} packages individually to GitHub Packages...`);
-        for (const manifestPath of allManifestPaths) {
+        // In live production mode, publish meta-package by meta-package
+        console.log(
+          `[publish-dual-registry] Publishing ${ghPublishCount} grouped meta-packages to GitHub Packages...`,
+        );
+        for (const manifestPath of readyToPublishMetaPaths) {
           const pkg = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
           if (pkg.private) continue;
 
@@ -458,21 +490,35 @@ export async function publishMonorepo() {
             });
             console.log(`✅ [publish-dual-registry] Published ${pkg.name}@${pkg.version}`);
           } catch (err) {
-            const errOutput = (err.stdout?.toString() || '') + ' ' + (err.stderr?.toString() || '') + ' ' + err.message;
-            if (/previously published|already exists|cannot publish over|409 Conflict|403 Forbidden/i.test(errOutput)) {
-              console.warn(`⚠️ [publish-dual-registry] ${pkg.name}@${pkg.version} already exists on GitHub Packages. Skipping safely.`);
+            const errOutput =
+              (err.stdout?.toString() || '') +
+              ' ' +
+              (err.stderr?.toString() || '') +
+              ' ' +
+              err.message;
+            if (
+              /previously published|already exists|cannot publish over|409 Conflict|403 Forbidden/i.test(
+                errOutput,
+              )
+            ) {
+              console.warn(
+                `⚠️ [publish-dual-registry] ${pkg.name}@${pkg.version} already exists on GitHub Packages. Skipping safely.`,
+              );
             } else {
               console.error(`❌ [publish-dual-registry] Failed to publish ${pkg.name}:`, errOutput);
               throw err;
             }
           }
         }
-        console.log(`✅ [publish-dual-registry] Successfully published to GitHub Packages.`);
+        console.log(
+          `✅ [publish-dual-registry] Successfully published grouped meta-packages to GitHub Packages.`,
+        );
       }
     } else {
-      console.log(`ℹ️ [publish-dual-registry] All packages already published to GitHub Packages. Skipping publish.`);
+      console.log(
+        `ℹ️ [publish-dual-registry] All meta-packages already published to GitHub Packages. Skipping publish.`,
+      );
     }
-
   } catch (err) {
     console.error(`❌ [publish-dual-registry] Publication failed:`, err.message);
     throw err;
@@ -505,28 +551,37 @@ export async function publishMonorepo() {
       console.warn(`⚠️ [publish-dual-registry] Changeset git-tag warning:`, tagErr.message);
     }
 
-    // 2. Root release tag v<version>
-    const rootTag = `v${detectedReleaseVersion}`;
-    let tagExists = false;
+    // 2. Check if this release is a Core Framework release or individual module release
+    const rootTag = `v${coreFrameworkVersion}`;
+    let rootTagExists;
     try {
       execSync(`git rev-parse -q --verify "refs/tags/${rootTag}"`, {
         cwd: monorepoRoot,
         stdio: 'ignore',
       });
-      tagExists = true;
-      console.log(`ℹ️ [publish-dual-registry] Root tag ${rootTag} already exists locally.`);
+      rootTagExists = true;
     } catch {
-      tagExists = false;
+      rootTagExists = false;
     }
 
-    if (!tagExists) {
-      console.log(`[publish-dual-registry] Creating annotated root tag ${rootTag}...`);
+    const isCoreFrameworkRelease = !rootTagExists && corePublishedThisRun;
+
+    if (isCoreFrameworkRelease) {
+      console.log(
+        `[publish-dual-registry] Core framework update detected. Creating annotated root tag ${rootTag}...`,
+      );
       execSync(`git tag -a ${rootTag} -m "Release ${rootTag}"`, {
         cwd: monorepoRoot,
         stdio: 'inherit',
         env: process.env,
       });
       console.log(`✅ [publish-dual-registry] Created root release tag ${rootTag}.`);
+    } else {
+      console.log(`ℹ️ [publish-dual-registry] Root project tag (${rootTag}) skipped.`);
+      console.log(`   Reason: Core framework (@ranujs/core) was not updated in this release.`);
+      console.log(
+        `   Only individual module package tags generated via Changesets will be published.`,
+      );
     }
 
     // 3. Push tags to origin
@@ -543,63 +598,106 @@ export async function publishMonorepo() {
       throw pushErr;
     }
 
-    // 4. Create GitHub Release
-    const ghAuthToken = process.env.GITHUB_TOKEN || process.env.CHANGESETS_TOKEN || process.env.GH_TOKEN;
-    console.log(`[publish-dual-registry] Creating GitHub Release for ${rootTag}...`);
-    try {
-      let releaseExists = false;
+    // 4. Create GitHub Release ONLY if core framework was released
+    if (isCoreFrameworkRelease) {
+      const ghAuthToken =
+        process.env.GITHUB_TOKEN || process.env.CHANGESETS_TOKEN || process.env.GH_TOKEN;
+      console.log(`[publish-dual-registry] Creating GitHub Release for ${rootTag}...`);
       try {
-        execSync(`gh release view ${rootTag}`, {
-          cwd: monorepoRoot,
-          stdio: 'ignore',
-          env: { ...process.env, GH_TOKEN: ghAuthToken, GITHUB_TOKEN: ghAuthToken },
-        });
-        releaseExists = true;
-        console.log(`ℹ️ [publish-dual-registry] GitHub Release ${rootTag} already exists.`);
-      } catch {
-        releaseExists = false;
-      }
-
-      if (!releaseExists) {
-        // Extract release notes from packages/ranu/CHANGELOG.md
-        const changelogPath = path.join(monorepoRoot, 'packages', 'ranu', 'CHANGELOG.md');
-        let releaseNotes = '';
-        if (fs.existsSync(changelogPath)) {
-          const changelog = fs.readFileSync(changelogPath, 'utf8');
-          const escapedVer = detectedReleaseVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const match = changelog.match(
-            new RegExp(`(?:^|\\r?\\n)##\\s*\\[?${escapedVer}\\]?[^\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`)
-          );
-          if (match && match[1]) {
-            releaseNotes = match[1].trim();
-          }
-        }
-
-        const releaseBody = releaseNotes
-          ? `# Ranu.js ${rootTag} (Public Alpha)\n\n${releaseNotes}`
-          : `# Ranu.js ${rootTag} (Public Alpha)\n\nRelease ${rootTag} across all 31 unified packages.`;
-
-        const tempNotesFile = path.join(monorepoRoot, `.release-notes-${rootTag}.md`);
-        fs.writeFileSync(tempNotesFile, releaseBody, 'utf8');
-
+        let releaseExists = false;
         try {
-          execSync(`gh release create ${rootTag} --title "${rootTag}" --notes-file "${tempNotesFile}"`, {
+          execSync(`gh release view ${rootTag}`, {
             cwd: monorepoRoot,
-            stdio: 'inherit',
+            stdio: 'ignore',
             env: { ...process.env, GH_TOKEN: ghAuthToken, GITHUB_TOKEN: ghAuthToken },
           });
-          console.log(`✅ [publish-dual-registry] GitHub Release ${rootTag} created successfully.`);
-        } finally {
-          if (fs.existsSync(tempNotesFile)) {
-            try {
-              fs.unlinkSync(tempNotesFile);
-            } catch { /* ignore cleanup errors */ }
+          releaseExists = true;
+          console.log(`ℹ️ [publish-dual-registry] GitHub Release ${rootTag} already exists.`);
+        } catch {
+          releaseExists = false;
+        }
+
+        if (!releaseExists) {
+          // Extract release notes from packages/ranu/CHANGELOG.md
+          const changelogPath = path.join(monorepoRoot, 'packages', 'ranu', 'CHANGELOG.md');
+          let releaseNotes = '';
+          if (fs.existsSync(changelogPath)) {
+            const changelog = fs.readFileSync(changelogPath, 'utf8');
+            const escapedVer = coreFrameworkVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const match = changelog.match(
+              new RegExp(
+                `(?:^|\\r?\\n)##\\s*\\[?${escapedVer}\\]?[^\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`,
+              ),
+            );
+            if (match && match[1]) {
+              releaseNotes = match[1].trim();
+            }
+          }
+
+          // Extract contributors since previous tag for automated attribution
+          let contributorsSection = '';
+          try {
+            const authorLog = execSync('git log -n 30 --format="%an|%ae"', {
+              cwd: monorepoRoot,
+              encoding: 'utf8',
+              stdio: ['ignore', 'pipe', 'ignore'],
+            });
+            const uniqueContributors = [...new Set(authorLog.split('\n').filter(Boolean))]
+              .map((line) => line.split('|')[0].trim())
+              .filter(
+                (name) =>
+                  !name.includes('bot') &&
+                  !name.includes('github-actions') &&
+                  !name.includes('Changeset'),
+              );
+            if (uniqueContributors.length > 0) {
+              contributorsSection =
+                `\n\n### ❤️ Community Contributors\nSpecial thanks to all contributors who helped build this release:\n` +
+                uniqueContributors.map((c) => `- ${c}`).join('\n');
+            }
+          } catch {
+            // ignore git log errors
+          }
+
+          const releaseBody =
+            (releaseNotes
+              ? `# Ranu.js ${rootTag} (Public Alpha)\n\n${releaseNotes}`
+              : `# Ranu.js ${rootTag} (Public Alpha)\n\nRelease ${rootTag} across all unified ecosystem packages.`) +
+            contributorsSection;
+
+          const tempNotesFile = path.join(monorepoRoot, `.release-notes-${rootTag}.md`);
+          fs.writeFileSync(tempNotesFile, releaseBody, 'utf8');
+
+          try {
+            execSync(
+              `gh release create ${rootTag} --title "${rootTag}" --notes-file "${tempNotesFile}"`,
+              {
+                cwd: monorepoRoot,
+                stdio: 'inherit',
+                env: { ...process.env, GH_TOKEN: ghAuthToken, GITHUB_TOKEN: ghAuthToken },
+              },
+            );
+            console.log(
+              `✅ [publish-dual-registry] GitHub Release ${rootTag} created successfully.`,
+            );
+          } finally {
+            if (fs.existsSync(tempNotesFile)) {
+              try {
+                fs.unlinkSync(tempNotesFile);
+              } catch {
+                /* ignore cleanup errors */
+              }
+            }
           }
         }
+      } catch (relErr) {
+        console.error(`❌ [publish-dual-registry] GitHub Release creation failed:`, relErr.message);
+        throw relErr;
       }
-    } catch (relErr) {
-      console.error(`❌ [publish-dual-registry] GitHub Release creation failed:`, relErr.message);
-      throw relErr;
+    } else {
+      console.log(
+        `ℹ️ [publish-dual-registry] GitHub Release creation skipped (not a core framework release).`,
+      );
     }
   } else {
     console.log(`\n============================================================`);
@@ -607,7 +705,9 @@ export async function publishMonorepo() {
     console.log(`============================================================`);
   }
 
-  console.log(`\n🎉 [publish-dual-registry] Dual-registry publishing completed successfully across all targets!`);
+  console.log(
+    `\n🎉 [publish-dual-registry] Dual-registry publishing completed successfully across all targets!`,
+  );
 }
 
 publishMonorepo().catch((err) => {

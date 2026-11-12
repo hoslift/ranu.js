@@ -88,7 +88,13 @@ The monorepo is organized cleanly into modular packages and directories:
 | Directory | Purpose |
 | :--- | :--- |
 | `packages/` | Core framework packages (`router`, `react`, `runtime`, `build`, `server`, etc.) |
-| `adapters/` | Deployment adapters (e.g., `@ranujs/adapter-vercel`) |
+| `adapters/` | Deployment adapters (e.g., `@hoslift/adapters`, `@ranujs/adapter-vercel`) |
+| `ai/` | AI provider integrations (e.g., `@hoslift/ai`, Gemini, Claude, Groq) |
+| `templates/` | Application starter templates (e.g., `@hoslift/templates`) |
+| `integrations/` | Third-party database, auth, and ORM modules (e.g., `@hoslift/integrations`) |
+| `plugins/` | Framework runtime and build-time plugins |
+| `ui/` | Community UI component libraries and themes (e.g., `@hoslift/ui`) |
+| `tools/` | Developer CLI tools, generators, and dev tooling (e.g., `@hoslift/tools`) |
 | `create-ranu/` | The official CLI scaffolder (`create-ranujs`) |
 | `examples/` | Standalone, canonical reference applications using public APIs |
 | `fixtures/` | Internal test applications used by test harnesses |
@@ -185,34 +191,50 @@ pnpm ci:verify       # Verification suite without cleaning
 
 ### 5. Adding a Changeset
 
-If your pull request introduces changes to packages that are published to npm (e.g., `@ranujs/core`, `create-ranujs`, or adapters), you must include a Changeset:
+If your pull request introduces changes to packages that are published to npm or GitHub Packages (e.g., `@ranujs/core`, `create-ranujs`, or ecosystem modules in `adapters/`, `ai/`, `plugins/`, etc.), you must include a Changeset:
 
 ```bash
+# Interactive Changeset creation
 pnpm changeset
+
+# Or quick non-interactive wizard
+pnpm changeset:quick
 ```
 
-Follow the interactive prompts:
-1. Select the packages affected by your change (use arrow keys and space).
+Follow the prompts:
+1. Select the packages affected by your change.
 2. Choose the version impact:
-   * **patch:** Bug fixes and minor internal updates.
-   * **minor:** New backward-compatible features.
-   * **major:** Breaking changes (discuss with maintainers first).
+   * **patch:** Bug fixes and minor internal updates (`0.1.0` -> `0.1.1`).
+   * **minor:** New backward-compatible features (`0.1.0` -> `0.2.0`).
+   * **major:** Breaking changes (`0.1.0` -> `1.0.0`).
 3. Write a clear, concise summary of the change. This summary will be automatically added to `CHANGELOG.md` upon release.
 
 > Changes affecting only `docs/`, `tests/`, `examples/`, or internal tooling **do not require a Changeset**.
 
-#### Package Versioning & Adapter Lifecycle Architecture
+---
 
-Ranu.js employs a structured hybrid release architecture:
-* **Core Framework (`@ranujs/core` & `create-ranujs`):** Kept in synchronized lockstep. When core framework releases an update, the CLI scaffolder updates alongside it so newly created projects always target the latest core engine.
-* **Adapters Ecosystem (`adapters/*`):** Independently versioned deployment plugins.
-  * **Public Alpha (`v0.1.x`):** Existing and newly authored adapters start at `v0.1.0` (or the active alpha line) to facilitate early iteration.
-  * **`v1.0.0` Milestone:** Upon official General Availability, the entire ecosystem (Core, CLI, and all active adapters) aligns to `v1.0.0`. Alpha (`v0.1.x`) is officially retired.
-  * **Post-`v1.0.0` Era:** Any newly authored adapter begins directly at `v1.0.0` with `peerDependencies: { "@ranujs/core": ">=1.0.0" }`. Adapters may receive independent patch or minor updates without triggering an artificial core release.
+### 6. Ecosystem Module Submission & Certification (Free vs Sponsored)
+
+Ranu.js supports a thriving modular ecosystem across `adapters/`, `plugins/`, `integrations/`, `ui/`, and `tools/`. Contributors can author modules under either of two official tiers:
+
+1. **Free / Community Modules (`community-free`):**
+   - 100% open source modules freely available to the public.
+   - Automatically verified with the official `Certified Community Module` badge upon maintainer approval.
+   - No fees or sponsorships required.
+
+2. **Commercial / Paid Modules (`sponsored-partner`):**
+   - Commercial plugins, paid integrations, or monetized enterprise tools.
+   - Requires a partner sponsorship agreement with Hoslift (via [GitHub Sponsors](https://github.com/sponsors/hoslift) or [PayPal Direct](https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ)).
+   - Awarded the official `Hoslift Partner Certified` badge upon sponsorship confirmation.
+
+#### Anti-Fraud Badge Guard
+All official certification badges are strictly verified by automated CI (`scripts/verify-badges.mjs`). Badges cannot be self-awarded without official registry entry in `.ecosystem/certified-modules.json` (protected by `.github/CODEOWNERS`). Any PR with forged badges is automatically rejected.
+
+To submit a new module, open a [**New Ecosystem Module Submission**](https://github.com/hoslift/ranu.js/issues/new?template=module_submission.yml) issue.
 
 ---
 
-### 6. Opening a Pull Request (PR)
+### 7. Opening a Pull Request (PR)
 
 1. Push your branch to your fork or repository:
    ```bash

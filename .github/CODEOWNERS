@@ -1,0 +1,21 @@
+# Ranu.js Universal CODEOWNERS File
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 1. Global Default Owner (Full Security & Architecture Authority)
+* @hoslift
+
+# 2. Core Framework & Scaffolding Engine
+/packages/ @hoslift
+/create-ranu/ @hoslift
+/.github/ @hoslift
+/scripts/ @hoslift
+/.ecosystem/ @hoslift
+
+# 3. Modular Ecosystem Components (Maintainer + Community Authors)
+/adapters/ @hoslift
+/ai/ @hoslift
+/templates/ @hoslift
+/plugins/ @hoslift
+/integrations/ @hoslift
+/ui/ @hoslift
+/tools/ @hoslift

@@ -2,60 +2,75 @@ import fs from 'fs';
 import path from 'path';
 
 const publishedPackages = [
-  { 
-    dir: 'packages/ranu', 
-    name: '@ranujs/core', 
-    canonicalExports: ['.', './config', './react', './server', './plugin', './testing', './devtools', './ai', './ai/gemini', './ai/groq', './ai/claude', './ai/codex', './ai/openai', './ai/custom'],
-    technicalExports: ['./server-only'] 
+  {
+    dir: 'packages/ranu',
+    name: '@ranujs/core',
+    canonicalExports: [
+      '.',
+      './config',
+      './react',
+      './server',
+      './plugin',
+      './testing',
+      './devtools',
+      './ai',
+      './ai/gemini',
+      './ai/groq',
+      './ai/claude',
+      './ai/codex',
+      './ai/openai',
+      './ai/custom',
+    ],
+    technicalExports: ['./server-only'],
   },
-  { 
-    dir: 'create-ranu', 
-    name: 'create-ranujs', 
+  {
+    dir: 'create-ranu',
+    name: 'create-ranujs',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/vercel', 
-    name: '@ranujs/adapter-vercel', 
+  {
+    dir: 'adapters/vercel',
+    name: '@ranujs/adapter-vercel',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/cloudflare', 
-    name: '@ranujs/adapter-cloudflare', 
+  {
+    dir: 'adapters/cloudflare',
+    name: '@ranujs/adapter-cloudflare',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/node', 
-    name: '@ranujs/adapter-node', 
+  {
+    dir: 'adapters/node',
+    name: '@ranujs/adapter-node',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/netlify', 
-    name: '@ranujs/adapter-netlify', 
+  {
+    dir: 'adapters/netlify',
+    name: '@ranujs/adapter-netlify',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/bun', 
-    name: '@ranujs/adapter-bun', 
+  {
+    dir: 'adapters/bun',
+    name: '@ranujs/adapter-bun',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/deno', 
-    name: '@ranujs/adapter-deno', 
+  {
+    dir: 'adapters/deno',
+    name: '@ranujs/adapter-deno',
     canonicalExports: ['.'],
-    technicalExports: []
+    technicalExports: [],
   },
-  { 
-    dir: 'adapters/static', 
-    name: '@ranujs/adapter-static', 
+  {
+    dir: 'adapters/static',
+    name: '@ranujs/adapter-static',
     canonicalExports: ['.'],
-    technicalExports: []
-  }
+    technicalExports: [],
+  },
 ];
 
 let failed = false;
@@ -67,16 +82,16 @@ for (const pkg of publishedPackages) {
     failed = true;
     continue;
   }
-  
+
   const content = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
   const exports = content.exports;
-  
+
   if (!exports) {
     console.error(`Missing 'exports' field in package.json for package: ${pkg.name}`);
     failed = true;
     continue;
   }
-  
+
   // 1. Verify Canonical Public API Exports
   for (const exp of pkg.canonicalExports) {
     if (!exports[exp]) {
@@ -84,7 +99,7 @@ for (const pkg of publishedPackages) {
       failed = true;
     }
   }
-  
+
   // 2. Verify Required Technical Exports
   for (const exp of pkg.technicalExports) {
     if (!exports[exp]) {
@@ -97,16 +112,21 @@ for (const pkg of publishedPackages) {
   if (pkg.name === '@ranujs/core') {
     const rootSrc = fs.readFileSync(path.join(pkg.dir, 'src/index.ts'), 'utf8');
     if (!rootSrc.includes('defineConfig')) {
-      console.error(`Package @ranujs/core root entry (src/index.ts) is missing convenience re-export of defineConfig`);
+      console.error(
+        `Package @ranujs/core root entry (src/index.ts) is missing convenience re-export of defineConfig`,
+      );
       failed = true;
     }
   }
-  
+
   // 3. Verify target files resolve to source equivalents
   for (const [expKey, expVal] of Object.entries(exports)) {
     const checkTarget = (val) => {
       if (typeof val === 'string') {
-        const srcFile = val.replace('./dist/', './src/').replace('.js', '.ts').replace('.d.ts', '.ts');
+        const srcFile = val
+          .replace('./dist/', './src/')
+          .replace('.js', '.ts')
+          .replace('.d.ts', '.ts');
         const srcPath = path.join(pkg.dir, srcFile);
         if (!fs.existsSync(srcPath)) {
           console.error(`Export "${expKey}" maps to nonexistent source entry file: ${srcPath}`);
@@ -125,6 +145,6 @@ for (const pkg of publishedPackages) {
 if (failed) {
   process.exit(1);
 } else {
-  console.log("All package exports verified successfully.");
+  console.log('All package exports verified successfully.');
   process.exit(0);
 }

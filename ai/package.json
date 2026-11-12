@@ -1,0 +1,22 @@
+{
+  "name": "@hoslift/ai",
+  "version": "0.4.0",
+  "description": "Ranu.js AI Providers & Model Integrations (Gemini, Claude, OpenAI, Groq, Ollama)",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "main": "./index.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "index.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoslift/ranu.js.git",
+    "directory": "ai"
+  }
+}

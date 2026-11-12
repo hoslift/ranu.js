@@ -9,6 +9,11 @@ on:
       - 'adapters/**'
       - 'ai/**'
       - 'create-ranu/**'
+      - 'templates/**'
+      - 'plugins/**'
+      - 'integrations/**'
+      - 'ui/**'
+      - 'tools/**'
 
 permissions:
   contents: read

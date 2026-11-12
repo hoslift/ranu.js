@@ -1,0 +1,37 @@
+{
+  "name": "@ranu/tool-template",
+  "version": "0.4.0",
+  "description": "Boilerplate template for authoring Ranu.js developer tooling (inspectors, analyzers, debuggers)",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@ranu/core": "workspace:*"
+  },
+  "devDependencies": {
+    "rimraf": "^6.1.4",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

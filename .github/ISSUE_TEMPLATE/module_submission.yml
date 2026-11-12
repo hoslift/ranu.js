@@ -1,0 +1,89 @@
+name: "🚀 New Module Submission & Certification"
+description: "Submit a new Adapter, Plugin, Integration, UI kit, or Template for official Ranu.js Ecosystem certification."
+title: "[Module Proposal]: "
+labels: ["ecosystem: module-proposal", "contribution: pending-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Welcome to the Ranu.js Ecosystem Marketplace! 🌟
+
+        Ranu.js supports a thriving, open-source community of third-party Adapters, Plugins, UI Systems, and Integrations.
+        
+        ### 📜 Certification & Partnership Policy:
+        - **Free & Open-Source Modules:** Received and certified **100% Free** with official repository listing and the **`[Community Verified]`** badge.
+        - **Commercial / Paid / Subscription Modules:** Modules with a paywall, commercial license, or monetized cloud backend are supported as official ecosystem partners via project sponsorship ([GitHub Sponsors](https://github.com/sponsors/hoslift) or [PayPal Direct](https://www.paypal.com/donate/?hosted_button_id=G8MDMN2AGD5UJ)) and receive the verified **`[Sponsored Partner]`** badge.
+
+  - type: input
+    id: module-name
+    attributes:
+      label: "Module Name"
+      description: "The proposed package name (e.g. `@ranujs/adapter-aws` or `@ranujs/plugin-stripe`)."
+      placeholder: "@ranujs/..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module-category
+    attributes:
+      label: "Ecosystem Category"
+      description: "Which part of the Ranu.js ecosystem does this module belong to?"
+      options:
+        - "Adapters (Cloud / Server Deployment Target)"
+        - "Plugins (Auth, Payments, SEO, Analytics)"
+        - "Integrations (Databases, Connectors, SaaS APIs)"
+        - "UI Systems (Themes, Layouts, Component Systems)"
+        - "Developer Tools (Inspectors, Debuggers, Profilers)"
+        - "Production Templates (Starter Kits & Showcases)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: licensing-model
+    attributes:
+      label: "Distribution & Monetization Model"
+      description: "Is this module completely free or commercial?"
+      options:
+        - "Free & Open-Source (Community Verified — 100% Free Certification)"
+        - "Commercial / Paid / Subscription (Ecosystem Partner Sponsorship Required)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: module-description
+    attributes:
+      label: "Module Overview & Capabilities"
+      description: "Describe what this module does, what developer problems it solves, and how it integrates with Ranu.js."
+      placeholder: "This module provides..."
+    validations:
+      required: true
+
+  - type: input
+    id: repository-url
+    attributes:
+      label: "Source Repository or Fork URL"
+      description: "Where can maintainers inspect the draft code, documentation, and tests?"
+      placeholder: "https://github.com/username/ranu.js/tree/..."
+    validations:
+      required: true
+
+  - type: input
+    id: maintainer-github
+    attributes:
+      label: "Lead Maintainer GitHub Username"
+      description: "Who should be credited, notified for issues, and granted ownership?"
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: compliance
+    attributes:
+      label: "Ecosystem Compliance & Security Agreement"
+      options:
+        - label: "I confirm the module follows Ranu.js architecture standards and TypeScript strict typing."
+          required: true
+        - label: "I have read and agree to follow Ranu.js SECURITY.md policy."
+          required: true
+        - label: "If this is a Commercial/Paid module, I agree to support the project via Founder Sponsorship (GitHub Sponsors or PayPal)."
+          required: false

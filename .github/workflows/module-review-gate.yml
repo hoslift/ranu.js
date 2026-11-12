@@ -1,0 +1,42 @@
+name: Ecosystem Module Review Gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  module-review:
+    name: Multi-Tier Module Review Gate
+    # Ignore comments on regular issues or comments from bots
+    if: >
+      github.event_name == 'pull_request_target' ||
+      github.event_name == 'pull_request_review' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && !endsWith(github.event.comment.user.login, '[bot]'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Module Review Gate
+        run: node scripts/module-review-gate.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || github.event.issue.user.login }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}

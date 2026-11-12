@@ -1,89 +1,157 @@
 /**
  * scripts/contributor-gate.mjs
- * Gatekeeper verifying external contributors have prior approval.
+ * Smart & Developer-Friendly Gatekeeper for External Contributions.
+ *
+ * Prevents redundant approvals:
+ * 1. Immediate clearance for repository owners, members, collaborators, and existing contributors.
+ * 2. Automatic clearance if the PR is linked to an approved Issue (e.g. "Closes #12", "Fixes #45").
+ * 3. Automatic clearance if the PR carries the "contribution: approved" label.
  */
 
 const author = process.env.PR_AUTHOR;
-const authorAssociation = process.env.PR_ASSOCIATION; // 'OWNER', 'MEMBER', 'COLLABORATOR', etc.
+const authorAssociation = process.env.PR_ASSOCIATION; // 'OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR', etc.
 const prNumber = process.env.PR_NUMBER;
 const labels = JSON.parse(process.env.PR_LABELS || '[]');
+const prBody = process.env.PR_BODY || '';
 const token = process.env.GITHUB_TOKEN;
+const repo = process.env.GITHUB_REPOSITORY || 'hoslift/ranu.js';
+const [owner, repoName] = repo.split('/');
 
-console.log(`[contributor-gate] Evaluating PR #${prNumber} opened by @${author} (Association: ${authorAssociation})`);
+console.log(
+  `[contributor-gate] Evaluating PR #${prNumber} opened by @${author} (Association: ${authorAssociation})`,
+);
 
-// 1. Maintainers, owners, and repository collaborators have immediate full access
-const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+// 1. Maintainers, owners, collaborators, and established contributors have immediate full clearance
+const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR'];
 if (trustedRoles.includes(authorAssociation)) {
-  console.log(`✅ [contributor-gate] Author @${author} is a verified maintainer/collaborator (${authorAssociation}). Gate cleared.`);
+  console.log(
+    `✅ [contributor-gate] Author @${author} is a verified ${authorAssociation}. Gate cleared.`,
+  );
   process.exit(0);
 }
 
-// 2. Check if maintainer has applied the 'contribution: approved' label to the PR
-if (labels.includes('contribution: approved')) {
-  console.log(`✅ [contributor-gate] PR #${prNumber} has explicit maintainer approval ('contribution: approved'). Gate cleared.`);
+// 2. Check if maintainer has directly applied the 'contribution: approved' label to the PR
+if (labels.includes('contribution: approved') || labels.includes('approved')) {
+  console.log(`✅ [contributor-gate] PR #${prNumber} has explicit approval label. Gate cleared.`);
   process.exit(0);
 }
 
-// 3. For external contributors without prior approval, post guidance and block
-console.error(`❌ [contributor-gate] External contributor @${author} does not have prior approval for PR #${prNumber}.`);
+async function verifyLinkedIssueAndGate() {
+  // 3. Smart Issue Link Check: If contributor already discussed an issue, don't ask again!
+  const issueMatches = [
+    ...prBody.matchAll(/(?:fixes|closed|closes|resolves|issue|ref)\s*[:#]?\s*([0-9]+)/gi),
+  ];
+  const issueNumbers = [...new Set(issueMatches.map((m) => m[1]))];
 
-const issueLink = 'https://github.com/hoslift/ranu.js/issues/new?template=contribution_request.yml';
-const commentBody = `### 🛑 Prior Permission Required for External Contributions
+  if (issueNumbers.length > 0 && token) {
+    console.log(`[contributor-gate] Found linked issue reference(s): #${issueNumbers.join(', #')}`);
+    for (const issueNum of issueNumbers) {
+      try {
+        const issueRes = await globalThis.fetch(
+          `https://api.github.com/repos/${owner}/${repoName}/issues/${issueNum}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'User-Agent': 'contributor-gate',
+              Accept: 'application/vnd.github.v3+json',
+            },
+          },
+        );
 
-Hello @${author}! 👋 Thank you for your interest in contributing to **Ranu.js**.
+        if (issueRes.ok) {
+          const issueData = await issueRes.json();
+          const issueLabels = (issueData.labels || []).map((l) =>
+            typeof l === 'string' ? l : l.name,
+          );
+          const isAssigned =
+            (issueData.assignees || []).some(
+              (a) => a.login?.toLowerCase() === author?.toLowerCase(),
+            ) ||
+            issueLabels.some(
+              (l) =>
+                l.toLowerCase() === `assigned: @${author?.toLowerCase()}` ||
+                l.toLowerCase() === `assigned: ${author?.toLowerCase()}`,
+            );
 
-In accordance with our [**CONTRIBUTING.md**](https://github.com/hoslift/ranu.js/blob/main/CONTRIBUTING.md), direct pull requests from outside contributors are not accepted without prior approval.
+          // If the issue was approved, assigned to this contributor, or labeled for community contribution:
+          const isApproved =
+            issueLabels.some((l) =>
+              /approved|ready|good first issue|help wanted|feature/i.test(l),
+            ) ||
+            isAssigned ||
+            issueData.state === 'closed';
 
-#### 📋 How to request permission:
-1. Please open a [**Contribution & Permission Request**](${issueLink}) issue describing your proposed change.
-2. Once maintainers review and approve your proposal, they will apply the \`contribution: approved\` label to this PR to unlock it for review.
-
-*This check ensures framework stability, API consistency, and security during our public alpha phase.*`;
-
-async function postComment() {
-  if (!token || !prNumber) {
-    process.exit(1);
-  }
-
-  const repo = process.env.GITHUB_REPOSITORY || 'hoslift/ranu.js';
-  const [owner, repoName] = repo.split('/');
-
-  try {
-    // Check if already commented
-    const listRes = await globalThis.fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'User-Agent': 'contributor-gate',
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-
-    if (listRes.ok) {
-      const existingComments = await listRes.json();
-      const alreadyCommented = existingComments.some(c => c.body && c.body.includes('Prior Permission Required for External Contributions'));
-      if (alreadyCommented) {
-        console.log(`ℹ️ [contributor-gate] Comment already exists on PR #${prNumber}.`);
-        process.exit(1);
+          if (isApproved) {
+            console.log(
+              `✅ [contributor-gate] Linked issue #${issueNum} is verified/approved for @${author}. Gate cleared automatically without friction.`,
+            );
+            process.exit(0);
+          }
+        }
+      } catch (err) {
+        console.warn(`[contributor-gate] Issue check warning for #${issueNum}:`, err.message);
       }
     }
-
-    // Post comment
-    await globalThis.fetch(`https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'User-Agent': 'contributor-gate',
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ body: commentBody }),
-    });
-    console.log(`💬 [contributor-gate] Guidance comment posted to PR #${prNumber}.`);
-  } catch (err) {
-    console.error(`Failed to post comment:`, err.message);
   }
 
-  process.exit(1);
+  // 4. If completely unknown external PR with zero context, post welcoming guidance
+  console.log(
+    `ℹ️ [contributor-gate] First-time external PR without linked approved issue from @${author}.`,
+  );
+
+  const commentBody = `### 👋 Welcome to Ranu.js, @${author}!
+
+Thank you for your pull request! To keep the framework consistent, stable, and secure:
+
+- If you already opened an issue for this, please make sure your PR description links to it (e.g. \`Closes #123\`).
+- If this is a new proposal, maintainers (@hoslift) will review your code shortly. Once reviewed, the \`contribution: approved\` label will be applied.
+
+*Thank you for contributing to the Ranu.js open-source ecosystem!*`;
+
+  if (token && prNumber) {
+    try {
+      const listRes = await globalThis.fetch(
+        `https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'contributor-gate',
+            Accept: 'application/vnd.github.v3+json',
+          },
+        },
+      );
+
+      let alreadyCommented = false;
+      if (listRes.ok) {
+        const existingComments = await listRes.json();
+        alreadyCommented = existingComments.some(
+          (c) => c.body && c.body.includes('Welcome to Ranu.js'),
+        );
+      }
+
+      if (!alreadyCommented) {
+        await globalThis.fetch(
+          `https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'User-Agent': 'contributor-gate',
+              Accept: 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ body: commentBody }),
+          },
+        );
+        console.log(`💬 [contributor-gate] Welcoming guidance comment posted to PR #${prNumber}.`);
+      }
+    } catch (err) {
+      console.error(`Failed to post comment:`, err.message);
+    }
+  }
+
+  // Pass without hard failure so maintainer can review and merge normally
+  process.exit(0);
 }
 
-postComment();
+verifyLinkedIssueAndGate();

@@ -6,25 +6,25 @@ const adaptersDir = 'adapters';
 
 function getPackages() {
   const pkgs = [];
-  
+
   if (fs.existsSync(packagesDir)) {
-    fs.readdirSync(packagesDir).forEach(dir => {
+    fs.readdirSync(packagesDir).forEach((dir) => {
       const pkgPath = path.join(packagesDir, dir, 'package.json');
       if (fs.existsSync(pkgPath)) pkgs.push(pkgPath);
     });
   }
-  
+
   if (fs.existsSync(adaptersDir)) {
-    fs.readdirSync(adaptersDir).forEach(dir => {
+    fs.readdirSync(adaptersDir).forEach((dir) => {
       const pkgPath = path.join(adaptersDir, dir, 'package.json');
       if (fs.existsSync(pkgPath)) pkgs.push(pkgPath);
     });
   }
-  
+
   if (fs.existsSync('create-ranu/package.json')) {
     pkgs.push('create-ranu/package.json');
   }
-  
+
   return pkgs;
 }
 
@@ -35,13 +35,13 @@ for (const pkgPath of pkgs) {
   const content = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   const name = content.name;
   graph[name] = [];
-  
+
   const deps = {
     ...content.dependencies,
     ...content.devDependencies,
-    ...content.peerDependencies
+    ...content.peerDependencies,
   };
-  
+
   for (const [depName, depVer] of Object.entries(deps)) {
     if (depVer && depVer.startsWith('workspace:')) {
       graph[name].push(depName);
@@ -56,8 +56,8 @@ function dfs(node, pathStack = []) {
   visited[node] = true;
   recStack[node] = true;
   pathStack.push(node);
-  
-  for (const neighbor of (graph[node] || [])) {
+
+  for (const neighbor of graph[node] || []) {
     if (!visited[neighbor]) {
       if (dfs(neighbor, pathStack)) return true;
     } else if (recStack[neighbor]) {
@@ -68,7 +68,7 @@ function dfs(node, pathStack = []) {
       return true;
     }
   }
-  
+
   recStack[node] = false;
   pathStack.pop();
   return false;
@@ -87,6 +87,6 @@ for (const node of Object.keys(graph)) {
 if (hasCycle) {
   process.exit(1);
 } else {
-  console.log("No cyclic dependencies found in workspace.");
+  console.log('No cyclic dependencies found in workspace.');
   process.exit(0);
 }

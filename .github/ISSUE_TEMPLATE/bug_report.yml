@@ -13,6 +13,24 @@ body:
 
         **Do not report security vulnerabilities here.** Please follow the private reporting process described in SECURITY.md.
 
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component or Ecosystem Module
+      description: Which part of Ranu.js is this issue related to?
+      options:
+        - Core Framework (@ranujs/core)
+        - Scaffolder (create-ranujs)
+        - Adapters (adapters/...)
+        - AI Integrations (ai/...)
+        - Templates (templates/...)
+        - Plugins (plugins/...)
+        - Integrations (integrations/...)
+        - UI Design System (ui/...)
+        - Developer Tools (tools/...)
+    validations:
+      required: false
+
   - type: textarea
     id: description
     attributes:

@@ -1,0 +1,22 @@
+{
+  "name": "@hoslift/adapters",
+  "version": "0.4.0",
+  "description": "Ranu.js Cloud & Server Deployment Adapters (Vercel, Cloudflare, Node, Bun, Deno, Netlify)",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "main": "./index.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "index.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoslift/ranu.js.git",
+    "directory": "adapters"
+  }
+}

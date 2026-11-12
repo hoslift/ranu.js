@@ -154,6 +154,46 @@ const targets = [
     ],
   },
   {
+    file: 'AGENT.md',
+    rules: [
+      {
+        pattern: /current release:\s*`v[0-9]+\.[0-9]+\.[0-9]+[^`]*`/g,
+        replacement: `current release: \`v${version}\``,
+        description: 'AGENT.md current release version banner',
+      },
+    ],
+  },
+  {
+    file: 'skills/ranu-architect/SKILL.md',
+    rules: [
+      {
+        pattern: /current release:\s*`v[0-9]+\.[0-9]+\.[0-9]+[^`]*`/g,
+        replacement: `current release: \`v${version}\``,
+        description: 'skills/ranu-architect/SKILL.md current release version banner',
+      },
+    ],
+  },
+  {
+    file: 'test-app/AGENTS.md',
+    rules: [
+      {
+        pattern: /Ranu\.js \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
+        replacement: `Ranu.js (v${version})`,
+        description: 'test-app/AGENTS.md version banner',
+      },
+    ],
+  },
+  {
+    file: 'my-ai-app/AGENTS.md',
+    rules: [
+      {
+        pattern: /Ranu\.js \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
+        replacement: `Ranu.js (v${version})`,
+        description: 'my-ai-app/AGENTS.md version banner',
+      },
+    ],
+  },
+  {
     file: 'create-ranu/src/template.ts',
     rules: [
       {
@@ -165,39 +205,130 @@ const targets = [
   },
 ];
 
-// Dynamically discover and register adapters from adapters/ directory
-const adaptersDir = path.join(rootDir, 'adapters');
-if (fs.existsSync(adaptersDir)) {
-  const adapterFolders = fs.readdirSync(adaptersDir).filter((f) => {
-    return fs.statSync(path.join(adaptersDir, f)).isDirectory();
+// Dynamically discover and register markdown targets across all modular ecosystem directories
+const modularEcosystemDirs = ['adapters', 'templates', 'plugins', 'integrations', 'ui', 'tools'];
+for (const ecoDir of modularEcosystemDirs) {
+  const fullEcoDir = path.join(rootDir, ecoDir);
+  if (!fs.existsSync(fullEcoDir)) continue;
+
+  const folders = fs.readdirSync(fullEcoDir).filter((f) => {
+    return fs.statSync(path.join(fullEcoDir, f)).isDirectory();
   });
 
-  for (const folder of adapterFolders) {
-    const pkgPath = path.join(adaptersDir, folder, 'package.json');
-    const readmeRelPath = path.join('adapters', folder, 'README.md');
-    if (fs.existsSync(pkgPath) && fs.existsSync(path.join(rootDir, readmeRelPath))) {
-      try {
-        const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        const adapterVersion = pkgData.version || version;
-        targets.push({
-          file: readmeRelPath,
-          rules: [
-            {
-              pattern: /Public Alpha \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
-              replacement: `Public Alpha (v${adapterVersion})`,
-              description: `${folder} adapter Public Alpha badge`,
-            },
-          ],
-        });
-      } catch {
-        // Fallback to core version if package.json cannot be parsed
+  for (const folder of folders) {
+    const pkgPath = path.join(fullEcoDir, folder, 'package.json');
+    const readmeRelPath = path.join(ecoDir, folder, 'README.md');
+    if (fs.existsSync(path.join(rootDir, readmeRelPath))) {
+      let targetVersion = version;
+      if (fs.existsSync(pkgPath)) {
+        try {
+          const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          if (pkgData.version) targetVersion = pkgData.version;
+        } catch {
+          // fallback to core version
+        }
       }
+
+      targets.push({
+        file: readmeRelPath,
+        rules: [
+          {
+            pattern: /Public Alpha \(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)/g,
+            replacement: `Public Alpha (v${targetVersion})`,
+            description: `${folder} ${ecoDir} Public Alpha badge`,
+          },
+        ],
+      });
     }
   }
 }
 
 let hasDiscrepancy = false;
 let updatedFilesCount = 0;
+
+// 3. Automatically synchronize .changeset/config.json with all workspace packages
+const changesetConfigPath = path.join(rootDir, '.changeset', 'config.json');
+if (fs.existsSync(changesetConfigPath)) {
+  try {
+    const changesetConfig = JSON.parse(fs.readFileSync(changesetConfigPath, 'utf8'));
+    const fixedPackages = new Set(changesetConfig.fixed?.[0] || []);
+    let changesetModified = false;
+
+    const workspaceDirs = [
+      'packages',
+      'adapters',
+      'ai',
+      'create-ranu',
+      'templates',
+      'plugins',
+      'integrations',
+      'ui',
+      'tools',
+    ];
+    for (const wsDir of workspaceDirs) {
+      const fullWsDir = path.join(rootDir, wsDir);
+      if (!fs.existsSync(fullWsDir)) continue;
+
+      const entries = fs.readdirSync(fullWsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        let pkgJsonPath = null;
+        if (entry.isDirectory()) {
+          const nested = path.join(fullWsDir, entry.name, 'package.json');
+          if (fs.existsSync(nested)) pkgJsonPath = nested;
+        } else if (entry.name === 'package.json') {
+          pkgJsonPath = path.join(fullWsDir, 'package.json');
+        }
+
+        if (pkgJsonPath) {
+          try {
+            const pkgData = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+            if (pkgData.name && !fixedPackages.has(pkgData.name)) {
+              if (
+                !pkgData.name.startsWith('example-') &&
+                !pkgData.name.startsWith('fixture-') &&
+                pkgData.name !== 'ranu-monorepo' &&
+                pkgData.name !== 'test-app' &&
+                !pkgData.name.endsWith('-template')
+              ) {
+                changesetConfig.fixed = changesetConfig.fixed || [[]];
+                changesetConfig.fixed[0].push(pkgData.name);
+                fixedPackages.add(pkgData.name);
+                changesetModified = true;
+                console.log(
+                  `✓ [CHANGESET SYNC] Auto-registered ${pkgData.name} in .changeset/config.json`,
+                );
+              }
+            }
+          } catch {
+            // Ignore unreadable package.json
+          }
+        }
+      }
+    }
+
+    if (changesetModified) {
+      if (isCheckMode) {
+        hasDiscrepancy = true;
+        console.error(
+          '❌ [OUT OF SYNC] .changeset/config.json is missing one or more workspace packages.',
+        );
+      } else {
+        fs.writeFileSync(
+          changesetConfigPath,
+          JSON.stringify(changesetConfig, null, 2) + '\n',
+          'utf8',
+        );
+        updatedFilesCount++;
+        console.log(`✓ [UPDATED] .changeset/config.json synchronized with workspace packages.`);
+      }
+    }
+  } catch (err) {
+    console.warn(
+      `[sync-docs-version] Warning: failed to check .changeset/config.json:`,
+      err.message,
+    );
+  }
+}
 
 for (const target of targets) {
   const filePath = path.join(rootDir, target.file);
@@ -220,7 +351,9 @@ for (const target of targets) {
   if (newContent !== originalContent) {
     hasDiscrepancy = true;
     if (isCheckMode) {
-      console.error(`❌ [OUT OF SYNC] ${target.file} contains outdated version references (expected v${version})`);
+      console.error(
+        `❌ [OUT OF SYNC] ${target.file} contains outdated version references (expected v${version})`,
+      );
     } else {
       fs.writeFileSync(filePath, newContent, 'utf8');
       updatedFilesCount++;
@@ -231,7 +364,9 @@ for (const target of targets) {
 
 if (isCheckMode) {
   if (hasDiscrepancy) {
-    console.error('\n❌ Version check failed! Run "pnpm sync:docs" to synchronize markdown files and templates.');
+    console.error(
+      '\n❌ Version check failed! Run "pnpm sync:docs" to synchronize markdown files and templates.',
+    );
     process.exit(1);
   } else {
     console.log('✓ All documentation version references are synchronized with ranu@' + version);

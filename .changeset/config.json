@@ -34,7 +34,13 @@
       "@ranu/ai-gemini",
       "@ranu/ai-groq",
       "create-ranujs",
-      "@ranu/template-ai-studio"
+      "@ranu/template-ai-studio",
+      "@hoslift/adapters",
+      "@hoslift/ai",
+      "@hoslift/templates",
+      "@hoslift/integrations",
+      "@hoslift/ui",
+      "@hoslift/tools"
     ]
   ],
   "linked": [],
@@ -44,7 +50,12 @@
   "ignore": [
     "example-*",
     "fixture-*",
-    "test-app"
+    "test-app",
+    "@ranu/adapter-template",
+    "@ranu/plugin-template",
+    "@ranu/integration-template",
+    "@ranu/ui-template",
+    "@ranu/tool-template"
   ],
   "privatePackages": {
     "version": true,

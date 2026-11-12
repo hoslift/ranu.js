@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Ranu.js Official Ecosystem Module Certification & Sponsorship Registry",
+  "modules": {
+    "@ranujs/core": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "create-ranujs": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-node": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-vercel": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-cloudflare": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-bun": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-deno": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-netlify": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/adapter-static": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/ai-claude": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/ai-gemini": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/ai-groq": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/ai-codex": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/ai-custom": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    },
+    "@ranujs/template-ai-studio": {
+      "tier": "community-free",
+      "certified": true,
+      "maintainer": "hoslift"
+    }
+  }
+}

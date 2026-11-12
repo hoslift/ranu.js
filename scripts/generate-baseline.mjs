@@ -34,7 +34,9 @@ for (let i = 0; i < 5; i++) {
     env: { ...process.env, NODE_ENV: 'production' },
   });
   if (res.status !== 0) {
-    throw new Error(`CLI cold startup failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`);
+    throw new Error(
+      `CLI cold startup failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`,
+    );
   }
   cliDurations.push(performance.now() - start);
 }
@@ -53,7 +55,9 @@ for (let i = 0; i < 3; i++) {
     env: { ...process.env, NODE_ENV: 'production' },
   });
   if (res.status !== 0) {
-    throw new Error(`Production build failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`);
+    throw new Error(
+      `Production build failed (exit code ${res.status}):\n${res.stderr || res.stdout || res.error}`,
+    );
   }
   buildDurations.push(performance.now() - start);
 }
@@ -73,7 +77,10 @@ function walk(dir) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walk(full);
-    } else if (entry.isFile() && (entry.name.endsWith('.js') || entry.name.endsWith('.mjs') || entry.name.endsWith('.css'))) {
+    } else if (
+      entry.isFile() &&
+      (entry.name.endsWith('.js') || entry.name.endsWith('.mjs') || entry.name.endsWith('.css'))
+    ) {
       const content = fs.readFileSync(full);
       totalRawBytes += content.length;
       totalGzipBytes += zlib.gzipSync(content).length;

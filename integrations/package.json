@@ -1,0 +1,22 @@
+{
+  "name": "@hoslift/integrations",
+  "version": "0.4.0",
+  "description": "Ranu.js Third-Party Service & Database Connectors (Supabase, Stripe, Resend, MongoDB)",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "main": "./index.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "index.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoslift/ranu.js.git",
+    "directory": "integrations"
+  }
+}

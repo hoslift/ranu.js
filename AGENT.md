@@ -1,6 +1,6 @@
 # Ranu.js Universal Agent Instructions
 
-Welcome to **Ranu.js** (current release: `v0.2.0`).
+Welcome to **Ranu.js** (current release: `v0.4.1`).
 
 Ranu.js is a high-performance React 19 full-stack framework built with Vite, Turborepo, and Web Standards.
 
